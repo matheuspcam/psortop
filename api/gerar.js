@@ -91,11 +91,11 @@ ESTRUTURA:
 Siga EXATAMENTE o modelo de referência fornecido (inclusive estilo, maiúsculas, divisões e organização).
 
 ESTILO DE SAÍDA:
-- Texto contínuo (sem tópicos, salvo se o modelo tiver)
+- Texto contínuo dentro de cada seção (sem tópicos, salvo se o modelo tiver)
 - Alta densidade informativa
 - Padrão de prontuário hospitalar
 - Direto ao ponto
-- Sem linhas em branco extras entre seções além das que já existem no modelo de referência
+- OBRIGATÓRIO: deixe uma linha em branco entre cada seção do prontuário (ex: entre "QD:" e "EXAME FÍSICO:", entre "EXAME FÍSICO:" e "EM TEMPO:" ou "CONDUTA:", etc.). Dentro de uma mesma seção, as linhas ficam coladas sem espaço extra entre si — o espaço em branco é só entre uma seção e a próxima
 
 Se for reavaliação, mantenha coerência com o atendimento inicial informado e destaque a evolução em relação ao quadro inicial.
 
@@ -296,7 +296,7 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
 
 function montarPromptAjuste({ textoAnterior, pedidoAjuste }) {
   return [
-    'Este é um texto de prontuário que você mesmo gerou anteriormente:',
+    'Este é o texto de um prontuário que você mesmo gerou anteriormente (já sem a linha de aviso, que foi exibida separadamente ao médico):',
     '',
     '--- TEXTO ANTERIOR ---',
     textoAnterior,
@@ -305,9 +305,9 @@ function montarPromptAjuste({ textoAnterior, pedidoAjuste }) {
     'O médico pediu o seguinte ajuste:',
     `"${pedidoAjuste}"`,
     '',
-    'Aplique SOMENTE a mudança pedida, mantendo todo o restante do texto exatamente como estava (mesma estrutura, mesmas informações, mesmo estilo).',
+    'Aplique SOMENTE a mudança pedida, mantendo todo o restante do texto exatamente como estava (mesma estrutura, mesmas informações, mesmo estilo, mesmo espaçamento entre seções).',
     'Não refaça o texto do zero. Não adicione nem remova nada além do que foi pedido.',
     'Continue seguindo todas as regras do sistema: sem lacunas, sem colchetes, sem inventar dados clínicos novos.',
-    'Responda apenas com o texto final atualizado, no mesmo formato (aviso no topo se houver, depois o prontuário).'
+    'Responda apenas com o texto final atualizado. Se precisar sinalizar algo novo, use uma linha "⚠️ ATENÇÃO:" no topo; senão, responda só com o prontuário.'
   ].join('\n');
 }
