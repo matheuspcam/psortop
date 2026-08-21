@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>PS Ortop</title>
+<style>
+  :root {
+    --bg: #0f1615;
+    --panel: #161f1e;
+    --panel-border: #26332f;
+    --ink: #e8ede9;
+    --ink-dim: #9caaa3;
+    --accent: #4fb894;
+    --accent-dim: #2c5a4a;
+    --danger: #d97757;
+    --mono: 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px 16px 64px;
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: 640px;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  header h1 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin: 0;
+    color: var(--ink);
+  }
+
+  header .tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-dim);
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+
+  .label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+  }
+
+  .seg {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .seg button {
+    flex: 1;
+    padding: 10px 12px;
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    color: var(--ink-dim);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+
+  .seg button.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--ink);
+  }
+
+  .seg button:hover:not(.active) {
+    border-color: var(--ink-dim);
+  }
+
+  .seg-3 button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 12px 8px;
+    font-size: 13px;
+    line-height: 1.25;
+  }
+
+  .seg-3 button small {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--ink-dim);
+  }
+
+  .seg-3 button.active small {
+    color: var(--ink);
+    opacity: 0.75;
+  }
+
+  textarea, input[type="text"], input[type="password"] {
+    width: 100%;
+    background: #0d1312;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 14px;
+    padding: 12px;
+    resize: vertical;
+    line-height: 1.5;
+  }
+
+  textarea:focus, input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  textarea { min-height: 90px; }
+
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+
+  .tpl-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .tpl-grid button {
+    padding: 12px;
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    color: var(--ink-dim);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    line-height: 1.3;
+  }
+
+  .tpl-grid button.oculto {
+    display: none;
+  }
+
+  .tpl-grid button .letra {
+    display: inline-block;
+    font-family: var(--mono);
+    color: var(--accent);
+    margin-right: 6px;
+  }
+
+  .tpl-grid button.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--ink);
+  }
+
+  .tpl-grid button:hover:not(.active):not(.oculto) {
+    border-color: var(--ink-dim);
+  }
+
+  .hint {
+    font-size: 12px;
+    color: var(--ink-dim);
+    margin-top: 8px;
+    line-height: 1.4;
+  }
+
+  .btn-gerar {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #0f1615;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.12s ease;
+  }
+
+  .btn-gerar:hover { opacity: 0.9; }
+  .btn-gerar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .resultado {
+    display: none;
+  }
+
+  .resultado.show { display: block; }
+
+  .resultado-texto {
+    white-space: pre-wrap;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink);
+    background: #0d1312;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    max-height: 420px;
+    overflow-y: auto;
+  }
+
+  .aviso {
+    color: var(--danger);
+    font-weight: 600;
+  }
+
+  .btn-copiar {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .btn-copiar.copiado {
+    background: var(--accent);
+    color: #0f1615;
+  }
+
+  .erro {
+    color: var(--danger);
+    font-size: 13px;
+    margin-top: 10px;
+    display: none;
+  }
+
+  .erro.show { display: block; }
+
+  .spinner {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink-dim);
+    margin-top: 10px;
+  }
+
+  .spinner.show { display: flex; }
+
+  .spinner .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1s infinite ease-in-out;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+
+  .pin-screen {
+    max-width: 340px;
+    margin: 20vh auto 0;
+    text-align: center;
+  }
+
+  .pin-screen h1 {
+    font-size: 16px;
+    margin-bottom: 20px;
+  }
+
+  .pin-screen input {
+    text-align: center;
+    font-size: 20px;
+    letter-spacing: 0.3em;
+    font-family: var(--mono);
+  }
+
+  .pin-screen button {
+    width: 100%;
+    margin-top: 12px;
+    padding: 12px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #0f1615;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .pin-erro {
+    color: var(--danger);
+    font-size: 13px;
+    margin-top: 10px;
+    display: none;
+  }
+
+  .oculto { display: none !important; }
+
+  @media (max-width: 480px) {
+    .tpl-grid { grid-template-columns: 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="telaPin" class="pin-screen">
+  <h1>PIN de acesso</h1>
+  <input type="password" id="inputPin" inputmode="numeric" maxlength="8" placeholder="••••" autofocus>
+  <button id="btnEntrar">Entrar</button>
+  <div class="pin-erro" id="pinErro">PIN incorreto.</div>
+</div>
+
+<div class="wrap oculto" id="telaApp">
+  <header>
+    <h1>PS Ortop</h1>
+    <span class="tag">prontuário</span>
+  </header>
+
+  <div class="card">
+    <span class="label">Tipo de atendimento</span>
+    <div class="seg seg-3">
+      <button type="button" class="tipo-btn active" data-tipo="inicial">Atendimento inicial<small>vai reavaliar depois</small></button>
+      <button type="button" class="tipo-btn" data-tipo="reavaliacao">Reavaliação<small>de atendimento anterior</small></button>
+      <button type="button" class="tipo-btn" data-tipo="completo">Atendimento completo<small>resolvido nesta consulta</small></button>
+    </div>
+  </div>
+
+  <div class="card oculto" id="blocoInicial">
+    <div class="field">
+      <span class="label">Atendimento inicial (resumo)</span>
+      <textarea id="atendimentoInicial" placeholder="Cole ou digite um resumo do atendimento inicial, para dar contexto e manter coerência..."></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="field">
+      <span class="label" id="labelDados">Dados do caso</span>
+      <textarea id="dadosCaso" placeholder="Escreva do seu jeito, corrido: queixa, achados de exame, o que mudou..."></textarea>
+    </div>
+    <div class="field">
+      <span class="label">Exame / laudo (opcional)</span>
+      <textarea id="extra" placeholder="Cole aqui o resultado de RX, TC, RM ou outro exame, se houver..."></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="label">Modelo de referência</span>
+    <div class="tpl-grid" id="tplGrid">
+      <button type="button" data-t="a" data-grupo="inicial"><span class="letra">a</span>1º Atendimento</button>
+      <button type="button" data-t="b" data-grupo="completo"><span class="letra">b</span>Trauma (Anamnese 1 Etapa)</button>
+      <button type="button" data-t="e" data-grupo="completo"><span class="letra">e</span>Crônico (Lombago — Miguê)</button>
+      <button type="button" data-t="c" data-grupo="reavaliacao"><span class="letra">c</span>Liberação — RX Limpo</button>
+      <button type="button" data-t="d" data-grupo="reavaliacao"><span class="letra">d</span>Liberação — Fratura</button>
+      <button type="button" data-t="f" data-grupo="reavaliacao"><span class="letra">f</span>Canetada Internar</button>
+    </div>
+    <div class="hint" id="tplHint">Pode selecionar mais de um (ex: Fratura + Canetada Internar).</div>
+  </div>
+
+  <button class="btn-gerar" id="btnGerar">Gerar prontuário</button>
+  <div class="spinner" id="spinner"><span class="dot"></span> Gerando...</div>
+  <div class="erro" id="erroMsg"></div>
+
+  <div class="card resultado" id="resultadoCard">
+    <div class="resultado-texto" id="resultadoTexto"></div>
+    <button class="btn-copiar" id="btnCopiar">Copiar texto</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  const telaPin = document.getElementById('telaPin');
+  const telaApp = document.getElementById('telaApp');
+  const inputPin = document.getElementById('inputPin');
+  const btnEntrar = document.getElementById('btnEntrar');
+  const pinErro = document.getElementById('pinErro');
+
+  let pinAtual = sessionStorage.getItem('pin_ps') || '';
+
+  function tentarEntrar() {
+    const v = inputPin.value.trim();
+    if (!v) return;
+    pinAtual = v;
+    sessionStorage.setItem('pin_ps', v);
+    telaPin.classList.add('oculto');
+    telaApp.classList.remove('oculto');
+    pinErro.style.display = 'none';
+  }
+
+  if (pinAtual) {
+    telaPin.classList.add('oculto');
+    telaApp.classList.remove('oculto');
+  }
+
+  btnEntrar.addEventListener('click', tentarEntrar);
+  inputPin.addEventListener('keydown', e => { if (e.key === 'Enter') tentarEntrar(); });
+
+  // --- App principal ---
+  let tipoAtendimento = 'inicial';
+  let templatesSelecionados = [];
+
+  const tipoBtns = document.querySelectorAll('.tipo-btn');
+  const blocoInicial = document.getElementById('blocoInicial');
+  const labelDados = document.getElementById('labelDados');
+  const tplBtns = document.querySelectorAll('#tplGrid button');
+  const tplHint = document.getElementById('tplHint');
+
+  function aplicarFiltroTemplates() {
+    templatesSelecionados = [];
+    tplBtns.forEach(btn => {
+      const grupo = btn.dataset.grupo;
+      const pertence = grupo === tipoAtendimento;
+      btn.classList.remove('active');
+      if (pertence) {
+        btn.classList.remove('oculto');
+      } else {
+        btn.classList.add('oculto');
+      }
+    });
+
+    if (tipoAtendimento === 'inicial') {
+      const unico = document.querySelector('#tplGrid button[data-grupo="inicial"]');
+      unico.classList.add('active');
+      templatesSelecionados = [unico.dataset.t];
+      tplHint.textContent = 'Modelo único para atendimento inicial.';
+    } else if (tipoAtendimento === 'completo') {
+      tplHint.textContent = 'Escolha um: trauma resolvido agora, ou quadro crônico (ex: lombago).';
+    } else {
+      tplHint.textContent = 'Pode selecionar mais de um (ex: Fratura + Canetada Internar).';
+    }
+  }
+
+  tipoBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tipoBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      tipoAtendimento = btn.dataset.tipo;
+
+      if (tipoAtendimento === 'reavaliacao') {
+        blocoInicial.classList.remove('oculto');
+        labelDados.textContent = 'Dados da reavaliação';
+      } else {
+        blocoInicial.classList.add('oculto');
+        labelDados.textContent = 'Dados do caso';
+      }
+
+      aplicarFiltroTemplates();
+    });
+  });
+
+  tplBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.classList.contains('oculto')) return;
+      const t = btn.dataset.t;
+
+      if (tipoAtendimento === 'completo') {
+        tplBtns.forEach(b => { if (b.dataset.grupo === 'completo') b.classList.remove('active'); });
+        templatesSelecionados = [t];
+        btn.classList.add('active');
+        return;
+      }
+
+      if (tipoAtendimento === 'inicial') return;
+
+      if (templatesSelecionados.includes(t)) {
+        templatesSelecionados = templatesSelecionados.filter(x => x !== t);
+        btn.classList.remove('active');
+      } else {
+        templatesSelecionados.push(t);
+        btn.classList.add('active');
+      }
+    });
+  });
+
+  aplicarFiltroTemplates();
+
+  // --- Gerar prontuário ---
+  const btnGerar = document.getElementById('btnGerar');
+  const spinner = document.getElementById('spinner');
+  const erroMsg = document.getElementById('erroMsg');
+  const resultadoCard = document.getElementById('resultadoCard');
+  const resultadoTexto = document.getElementById('resultadoTexto');
+  const btnCopiar = document.getElementById('btnCopiar');
+
+  btnGerar.addEventListener('click', async () => {
+    const dadosCaso = document.getElementById('dadosCaso').value.trim();
+    const atendimentoInicial = document.getElementById('atendimentoInicial').value.trim();
+    const extra = document.getElementById('extra').value.trim();
+
+    erroMsg.classList.remove('show');
+
+    if (!dadosCaso) {
+      erroMsg.textContent = 'Preencha os dados do caso.';
+      erroMsg.classList.add('show');
+      return;
+    }
+    if (templatesSelecionados.length === 0) {
+      erroMsg.textContent = tipoAtendimento === 'completo'
+        ? 'Escolha se é trauma ou quadro crônico.'
+        : 'Selecione ao menos um modelo de referência.';
+      erroMsg.classList.add('show');
+      return;
+    }
+
+    btnGerar.disabled = true;
+    spinner.classList.add('show');
+    resultadoCard.classList.remove('show');
+
+    try {
+      const resp = await fetch('/api/gerar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pin: pinAtual,
+          tipoAtendimento,
+          dadosCaso,
+          atendimentoInicial,
+          extra,
+          template: templatesSelecionados.join('+')
+        })
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        if (resp.status === 401) {
+          sessionStorage.removeItem('pin_ps');
+          erroMsg.textContent = 'PIN incorreto. Recarregue a página.';
+        } else {
+          erroMsg.textContent = data.erro || 'Erro ao gerar o texto.';
+        }
+        erroMsg.classList.add('show');
+        return;
+      }
+
+      let texto = data.texto || '';
+      resultadoTexto.innerHTML = '';
+      if (texto.includes('⚠️ ATENÇÃO:')) {
+        const linhas = texto.split('\n');
+        linhas.forEach(l => {
+          const div = document.createElement('div');
+          if (l.startsWith('⚠️ ATENÇÃO:')) div.className = 'aviso';
+          div.textContent = l;
+          resultadoTexto.appendChild(div);
+        });
+      } else {
+        resultadoTexto.textContent = texto;
+      }
+
+      resultadoCard.classList.add('show');
+      btnCopiar.textContent = 'Copiar texto';
+      btnCopiar.classList.remove('copiado');
+      resultadoCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (e) {
+      erroMsg.textContent = 'Falha de conexão. Verifique a internet e tente novamente.';
+      erroMsg.classList.add('show');
+    } finally {
+      btnGerar.disabled = false;
+      spinner.classList.remove('show');
+    }
+  });
+
+  btnCopiar.addEventListener('click', () => {
+    const texto = resultadoTexto.innerText;
+    navigator.clipboard.writeText(texto).then(() => {
+      btnCopiar.textContent = 'Copiado ✓';
+      btnCopiar.classList.add('copiado');
+      setTimeout(() => {
+        btnCopiar.textContent = 'Copiar texto';
+        btnCopiar.classList.remove('copiado');
+      }, 2000);
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
