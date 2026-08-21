@@ -25,7 +25,7 @@ export default async function handler(req, res) {
 
   try {
     const resposta = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash-lite:generateContent',
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent',
       {
         method: 'POST',
         headers: {
