@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ erro: 'Método não permitido' });
   }
 
-  const { pin, tipoAtendimento, dadosCaso, atendimentoInicial, template, extra } = req.body;
+  const { pin, tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, textoAnterior, pedidoAjuste } = req.body;
 
   if (!process.env.SITE_PIN || pin !== process.env.SITE_PIN) {
     return res.status(401).json({ erro: 'PIN incorreto' });
@@ -19,11 +19,13 @@ export default async function handler(req, res) {
   }
 
   const promptSistema = montarPromptSistema();
-  const promptUsuario = montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra });
+  const promptUsuario = (textoAnterior && pedidoAjuste)
+    ? montarPromptAjuste({ textoAnterior, pedidoAjuste })
+    : montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra });
 
   try {
     const resposta = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent',
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash-lite:generateContent',
       {
         method: 'POST',
         headers: {
@@ -68,16 +70,22 @@ REGRAS GERAIS:
 - Frases curtas e objetivas
 - Não usar termos vagos
 - Sempre incluir elementos de segurança médico-legal quando aplicável
-- Não inventar dados — trabalhar apenas com o que for fornecido
-- Caso faltem informações relevantes, sinalize isso claramente no início da resposta, antes do texto do prontuário
+- Não inventar dados clínicos — trabalhar apenas com o que for fornecido
 - Os dados que o médico envia podem estar corridos, diretos, picotados ou informais — sua função é organizar, corrigir e adequar ao padrão do template, nunca replicar o estilo de escrita recebido
+
+REGRA CRÍTICA — PROIBIDO DEIXAR LACUNAS NO TEXTO FINAL:
+O texto do prontuário será copiado e colado DIRETO em um sistema hospitalar real, sem revisão linha a linha. Por isso:
+- O texto final NUNCA pode conter colchetes, placeholders, reticências, "[a preencher]", "___", parênteses com a palavra "instrução", ou qualquer marcação indicando informação faltante
+- Os modelos de referência abaixo contêm trechos entre parênteses começando com "(instrução: ...)" — esses trechos são orientações PARA VOCÊ seguir ao gerar o texto, e NUNCA devem aparecer, nem parafraseados, no resultado final. Siga a orientação (preencha com o dado informado ou aplique o fallback indicado) e apague o parêntese inteiro do texto de saída
+- Se um dado do template não foi informado e não há fallback genérico indicado, omita a linha ou frase inteira, mantendo o restante do texto coerente
+- Nunca deixe uma frase pela metade ou com um vazio visível
+- Todo e qualquer aviso sobre informação faltante, ambígua, ou assumida vai SOMENTE na linha de aviso no topo (começando com "⚠️ ATENÇÃO:"), nunca dentro do corpo do prontuário
 
 REGRAS DE USO DOS TEMPLATES:
 - Os modelos fornecidos são padrões de redação, não textos para copiar cegamente
 - O exame físico dos modelos está escrito no padrão "tudo normal". Sempre que for informado um achado alterado (dor, edema, deformidade, déficit, limitação etc.), substitua a linha correspondente pelo achado real. Nunca mantenha uma negativa que contradiga o que foi informado
 - As linhas de CONDUTA funcionam como um menu: inclua apenas as que se aplicam ao caso informado. Não inclua imobilização, atestado, internação ou orientação de não apoio se isso não foi mencionado
 - Nunca combine no mesmo texto condutas mutuamente excludentes (ex: alta ambulatorial e indicação de internação)
-- Campos entre colchetes ([SEGMENTO], [TEMPO], [HOSPITAL], [MÉDICO DA RETAGUARDA] etc.) devem ser preenchidos com o que for informado. Se não houver informação suficiente, sinalize isso no início da resposta
 
 ESTRUTURA:
 Siga EXATAMENTE o modelo de referência fornecido (inclusive estilo, maiúsculas, divisões e organização).
@@ -87,10 +95,12 @@ ESTILO DE SAÍDA:
 - Alta densidade informativa
 - Padrão de prontuário hospitalar
 - Direto ao ponto
+- Sem linhas em branco extras entre seções além das que já existem no modelo de referência
 
 Se for reavaliação, mantenha coerência com o atendimento inicial informado e destaque a evolução em relação ao quadro inicial.
 
-Responda SOMENTE com o texto final do prontuário, pronto para copiar. Se precisar sinalizar algo faltante, coloque isso em uma linha separada antes do texto, começando com "⚠️ ATENÇÃO:".`;
+FORMATO DA RESPOSTA:
+Se precisar sinalizar algo faltante, ambíguo ou assumido, coloque isso em uma ou mais linhas no topo, cada uma começando com "⚠️ ATENÇÃO:", seguidas de uma linha em branco, e então o texto do prontuário — já completo, corrido e pronto para copiar, sem nenhuma lacuna.`;
 }
 
 const TEMPLATES = {
@@ -118,7 +128,7 @@ Sem sinais clínicos de trombose venosa profunda.
 
 CONDUTA:
 Solicito radiografias
-Reavaliação após [TEMPO]`
+Reavaliação após (indicar prazo informado pelo médico; se não informado, usar "10 dias" como padrão)`
   },
   b: {
     nome: 'Anamnese Completa em 1 Etapa',
@@ -153,7 +163,7 @@ Esclarecido que a avaliação inicial, inclusive por métodos de imagem, pode n�
 Orientado quanto a sinais de alarme e necessidade de retorno imediato em caso de piora da dor, aumento importante do edema, piora da limitação funcional, alteração de sensibilidade, alteração de força, mudança de coloração do membro, dor desproporcional ou outras intercorrências.
 Paciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.
 
-[LINHAS OPCIONAIS — incluir apenas se aplicável ao caso:]
+(Instrução: as linhas abaixo são OPCIONAIS — inclua no texto final apenas as que se aplicam ao caso informado; nunca copie esta instrução nem os colchetes para o resultado)
 Forneço atestado médico
 Realizada imobilização do segmento acometido com tala gessada suropodálica, em posição funcional, sem intercorrências imediatas.
 Orientado repouso, com elevação do membro acometido e não apoio (NPP), com auxílio de dispositivo de marcha.
@@ -184,7 +194,7 @@ Paciente refere compreensão das orientações, encontrando-se ciente da conduta
     texto: `PSO
 
 EM TEMPO:
-Avalio radiografias do segmento acometido, evidenciando fratura em região de [SEGMENTO], sem sinais de desvio significativo ou instabilidade evidente ao método, passível de tratamento incruento conforme padrão atual.
+Avalio radiografias do segmento acometido, evidenciando fratura, sem sinais de desvio significativo ou instabilidade evidente ao método, passível de tratamento incruento conforme padrão atual. (Instrução: se o médico informou qual segmento/osso, cite-o aqui; se não informou, mantenha a frase genérica "do segmento acometido")
 
 CONDUTA:
 Sem indicação de procedimento ortopédico cirúrgico de urgência no momento.
@@ -196,14 +206,14 @@ Esclarecido que a avaliação inicial, inclusive por métodos de imagem, pode n�
 Orientado quanto a sinais de alarme e necessidade de retorno imediato em caso de piora da dor, aumento importante do edema, piora da limitação funcional, alteração de sensibilidade, alteração de força, mudança de coloração do membro, dor desproporcional ou outras intercorrências.
 Paciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.
 Forneço atestado médico
-Realizada imobilização do segmento acometido com [TIPO DE IMOBILIZAÇÃO], em posição funcional, sem intercorrências imediatas.
+Realizada imobilização do segmento acometido (instrução: use o tipo de imobilização informado pelo médico; se não informado, use "com dispositivo de imobilização adequado ao segmento"), em posição funcional, sem intercorrências imediatas.
 Orientado repouso, com elevação do membro acometido e não apoio (NPP), com auxílio de dispositivo de marcha.`
   },
   e: {
     nome: 'Lombago — Miguê',
     texto: `AP: Nega alergias, comorbidades ou uso de medicações contínuas.
 
-HPMA: Paciente refere lombalgia crônica, com agudização do quadro há [TEMPO].
+HPMA: Paciente refere lombalgia crônica, com agudização do quadro (instrução: use o tempo de evolução informado; se não informado, use "recente").
 Nega história de trauma. Nega febre ou outros sinais flogísticos. Nega perda ponderal. Nega alterações esfincterianas. Nega demais queixas associadas.
 
 EXAME FÍSICO ORTOPÉDICO:
@@ -236,8 +246,8 @@ Alta da ortopedia.`
   f: {
     nome: 'Canetada Internar',
     texto: `CONDUTA:
-Caso encaminhado à equipe de retaguarda cirúrgica do [HOSPITAL].
-Representada na presente data pela equipe do [MÉDICO DA RETAGUARDA].
+Caso encaminhado à equipe de retaguarda cirúrgica (instrução: cite o nome do hospital se informado pelo médico; se não informado, omita o nome do hospital e escreva apenas "à equipe de retaguarda cirúrgica").
+Representada na presente data pela equipe (instrução: cite o nome do médico da retaguarda se informado; se não informado, omita esta frase inteira e sinalize no aviso do topo que o nome da equipe/médico não foi informado).
 Formalmente discutido com a equipe de retaguarda, que, após análise clínica e dos exames disponíveis, indica internação hospitalar para tratamento cirúrgico como conduta definitiva.
 Indicada internação hospitalar para prosseguimento do tratamento cirúrgico.
 Paciente devidamente informado acerca do quadro clínico, da indicação de internação e da proposta terapêutica.
@@ -282,4 +292,22 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
   partes.push(`\nGere o prontuário completo agora, seguindo exatamente a estrutura do(s) modelo(s) acima, adaptado aos dados fornecidos.`);
 
   return partes.join('\n');
+}
+
+function montarPromptAjuste({ textoAnterior, pedidoAjuste }) {
+  return [
+    'Este é um texto de prontuário que você mesmo gerou anteriormente:',
+    '',
+    '--- TEXTO ANTERIOR ---',
+    textoAnterior,
+    '--- FIM DO TEXTO ANTERIOR ---',
+    '',
+    'O médico pediu o seguinte ajuste:',
+    `"${pedidoAjuste}"`,
+    '',
+    'Aplique SOMENTE a mudança pedida, mantendo todo o restante do texto exatamente como estava (mesma estrutura, mesmas informações, mesmo estilo).',
+    'Não refaça o texto do zero. Não adicione nem remova nada além do que foi pedido.',
+    'Continue seguindo todas as regras do sistema: sem lacunas, sem colchetes, sem inventar dados clínicos novos.',
+    'Responda apenas com o texto final atualizado, no mesmo formato (aviso no topo se houver, depois o prontuário).'
+  ].join('\n');
 }
