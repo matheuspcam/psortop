@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ erro: 'Método não permitido' });
   }
 
-  const { pin, tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, textoAnterior, pedidoAjuste } = req.body;
+  const { pin, tipoAtendimento, dadosCaso, atendimentoInicial, template, extra } = req.body;
 
   if (!process.env.SITE_PIN || pin !== process.env.SITE_PIN) {
     return res.status(401).json({ erro: 'PIN incorreto' });
@@ -19,9 +19,7 @@ export default async function handler(req, res) {
   }
 
   const promptSistema = montarPromptSistema();
-  const promptUsuario = (textoAnterior && pedidoAjuste)
-    ? montarPromptAjuste({ textoAnterior, pedidoAjuste })
-    : montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra });
+  const promptUsuario = montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra });
 
   try {
     const resposta = await fetch(
@@ -292,22 +290,4 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
   partes.push(`\nGere o prontuário completo agora, seguindo exatamente a estrutura do(s) modelo(s) acima, adaptado aos dados fornecidos.`);
 
   return partes.join('\n');
-}
-
-function montarPromptAjuste({ textoAnterior, pedidoAjuste }) {
-  return [
-    'Este é o texto de um prontuário que você mesmo gerou anteriormente (já sem a linha de aviso, que foi exibida separadamente ao médico):',
-    '',
-    '--- TEXTO ANTERIOR ---',
-    textoAnterior,
-    '--- FIM DO TEXTO ANTERIOR ---',
-    '',
-    'O médico pediu o seguinte ajuste:',
-    `"${pedidoAjuste}"`,
-    '',
-    'Aplique SOMENTE a mudança pedida, mantendo todo o restante do texto exatamente como estava (mesma estrutura, mesmas informações, mesmo estilo, mesmo espaçamento entre seções).',
-    'Não refaça o texto do zero. Não adicione nem remova nada além do que foi pedido.',
-    'Continue seguindo todas as regras do sistema: sem lacunas, sem colchetes, sem inventar dados clínicos novos.',
-    'Responda apenas com o texto final atualizado. Se precisar sinalizar algo novo, use uma linha "⚠️ ATENÇÃO:" no topo; senão, responda só com o prontuário.'
-  ].join('\n');
 }
