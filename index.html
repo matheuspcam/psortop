@@ -242,19 +242,56 @@
 
   .btn-copiar {
     width: 100%;
-    padding: 12px;
-    background: transparent;
-    border: 1px solid var(--accent);
+    padding: 14px;
+    background: var(--accent);
+    border: none;
     border-radius: 8px;
-    color: var(--accent);
-    font-size: 14px;
-    font-weight: 600;
+    color: #0f1615;
+    font-size: 15px;
+    font-weight: 700;
     cursor: pointer;
+    transition: opacity 0.12s ease;
   }
 
+  .btn-copiar:hover { opacity: 0.9; }
+
   .btn-copiar.copiado {
-    background: var(--accent);
+    background: var(--ink);
     color: #0f1615;
+  }
+
+  .ajuste-bloco {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--panel-border);
+  }
+
+  .ajuste-bloco textarea {
+    min-height: 60px;
+    margin-bottom: 10px;
+  }
+
+  .btn-ajustar {
+    width: 100%;
+    padding: 11px;
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    color: var(--ink-dim);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+
+  .btn-ajustar:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--ink);
+  }
+
+  .btn-ajustar:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .erro {
@@ -398,7 +435,13 @@
 
   <div class="card resultado" id="resultadoCard">
     <div class="resultado-texto" id="resultadoTexto"></div>
-    <button class="btn-copiar" id="btnCopiar">Copiar texto</button>
+    <button class="btn-copiar" id="btnCopiar">📋 Copiar tudo</button>
+
+    <div class="ajuste-bloco">
+      <span class="label">Pedir ajuste (opcional)</span>
+      <textarea id="pedidoAjuste" placeholder="Ex: tira a linha do atestado / deixa mais curto / troca o tempo de retorno para 7 dias..."></textarea>
+      <button class="btn-ajustar" id="btnAjustar">Ajustar texto</button>
+    </div>
   </div>
 </div>
 
@@ -433,6 +476,7 @@
   // --- App principal ---
   let tipoAtendimento = 'inicial';
   let templatesSelecionados = [];
+  let ultimoTextoGerado = ''; // guarda o texto atual, para permitir ajuste sem perder o resultado anterior
 
   const tipoBtns = document.querySelectorAll('.tipo-btn');
   const blocoInicial = document.getElementById('blocoInicial');
@@ -509,13 +553,55 @@
 
   aplicarFiltroTemplates();
 
-  // --- Gerar prontuário ---
+  // --- Gerar / renderizar / ajustar prontuário ---
   const btnGerar = document.getElementById('btnGerar');
   const spinner = document.getElementById('spinner');
   const erroMsg = document.getElementById('erroMsg');
   const resultadoCard = document.getElementById('resultadoCard');
   const resultadoTexto = document.getElementById('resultadoTexto');
   const btnCopiar = document.getElementById('btnCopiar');
+  const pedidoAjuste = document.getElementById('pedidoAjuste');
+  const btnAjustar = document.getElementById('btnAjustar');
+
+  function renderizarResultado(texto) {
+    ultimoTextoGerado = texto;
+    resultadoTexto.innerHTML = '';
+    if (texto.includes('⚠️ ATENÇÃO:')) {
+      const linhas = texto.split('\n');
+      linhas.forEach(l => {
+        const div = document.createElement('div');
+        if (l.startsWith('⚠️ ATENÇÃO:')) div.className = 'aviso';
+        div.textContent = l;
+        resultadoTexto.appendChild(div);
+      });
+    } else {
+      resultadoTexto.textContent = texto;
+    }
+    resultadoCard.classList.add('show');
+    btnCopiar.textContent = '📋 Copiar tudo';
+    btnCopiar.classList.remove('copiado');
+  }
+
+  async function chamarApi(extraPayload) {
+    erroMsg.classList.remove('show');
+    const resp = await fetch('/api/gerar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(extraPayload)
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      if (resp.status === 401) {
+        sessionStorage.removeItem('pin_ps');
+        erroMsg.textContent = 'PIN incorreto. Recarregue a página.';
+      } else {
+        erroMsg.textContent = data.erro || 'Erro ao gerar o texto.';
+      }
+      erroMsg.classList.add('show');
+      return null;
+    }
+    return data.texto || '';
+  }
 
   btnGerar.addEventListener('click', async () => {
     const dadosCaso = document.getElementById('dadosCaso').value.trim();
@@ -540,52 +626,21 @@
     btnGerar.disabled = true;
     spinner.classList.add('show');
     resultadoCard.classList.remove('show');
+    pedidoAjuste.value = '';
 
     try {
-      const resp = await fetch('/api/gerar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pin: pinAtual,
-          tipoAtendimento,
-          dadosCaso,
-          atendimentoInicial,
-          extra,
-          template: templatesSelecionados.join('+')
-        })
+      const texto = await chamarApi({
+        pin: pinAtual,
+        tipoAtendimento,
+        dadosCaso,
+        atendimentoInicial,
+        extra,
+        template: templatesSelecionados.join('+')
       });
-
-      const data = await resp.json();
-
-      if (!resp.ok) {
-        if (resp.status === 401) {
-          sessionStorage.removeItem('pin_ps');
-          erroMsg.textContent = 'PIN incorreto. Recarregue a página.';
-        } else {
-          erroMsg.textContent = data.erro || 'Erro ao gerar o texto.';
-        }
-        erroMsg.classList.add('show');
-        return;
+      if (texto !== null) {
+        renderizarResultado(texto);
+        resultadoCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-
-      let texto = data.texto || '';
-      resultadoTexto.innerHTML = '';
-      if (texto.includes('⚠️ ATENÇÃO:')) {
-        const linhas = texto.split('\n');
-        linhas.forEach(l => {
-          const div = document.createElement('div');
-          if (l.startsWith('⚠️ ATENÇÃO:')) div.className = 'aviso';
-          div.textContent = l;
-          resultadoTexto.appendChild(div);
-        });
-      } else {
-        resultadoTexto.textContent = texto;
-      }
-
-      resultadoCard.classList.add('show');
-      btnCopiar.textContent = 'Copiar texto';
-      btnCopiar.classList.remove('copiado');
-      resultadoCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (e) {
       erroMsg.textContent = 'Falha de conexão. Verifique a internet e tente novamente.';
       erroMsg.classList.add('show');
@@ -595,13 +650,51 @@
     }
   });
 
+  btnAjustar.addEventListener('click', async () => {
+    const pedido = pedidoAjuste.value.trim();
+    if (!pedido) {
+      erroMsg.textContent = 'Escreva o que você quer ajustar no texto.';
+      erroMsg.classList.add('show');
+      return;
+    }
+    if (!ultimoTextoGerado) return;
+
+    btnAjustar.disabled = true;
+    btnAjustar.textContent = 'Ajustando...';
+    erroMsg.classList.remove('show');
+
+    try {
+      const texto = await chamarApi({
+        pin: pinAtual,
+        tipoAtendimento,
+        dadosCaso: document.getElementById('dadosCaso').value.trim(),
+        atendimentoInicial: document.getElementById('atendimentoInicial').value.trim(),
+        extra: document.getElementById('extra').value.trim(),
+        template: templatesSelecionados.join('+'),
+        textoAnterior: ultimoTextoGerado,
+        pedidoAjuste: pedido
+      });
+      if (texto !== null) {
+        renderizarResultado(texto);
+        pedidoAjuste.value = '';
+        resultadoCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } catch (e) {
+      erroMsg.textContent = 'Falha de conexão. Verifique a internet e tente novamente.';
+      erroMsg.classList.add('show');
+    } finally {
+      btnAjustar.disabled = false;
+      btnAjustar.textContent = 'Ajustar texto';
+    }
+  });
+
   btnCopiar.addEventListener('click', () => {
     const texto = resultadoTexto.innerText;
     navigator.clipboard.writeText(texto).then(() => {
       btnCopiar.textContent = 'Copiado ✓';
       btnCopiar.classList.add('copiado');
       setTimeout(() => {
-        btnCopiar.textContent = 'Copiar texto';
+        btnCopiar.textContent = '📋 Copiar tudo';
         btnCopiar.classList.remove('copiado');
       }, 2000);
     });
