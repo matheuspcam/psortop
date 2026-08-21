@@ -40,17 +40,30 @@
 
   header {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     margin-bottom: 20px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid var(--panel-border);
+    padding: 16px 18px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent-dim), var(--panel) 70%);
+    border: 1px solid var(--accent);
+  }
+
+  header .titulo-grupo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  header .icone {
+    font-size: 22px;
+    line-height: 1;
   }
 
   header h1 {
-    font-size: 15px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
     margin: 0;
     color: var(--ink);
   }
@@ -58,7 +71,36 @@
   header .tag {
     font-family: var(--mono);
     font-size: 11px;
+    color: var(--accent);
+    background: rgba(79, 184, 148, 0.12);
+    padding: 4px 9px;
+    border-radius: 6px;
+    border: 1px solid var(--accent-dim);
+  }
+
+  .abas {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .abas button {
+    flex: 1;
+    padding: 9px 12px;
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
     color: var(--ink-dim);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+
+  .abas button.active {
+    background: var(--panel);
+    border-color: var(--accent);
+    color: var(--ink);
   }
 
   .card {
@@ -215,12 +257,6 @@
   .btn-gerar:hover { opacity: 0.9; }
   .btn-gerar:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .resultado {
-    display: none;
-  }
-
-  .resultado.show { display: block; }
-
   .avisoCard {
     display: none;
     background: #2a1f1a;
@@ -235,7 +271,20 @@
 
   .avisoCard.show { display: block; }
 
+  .resultado {
+    display: none;
+  }
+
+  .resultado.show { display: block; }
+
+  .resultado-linha {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
+
   .resultado-texto {
+    flex: 1;
     white-space: pre-wrap;
     font-size: 14px;
     line-height: 1.6;
@@ -244,61 +293,50 @@
     border: 1px solid var(--panel-border);
     border-radius: 8px;
     padding: 16px;
-    margin-bottom: 12px;
+    min-width: 0;
   }
 
-  .btn-copiar {
-    width: 100%;
-    padding: 14px;
+  .btn-copiar-lateral {
+    flex-shrink: 0;
+    width: 44px;
     background: var(--accent);
     border: none;
     border-radius: 8px;
     color: #0f1615;
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 700;
     cursor: pointer;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    letter-spacing: 0.03em;
+    padding: 14px 0;
     transition: opacity 0.12s ease;
   }
 
-  .btn-copiar:hover { opacity: 0.9; }
+  .btn-copiar-lateral:hover { opacity: 0.9; }
 
-  .btn-copiar.copiado {
+  .btn-copiar-lateral.copiado {
     background: var(--ink);
-    color: #0f1615;
   }
 
-  .ajuste-bloco {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--panel-border);
-  }
-
-  .ajuste-bloco textarea {
-    min-height: 60px;
-    margin-bottom: 10px;
-  }
-
-  .btn-ajustar {
+  .btn-recomecar {
     width: 100%;
-    padding: 11px;
+    padding: 12px;
+    margin-top: 14px;
     background: transparent;
-    border: 1px solid var(--panel-border);
+    border: 1px solid var(--danger);
     border-radius: 8px;
-    color: var(--ink-dim);
-    font-size: 13px;
-    font-weight: 600;
+    color: var(--danger);
+    font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.12s ease;
   }
 
-  .btn-ajustar:hover:not(:disabled) {
-    border-color: var(--accent);
-    color: var(--ink);
-  }
-
-  .btn-ajustar:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  .btn-recomecar:hover {
+    background: var(--danger);
+    color: #1a1010;
   }
 
   .erro {
@@ -372,8 +410,37 @@
 
   .oculto { display: none !important; }
 
+  .tpl-editor-item { margin-bottom: 16px; }
+  .tpl-editor-item:last-child { margin-bottom: 0; }
+  .tpl-editor-item .label { display: flex; align-items: center; gap: 6px; }
+  .tpl-editor-item textarea { min-height: 140px; font-family: var(--mono); font-size: 12.5px; }
+  .instrucoes-livres textarea { min-height: 90px; }
+
+  .btn-copiar-templates {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #0f1615;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.12s ease;
+  }
+
+  .btn-copiar-templates:hover { opacity: 0.9; }
+  .btn-copiar-templates.copiado { background: var(--ink); }
+
   @media (max-width: 480px) {
     .tpl-grid { grid-template-columns: 1fr; }
+    .resultado-linha { flex-direction: column; }
+    .btn-copiar-lateral {
+      width: 100%;
+      writing-mode: horizontal-tb;
+      transform: none;
+      padding: 12px;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -385,88 +452,134 @@
 
 <div id="telaPin" class="pin-screen">
   <h1>PIN de acesso</h1>
-  <input type="password" id="inputPin" inputmode="numeric" maxlength="8" placeholder="••••" autofocus>
+  <input type="password" id="inputPin" inputmode="numeric" maxlength="8" placeholder="****" autofocus>
   <button id="btnEntrar">Entrar</button>
   <div class="pin-erro" id="pinErro">PIN incorreto.</div>
 </div>
 
 <div class="wrap oculto" id="telaApp">
   <header>
-    <h1>PS Ortop</h1>
-    <span class="tag">prontuário</span>
+    <div class="titulo-grupo">
+      <span class="icone">&#129439;</span>
+      <h1>PS Ortop</h1>
+    </div>
+    <span class="tag">prontuario</span>
   </header>
 
-  <div class="card">
-    <span class="label">Tipo de atendimento</span>
-    <div class="seg seg-3">
-      <button type="button" class="tipo-btn active" data-tipo="inicial">Atendimento inicial<small>vai reavaliar depois</small></button>
-      <button type="button" class="tipo-btn" data-tipo="reavaliacao">Reavaliação<small>de atendimento anterior</small></button>
-      <button type="button" class="tipo-btn" data-tipo="completo">Atendimento completo<small>resolvido nesta consulta</small></button>
+  <div class="abas">
+    <button type="button" class="aba-btn active" data-aba="gerar">Gerar prontuario</button>
+    <button type="button" class="aba-btn" data-aba="templates">Ver templates</button>
+  </div>
+
+  <div id="abaGerar">
+    <div class="card">
+      <span class="label">Tipo de atendimento</span>
+      <div class="seg seg-3">
+        <button type="button" class="tipo-btn active" data-tipo="inicial">Atendimento inicial<small>vai reavaliar depois</small></button>
+        <button type="button" class="tipo-btn" data-tipo="reavaliacao">Reavaliacao<small>de atendimento anterior</small></button>
+        <button type="button" class="tipo-btn" data-tipo="completo">Atendimento completo<small>resolvido nesta consulta</small></button>
+      </div>
+    </div>
+
+    <div class="card oculto" id="blocoInicial">
+      <div class="field">
+        <span class="label">Atendimento inicial (resumo)</span>
+        <textarea id="atendimentoInicial" placeholder="Cole ou digite um resumo do atendimento inicial, para dar contexto e manter coerencia..."></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <span class="label" id="labelDados">Dados do caso</span>
+        <textarea id="dadosCaso" placeholder="Escreva do seu jeito, corrido: queixa, achados de exame, o que mudou..."></textarea>
+      </div>
+      <div class="field">
+        <span class="label">Exame / laudo (opcional)</span>
+        <textarea id="extra" placeholder="Cole aqui o resultado de RX, TC, RM ou outro exame, se houver..."></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="label">Modelo de referencia</span>
+      <div class="tpl-grid" id="tplGrid">
+        <button type="button" data-t="a" data-grupo="inicial"><span class="letra">a</span>1o Atendimento</button>
+        <button type="button" data-t="b" data-grupo="completo"><span class="letra">b</span>Trauma (Anamnese 1 Etapa)</button>
+        <button type="button" data-t="e" data-grupo="completo"><span class="letra">e</span>Cronico (Lombago - Migue)</button>
+        <button type="button" data-t="c" data-grupo="reavaliacao"><span class="letra">c</span>Liberacao - RX Limpo</button>
+        <button type="button" data-t="d" data-grupo="reavaliacao"><span class="letra">d</span>Liberacao - Fratura</button>
+        <button type="button" data-t="f" data-grupo="reavaliacao"><span class="letra">f</span>Canetada Internar</button>
+      </div>
+      <div class="hint" id="tplHint">Pode selecionar mais de um (ex: Fratura + Canetada Internar).</div>
+    </div>
+
+    <button class="btn-gerar" id="btnGerar">Gerar prontuario</button>
+    <div class="spinner" id="spinner"><span class="dot"></span> Gerando...</div>
+    <div class="erro" id="erroMsg"></div>
+
+    <div class="avisoCard" id="avisoCard"></div>
+
+    <div class="card resultado" id="resultadoCard">
+      <div class="resultado-linha">
+        <div class="resultado-texto" id="resultadoTexto"></div>
+        <button class="btn-copiar-lateral" id="btnCopiarLateral">COPIAR</button>
+      </div>
+      <button class="btn-recomecar" id="btnRecomecar">Comecar de novo</button>
     </div>
   </div>
 
-  <div class="card oculto" id="blocoInicial">
-    <div class="field">
-      <span class="label">Atendimento inicial (resumo)</span>
-      <textarea id="atendimentoInicial" placeholder="Cole ou digite um resumo do atendimento inicial, para dar contexto e manter coerência..."></textarea>
+  <div id="abaTemplates" class="oculto">
+    <div class="card">
+      <div class="hint" style="margin-top:0; margin-bottom:14px;">
+        Edite os textos abaixo a vontade (as mudancas ficam so nesta aba, nesta sessao). Quando terminar, use o botao no final para copiar tudo e cole numa mensagem para o Claude aplicar as mudancas de verdade no site.
+      </div>
+
+      <div class="tpl-editor-item">
+        <span class="label"><span class="letra" style="color:var(--accent); font-family:var(--mono);">a</span> 1o Atendimento</span>
+        <textarea id="tplEdit_a"></textarea>
+      </div>
+      <div class="tpl-editor-item">
+        <span class="label"><span class="letra" style="color:var(--accent); font-family:var(--mono);">b</span> Trauma (Anamnese 1 Etapa)</span>
+        <textarea id="tplEdit_b"></textarea>
+      </div>
+      <div class="tpl-editor-item">
+        <span class="label"><span class="letra" style="color:var(--accent); font-family:var(--mono);">c</span> Liberacao - RX Limpo</span>
+        <textarea id="tplEdit_c"></textarea>
+      </div>
+      <div class="tpl-editor-item">
+        <span class="label"><span class="letra" style="color:var(--accent); font-family:var(--mono);">d</span> Liberacao - Fratura</span>
+        <textarea id="tplEdit_d"></textarea>
+      </div>
+      <div class="tpl-editor-item">
+        <span class="label"><span class="letra" style="color:var(--accent); font-family:var(--mono);">e</span> Cronico (Lombago - Migue)</span>
+        <textarea id="tplEdit_e"></textarea>
+      </div>
+      <div class="tpl-editor-item">
+        <span class="label"><span class="letra" style="color:var(--accent); font-family:var(--mono);">f</span> Canetada Internar</span>
+        <textarea id="tplEdit_f"></textarea>
+      </div>
     </div>
-  </div>
 
-  <div class="card">
-    <div class="field">
-      <span class="label" id="labelDados">Dados do caso</span>
-      <textarea id="dadosCaso" placeholder="Escreva do seu jeito, corrido: queixa, achados de exame, o que mudou..."></textarea>
+    <div class="card instrucoes-livres">
+      <span class="label">Outras instrucoes para o Claude (opcional)</span>
+      <textarea id="instrucoesLivres" placeholder="Ex: muda a cor do botao de gerar / tira o campo de exame opcional / adiciona um template novo para..."></textarea>
     </div>
-    <div class="field">
-      <span class="label">Exame / laudo (opcional)</span>
-      <textarea id="extra" placeholder="Cole aqui o resultado de RX, TC, RM ou outro exame, se houver..."></textarea>
-    </div>
-  </div>
 
-  <div class="card">
-    <span class="label">Modelo de referência</span>
-    <div class="tpl-grid" id="tplGrid">
-      <button type="button" data-t="a" data-grupo="inicial"><span class="letra">a</span>1º Atendimento</button>
-      <button type="button" data-t="b" data-grupo="completo"><span class="letra">b</span>Trauma (Anamnese 1 Etapa)</button>
-      <button type="button" data-t="e" data-grupo="completo"><span class="letra">e</span>Crônico (Lombago — Miguê)</button>
-      <button type="button" data-t="c" data-grupo="reavaliacao"><span class="letra">c</span>Liberação — RX Limpo</button>
-      <button type="button" data-t="d" data-grupo="reavaliacao"><span class="letra">d</span>Liberação — Fratura</button>
-      <button type="button" data-t="f" data-grupo="reavaliacao"><span class="letra">f</span>Canetada Internar</button>
-    </div>
-    <div class="hint" id="tplHint">Pode selecionar mais de um (ex: Fratura + Canetada Internar).</div>
-  </div>
-
-  <button class="btn-gerar" id="btnGerar">Gerar prontuário</button>
-  <div class="spinner" id="spinner"><span class="dot"></span> Gerando...</div>
-  <div class="erro" id="erroMsg"></div>
-
-  <div class="avisoCard" id="avisoCard"></div>
-
-  <div class="card resultado" id="resultadoCard">
-    <button class="btn-copiar" id="btnCopiarTopo">📋 Copiar tudo</button>
-    <div class="resultado-texto" id="resultadoTexto" style="margin-top:12px;"></div>
-    <button class="btn-copiar" id="btnCopiar">📋 Copiar tudo</button>
-
-    <div class="ajuste-bloco">
-      <span class="label">Pedir ajuste (opcional)</span>
-      <textarea id="pedidoAjuste" placeholder="Ex: tira a linha do atestado / deixa mais curto / troca o tempo de retorno para 7 dias..."></textarea>
-      <button class="btn-ajustar" id="btnAjustar">Ajustar texto</button>
-    </div>
+    <button class="btn-copiar-templates" id="btnCopiarTemplates">Copiar para o Claude</button>
   </div>
 </div>
 
 <script>
 (function() {
-  const telaPin = document.getElementById('telaPin');
-  const telaApp = document.getElementById('telaApp');
-  const inputPin = document.getElementById('inputPin');
-  const btnEntrar = document.getElementById('btnEntrar');
-  const pinErro = document.getElementById('pinErro');
+  var telaPin = document.getElementById('telaPin');
+  var telaApp = document.getElementById('telaApp');
+  var inputPin = document.getElementById('inputPin');
+  var btnEntrar = document.getElementById('btnEntrar');
+  var pinErro = document.getElementById('pinErro');
 
-  let pinAtual = sessionStorage.getItem('pin_ps') || '';
+  var pinAtual = sessionStorage.getItem('pin_ps') || '';
 
   function tentarEntrar() {
-    const v = inputPin.value.trim();
+    var v = inputPin.value.trim();
     if (!v) return;
     pinAtual = v;
     sessionStorage.setItem('pin_ps', v);
@@ -481,24 +594,36 @@
   }
 
   btnEntrar.addEventListener('click', tentarEntrar);
-  inputPin.addEventListener('keydown', e => { if (e.key === 'Enter') tentarEntrar(); });
+  inputPin.addEventListener('keydown', function(e) { if (e.key === 'Enter') tentarEntrar(); });
 
-  // --- App principal ---
-  let tipoAtendimento = 'inicial';
-  let templatesSelecionados = [];
-  let ultimoTextoGerado = ''; // guarda o texto atual, para permitir ajuste sem perder o resultado anterior
+  var abaBtns = document.querySelectorAll('.aba-btn');
+  var abaGerar = document.getElementById('abaGerar');
+  var abaTemplates = document.getElementById('abaTemplates');
 
-  const tipoBtns = document.querySelectorAll('.tipo-btn');
-  const blocoInicial = document.getElementById('blocoInicial');
-  const labelDados = document.getElementById('labelDados');
-  const tplBtns = document.querySelectorAll('#tplGrid button');
-  const tplHint = document.getElementById('tplHint');
+  abaBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      abaBtns.forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      var aba = btn.dataset.aba;
+      abaGerar.classList.toggle('oculto', aba !== 'gerar');
+      abaTemplates.classList.toggle('oculto', aba !== 'templates');
+    });
+  });
+
+  var tipoAtendimento = 'inicial';
+  var templatesSelecionados = [];
+
+  var tipoBtns = document.querySelectorAll('.tipo-btn');
+  var blocoInicial = document.getElementById('blocoInicial');
+  var labelDados = document.getElementById('labelDados');
+  var tplBtns = document.querySelectorAll('#tplGrid button');
+  var tplHint = document.getElementById('tplHint');
 
   function aplicarFiltroTemplates() {
     templatesSelecionados = [];
-    tplBtns.forEach(btn => {
-      const grupo = btn.dataset.grupo;
-      const pertence = grupo === tipoAtendimento;
+    tplBtns.forEach(function(btn) {
+      var grupo = btn.dataset.grupo;
+      var pertence = grupo === tipoAtendimento;
       btn.classList.remove('active');
       if (pertence) {
         btn.classList.remove('oculto');
@@ -508,26 +633,26 @@
     });
 
     if (tipoAtendimento === 'inicial') {
-      const unico = document.querySelector('#tplGrid button[data-grupo="inicial"]');
+      var unico = document.querySelector('#tplGrid button[data-grupo="inicial"]');
       unico.classList.add('active');
       templatesSelecionados = [unico.dataset.t];
-      tplHint.textContent = 'Modelo único para atendimento inicial.';
+      tplHint.textContent = 'Modelo unico para atendimento inicial.';
     } else if (tipoAtendimento === 'completo') {
-      tplHint.textContent = 'Escolha um: trauma resolvido agora, ou quadro crônico (ex: lombago).';
+      tplHint.textContent = 'Escolha um: trauma resolvido agora, ou quadro cronico (ex: lombago).';
     } else {
       tplHint.textContent = 'Pode selecionar mais de um (ex: Fratura + Canetada Internar).';
     }
   }
 
-  tipoBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      tipoBtns.forEach(b => b.classList.remove('active'));
+  tipoBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      tipoBtns.forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
       tipoAtendimento = btn.dataset.tipo;
 
       if (tipoAtendimento === 'reavaliacao') {
         blocoInicial.classList.remove('oculto');
-        labelDados.textContent = 'Dados da reavaliação';
+        labelDados.textContent = 'Dados da reavaliacao';
       } else {
         blocoInicial.classList.add('oculto');
         labelDados.textContent = 'Dados do caso';
@@ -537,13 +662,13 @@
     });
   });
 
-  tplBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
+  tplBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
       if (btn.classList.contains('oculto')) return;
-      const t = btn.dataset.t;
+      var t = btn.dataset.t;
 
       if (tipoAtendimento === 'completo') {
-        tplBtns.forEach(b => { if (b.dataset.grupo === 'completo') b.classList.remove('active'); });
+        tplBtns.forEach(function(b) { if (b.dataset.grupo === 'completo') b.classList.remove('active'); });
         templatesSelecionados = [t];
         btn.classList.add('active');
         return;
@@ -551,8 +676,8 @@
 
       if (tipoAtendimento === 'inicial') return;
 
-      if (templatesSelecionados.includes(t)) {
-        templatesSelecionados = templatesSelecionados.filter(x => x !== t);
+      if (templatesSelecionados.indexOf(t) !== -1) {
+        templatesSelecionados = templatesSelecionados.filter(function(x) { return x !== t; });
         btn.classList.remove('active');
       } else {
         templatesSelecionados.push(t);
@@ -563,88 +688,84 @@
 
   aplicarFiltroTemplates();
 
-  // --- Gerar / renderizar / ajustar prontuário ---
-  const btnGerar = document.getElementById('btnGerar');
-  const spinner = document.getElementById('spinner');
-  const erroMsg = document.getElementById('erroMsg');
-  const avisoCard = document.getElementById('avisoCard');
-  const resultadoCard = document.getElementById('resultadoCard');
-  const resultadoTexto = document.getElementById('resultadoTexto');
-  const btnCopiar = document.getElementById('btnCopiar');
-  const btnCopiarTopo = document.getElementById('btnCopiarTopo');
-  const pedidoAjuste = document.getElementById('pedidoAjuste');
-  const btnAjustar = document.getElementById('btnAjustar');
+  var btnGerar = document.getElementById('btnGerar');
+  var spinner = document.getElementById('spinner');
+  var erroMsg = document.getElementById('erroMsg');
+  var avisoCard = document.getElementById('avisoCard');
+  var resultadoCard = document.getElementById('resultadoCard');
+  var resultadoTexto = document.getElementById('resultadoTexto');
+  var btnCopiarLateral = document.getElementById('btnCopiarLateral');
+  var btnRecomecar = document.getElementById('btnRecomecar');
 
-  // Separa qualquer linha de aviso (⚠️ ATENÇÃO:) do corpo do prontuário,
-  // para que o aviso nunca seja incluído no texto copiado.
   function separarAvisoDoTexto(textoCompleto) {
-    const linhas = textoCompleto.split('\n');
-    const avisos = [];
-    const corpo = [];
-    let terminouAvisos = false;
+    var linhas = textoCompleto.split('\n');
+    var avisos = [];
+    var corpo = [];
+    var terminouAvisos = false;
 
-    linhas.forEach(l => {
-      if (!terminouAvisos && l.trim().startsWith('⚠️ ATENÇÃO:')) {
-        avisos.push(l.trim());
-      } else if (!terminouAvisos && l.trim() === '' && avisos.length > 0 && corpo.length === 0) {
-        // linha em branco logo após os avisos: pula, é só separador
+    linhas.forEach(function(l) {
+      var linhaLimpa = l.trim();
+      if (!terminouAvisos && linhaLimpa.indexOf('ATENÇÃO:') === 0) {
+        avisos.push(linhaLimpa);
+      } else if (!terminouAvisos && linhaLimpa === '' && avisos.length > 0 && corpo.length === 0) {
+        // pula linha em branco logo apos os avisos, e so separador
       } else {
         terminouAvisos = true;
         corpo.push(l);
       }
     });
 
-    // remove linhas em branco no início do corpo
     while (corpo.length && corpo[0].trim() === '') corpo.shift();
 
-    return { avisos, corpoTexto: corpo.join('\n') };
+    return { avisos: avisos, corpoTexto: corpo.join('\n') };
   }
 
   function renderizarResultado(textoCompleto) {
-    const { avisos, corpoTexto } = separarAvisoDoTexto(textoCompleto);
+    var resultado = separarAvisoDoTexto(textoCompleto);
+    var avisos = resultado.avisos;
+    var corpoTexto = resultado.corpoTexto;
 
     if (avisos.length) {
-      avisoCard.innerHTML = avisos.map(a => `<div>${a}</div>`).join('');
+      avisoCard.innerHTML = avisos.map(function(a) { return '<div>' + a + '</div>'; }).join('');
       avisoCard.classList.add('show');
     } else {
       avisoCard.classList.remove('show');
       avisoCard.innerHTML = '';
     }
 
-    ultimoTextoGerado = corpoTexto; // guarda só o corpo (sem aviso) para o ciclo de ajuste
     resultadoTexto.textContent = corpoTexto;
     resultadoCard.classList.add('show');
-    [btnCopiar, btnCopiarTopo].forEach(b => {
-      b.textContent = '📋 Copiar tudo';
-      b.classList.remove('copiado');
-    });
+    btnCopiarLateral.textContent = 'COPIAR';
+    btnCopiarLateral.classList.remove('copiado');
   }
 
-  async function chamarApi(extraPayload) {
+  function chamarApi(payload) {
     erroMsg.classList.remove('show');
-    const resp = await fetch('/api/gerar', {
+    return fetch('/api/gerar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(extraPayload)
+      body: JSON.stringify(payload)
+    }).then(function(resp) {
+      return resp.json().then(function(data) {
+        if (!resp.ok) {
+          if (resp.status === 401) {
+            sessionStorage.removeItem('pin_ps');
+            erroMsg.textContent = 'PIN incorreto. Recarregue a pagina.';
+          } else {
+            erroMsg.textContent = data.erro || 'Erro ao gerar o texto.';
+          }
+          erroMsg.classList.add('show');
+          return null;
+        }
+        return data.texto || '';
+      });
     });
-    const data = await resp.json();
-    if (!resp.ok) {
-      if (resp.status === 401) {
-        sessionStorage.removeItem('pin_ps');
-        erroMsg.textContent = 'PIN incorreto. Recarregue a página.';
-      } else {
-        erroMsg.textContent = data.erro || 'Erro ao gerar o texto.';
-      }
-      erroMsg.classList.add('show');
-      return null;
-    }
-    return data.texto || '';
   }
 
-  btnGerar.addEventListener('click', async () => {
-    const dadosCaso = document.getElementById('dadosCaso').value.trim();
-    const atendimentoInicial = document.getElementById('atendimentoInicial').value.trim();
-    const extra = document.getElementById('extra').value.trim();
+  btnGerar.addEventListener('click', function() {
+    var dadosCaso = document.getElementById('dadosCaso').value.trim();
+    var atendimentoInicial = document.getElementById('atendimentoInicial').value.trim();
+    var extra = document.getElementById('extra').value.trim();
 
     erroMsg.classList.remove('show');
 
@@ -655,8 +776,8 @@
     }
     if (templatesSelecionados.length === 0) {
       erroMsg.textContent = tipoAtendimento === 'completo'
-        ? 'Escolha se é trauma ou quadro crônico.'
-        : 'Selecione ao menos um modelo de referência.';
+        ? 'Escolha se e trauma ou quadro cronico.'
+        : 'Selecione ao menos um modelo de referencia.';
       erroMsg.classList.add('show');
       return;
     }
@@ -665,93 +786,114 @@
     spinner.classList.add('show');
     resultadoCard.classList.remove('show');
     avisoCard.classList.remove('show');
-    pedidoAjuste.value = '';
 
-    try {
-      const texto = await chamarApi({
-        pin: pinAtual,
-        tipoAtendimento,
-        dadosCaso,
-        atendimentoInicial,
-        extra,
-        template: templatesSelecionados.join('+')
-      });
-      if (texto !== null) {
+    chamarApi({
+      pin: pinAtual,
+      tipoAtendimento: tipoAtendimento,
+      dadosCaso: dadosCaso,
+      atendimentoInicial: atendimentoInicial,
+      extra: extra,
+      template: templatesSelecionados.join('+')
+    }).then(function(texto) {
+      if (texto !== null && texto !== undefined) {
         renderizarResultado(texto);
         resultadoCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-    } catch (e) {
-      erroMsg.textContent = 'Falha de conexão. Verifique a internet e tente novamente.';
+    }).catch(function() {
+      erroMsg.textContent = 'Falha de conexao. Verifique a internet e tente novamente.';
       erroMsg.classList.add('show');
-    } finally {
+    }).finally(function() {
       btnGerar.disabled = false;
       spinner.classList.remove('show');
-    }
+    });
   });
 
-  btnAjustar.addEventListener('click', async (ev) => {
-    ev.preventDefault();
-    const pedido = pedidoAjuste.value.trim();
-
-    erroMsg.classList.remove('show');
-
-    if (!pedido) {
-      erroMsg.textContent = 'Escreva o que você quer ajustar no texto.';
-      erroMsg.classList.add('show');
-      return;
-    }
-    if (!ultimoTextoGerado) {
-      erroMsg.textContent = 'Gere um prontuário primeiro antes de pedir ajuste.';
-      erroMsg.classList.add('show');
-      return;
-    }
-
-    btnAjustar.disabled = true;
-    btnAjustar.textContent = 'Ajustando...';
-
-    try {
-      const texto = await chamarApi({
-        pin: pinAtual,
-        tipoAtendimento,
-        dadosCaso: document.getElementById('dadosCaso').value.trim(),
-        atendimentoInicial: document.getElementById('atendimentoInicial').value.trim(),
-        extra: document.getElementById('extra').value.trim(),
-        template: templatesSelecionados.join('+'),
-        textoAnterior: ultimoTextoGerado,
-        pedidoAjuste: pedido
-      });
-      if (texto !== null) {
-        renderizarResultado(texto);
-        pedidoAjuste.value = '';
-        resultadoCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    } catch (e) {
-      erroMsg.textContent = 'Falha de conexão ao ajustar. Verifique a internet e tente novamente.';
-      erroMsg.classList.add('show');
-    } finally {
-      btnAjustar.disabled = false;
-      btnAjustar.textContent = 'Ajustar texto';
-    }
-  });
-
-  function copiarTexto() {
-    const texto = resultadoTexto.innerText;
-    navigator.clipboard.writeText(texto).then(() => {
-      [btnCopiar, btnCopiarTopo].forEach(b => {
-        b.textContent = 'Copiado ✓';
-        b.classList.add('copiado');
-      });
-      setTimeout(() => {
-        [btnCopiar, btnCopiarTopo].forEach(b => {
-          b.textContent = '📋 Copiar tudo';
-          b.classList.remove('copiado');
-        });
+  btnCopiarLateral.addEventListener('click', function() {
+    var texto = resultadoTexto.innerText;
+    navigator.clipboard.writeText(texto).then(function() {
+      btnCopiarLateral.textContent = 'COPIADO';
+      btnCopiarLateral.classList.add('copiado');
+      setTimeout(function() {
+        btnCopiarLateral.textContent = 'COPIAR';
+        btnCopiarLateral.classList.remove('copiado');
       }, 2000);
     });
-  }
+  });
 
-  btnCopiar.addEventListener('click', copiarTexto);
-  btnCopiarTopo.addEventListener('click', copiarTexto);
+  btnRecomecar.addEventListener('click', function() {
+    document.getElementById('dadosCaso').value = '';
+    document.getElementById('atendimentoInicial').value = '';
+    document.getElementById('extra').value = '';
+    resultadoCard.classList.remove('show');
+    avisoCard.classList.remove('show');
+    erroMsg.classList.remove('show');
+    resultadoTexto.textContent = '';
+
+    tipoBtns.forEach(function(b) { b.classList.remove('active'); });
+    document.querySelector('.tipo-btn[data-tipo="inicial"]').classList.add('active');
+    tipoAtendimento = 'inicial';
+    blocoInicial.classList.add('oculto');
+    labelDados.textContent = 'Dados do caso';
+    aplicarFiltroTemplates();
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  var TEMPLATES_ATUAIS = {
+    a: "AP: nega alergias, comorbidades ou medicacoes de uso continuo\n\nQD:\n\nEXAME FISICO:\nSem lesoes cutaneas abertas, sem escoriacoes ou sinais de exposicao ossea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensao de partes moles.\nIndolor a palpacao.\nSem pontos de dor focal.\nSem gaps palpaveis ou crepitacoes.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecanicos ou instabilidade grosseira.\nForca motora e sensibilidade preservadas.\nPulsos distais palpaveis e simetricos.\nPerfusao periferica adequada, com tec < 3 segundos.\nSem sinais clinicos de sindrome compartimental.\nSem sinais sugestivos de lesao vascular aguda.\nSem sinais clinicos de trombose venosa profunda.\n\nCONDUTA:\nSolicito radiografias\nReavaliacao apos (indicar prazo informado pelo medico; se nao informado, usar \"10 dias\" como padrao)",
+
+    b: "QD:\n\nEXAME FISICO:\nSem lesoes cutaneas abertas, sem escoriacoes ou sinais de exposicao ossea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensao de partes moles.\nIndolor a palpacao.\nSem pontos de dor focal.\nSem gaps palpaveis ou crepitacoes.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecanicos ou instabilidade grosseira.\nForca motora e sensibilidade preservadas.\nPulsos distais palpaveis e simetricos.\nPerfusao periferica adequada, com tec < 3 segundos.\nSem sinais clinicos de sindrome compartimental.\nSem sinais sugestivos de lesao vascular aguda.\nSem sinais clinicos de trombose venosa profunda.\n\nEM TEMPO:\nAvalio radiografias do segmento acometido, nao evidenciando fraturas, luxacoes ou outras alteracoes osteoarticulares agudas, dentro das limitacoes e sensibilidade do metodo, passiveis de nao identificacao em fases iniciais ou em lesoes de baixa expressao radiografica.\n\nCONDUTA:\nSem indicacao de procedimento ortopedico cirurgico de urgencia no momento.\nPrescrita analgesia para controle algico, associada a orientacoes gerais e crioterapia, se possivel.\nOrientado seguimento ambulatorial com ortopedia, com reavaliacao clinica e radiografica em 10 dias para acompanhamento evolutivo e reavaliacao da conduta instituida.\nExplicado ao paciente o quadro atual e a conduta proposta nesta avaliacao.\nEsclarecido que a evolucao clinica deve ser acompanhada, podendo haver necessidade de reavaliacao conforme resposta ao tratamento e evolucao do quadro, inclusive com possibilidade de mudanca de conduta conforme evolucao.\nEsclarecido que a avaliacao inicial, inclusive por metodos de imagem, pode nao evidenciar todas as lesoes em fases precoces ou de baixa expressao, nao afastando completamente a possibilidade de lesoes associadas, sendo fundamental o acompanhamento evolutivo, com reavaliacao clinica e eventual complementacao propedeutica conforme evolucao do quadro.\nOrientado quanto a sinais de alarme e necessidade de retorno imediato em caso de piora da dor, aumento importante do edema, piora da limitacao funcional, alteracao de sensibilidade, alteracao de forca, mudanca de coloracao do membro, dor desproporcional ou outras intercorrencias.\nPaciente refere compreensao das orientacoes, encontrando-se ciente da conduta adotada.\n\n(Instrucao: as linhas abaixo sao OPCIONAIS - inclua no texto final apenas as que se aplicam ao caso informado; nunca copie esta instrucao para o resultado)\nForneco atestado medico\nRealizada imobilizacao do segmento acometido com tala gessada suropodalica, em posicao funcional, sem intercorrencias imediatas.\nOrientado repouso, com elevacao do membro acometido e nao apoio (NPP), com auxilio de dispositivo de marcha.\nIndicada internacao hospitalar para prosseguimento do tratamento cirurgico.\nPaciente devidamente informado acerca do quadro clinico, da indicacao de internacao e da proposta terapeutica.\nPrestados esclarecimentos quanto aos riscos inerentes ao tratamento proposto, incluindo, entre outros, dor cronica, hemorragia, deiscencia de sutura, infeccao, pseudoartrose, consolidacao viciosa ou nao consolidacao, complicacoes clinicas intercorrentes (tais como infeccoes respiratorias, eventos infecciosos sistemicos e sepse), bem como eventos adversos graves, inclusive obito.\nPaciente refere ter compreendido as informacoes prestadas, encontrando-se ciente e de acordo com a conduta proposta, optando por dar seguimento ao tratamento indicado.",
+
+    c: "PSO\n\nEM TEMPO:\nAvalio radiografias do segmento acometido, nao evidenciando fraturas, luxacoes ou outras alteracoes osteoarticulares agudas, dentro das limitacoes e sensibilidade do metodo, passiveis de nao identificacao em fases iniciais ou em lesoes de baixa expressao radiografica.\n\nCONDUTA:\nSem indicacao de procedimento ortopedico de urgencia no momento.\nPrescrita analgesia para controle algico, associada a orientacoes gerais e crioterapia.\nOrientado repouso relativo, evitando esforcos e impacto sobre o segmento acometido ate reavaliacao.\nOrientado seguimento ambulatorial com ortopedia, com reavaliacao clinica em cerca de 10 dias para acompanhamento evolutivo e reavaliacao da conduta instituida.\nExplicado ao paciente o quadro atual e a conduta proposta nesta avaliacao.\nEsclarecido que a avaliacao inicial, inclusive por metodos de imagem, pode nao evidenciar todas as lesoes em fases precoces, podendo haver necessidade de reavaliacao conforme evolucao clinica e resposta ao tratamento, com eventual complementacao propedeutica.\nOrientado quanto a sinais de alarme e necessidade de retorno imediato em caso de piora da dor, edema progressivo, limitacao funcional importante, alteracao de sensibilidade ou forca, alteracao de coloracao do membro, febre ou outras intercorrencias.\nPaciente refere compreensao das orientacoes, encontrando-se ciente da conduta adotada.",
+
+    d: "PSO\n\nEM TEMPO:\nAvalio radiografias do segmento acometido, evidenciando fratura, sem sinais de desvio significativo ou instabilidade evidente ao metodo, passivel de tratamento incruento conforme padrao atual. (Instrucao: se o medico informou qual segmento/osso, cite-o aqui; se nao informou, mantenha a frase generica \"do segmento acometido\")\n\nCONDUTA:\nSem indicacao de procedimento ortopedico cirurgico de urgencia no momento.\nPrescrita analgesia para controle algico, associada a orientacoes gerais e crioterapia, se possivel.\nOrientado seguimento ambulatorial com ortopedia, com reavaliacao clinica e radiografica em 10 dias para acompanhamento evolutivo e reavaliacao da conduta instituida.\nExplicado ao paciente o quadro atual e a conduta proposta nesta avaliacao.\nEsclarecido que a evolucao clinica deve ser acompanhada, podendo haver necessidade de reavaliacao conforme resposta ao tratamento e evolucao do quadro, inclusive com possibilidade de mudanca de conduta conforme evolucao.\nEsclarecido que a avaliacao inicial, inclusive por metodos de imagem, pode nao evidenciar todas as lesoes em fases precoces ou de baixa expressao, nao afastando completamente a possibilidade de lesoes associadas, sendo fundamental o acompanhamento evolutivo, com reavaliacao clinica e eventual complementacao propedeutica conforme evolucao do quadro.\nOrientado quanto a sinais de alarme e necessidade de retorno imediato em caso de piora da dor, aumento importante do edema, piora da limitacao funcional, alteracao de sensibilidade, alteracao de forca, mudanca de coloracao do membro, dor desproporcional ou outras intercorrencias.\nPaciente refere compreensao das orientacoes, encontrando-se ciente da conduta adotada.\nForneco atestado medico\nRealizada imobilizacao do segmento acometido (instrucao: use o tipo de imobilizacao informado pelo medico; se nao informado, use \"com dispositivo de imobilizacao adequado ao segmento\"), em posicao funcional, sem intercorrencias imediatas.\nOrientado repouso, com elevacao do membro acometido e nao apoio (NPP), com auxilio de dispositivo de marcha.",
+
+    e: "AP: Nega alergias, comorbidades ou uso de medicacoes continuas.\n\nHPMA: Paciente refere lombalgia cronica, com agudizacao do quadro (instrucao: use o tempo de evolucao informado; se nao informado, use \"recente\").\nNega historia de trauma. Nega febre ou outros sinais flogisticos. Nega perda ponderal. Nega alteracoes esfincterianas. Nega demais queixas associadas.\n\nEXAME FISICO ORTOPEDICO:\nSem lesoes cutaneas abertas, sem escoriacoes ou sinais de exposicao ossea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensao de partes moles.\nDor a palpacao da musculatura paravertebral lombar, sem pontos de dor focal.\nSem gaps palpaveis ou crepitacoes.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecanicos ou instabilidade grosseira.\nForca motora e sensibilidade preservadas em membros superiores e inferiores, sem deficits neurologicos evidentes ao exame segmentar.\nPulsos distais palpaveis e simetricos.\nPerfusao periferica adequada, com tec < 3 segundos.\nSem sinais clinicos de sindrome compartimental.\nSem sinais sugestivos de lesao vascular aguda.\nSem sinais clinicos de trombose venosa profunda.\nReflexos patologicos ausentes (Hoffman, Clonus, Babinski e Oppenheim).\n\nCONDUTA:\nSem indicacao de procedimento ortopedico de urgencia no momento.\nInstituida analgesia, associada a orientacoes quanto a medidas fisicas locais, repouso relativo e modificacao temporaria das atividades habituais.\nOferecida realizacao de radiografia nesta avaliacao; em decisao compartilhada, paciente opta por nao realizar o exame no momento, ciente das limitacoes da avaliacao sem exame complementar.\nEsclarecido que o quadro deve ser acompanhado, podendo haver necessidade de reavaliacao conforme evolucao clinica e resposta ao tratamento.\nOrientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogisticos, limitacao funcional progressiva, alteracoes de sensibilidade ou forca, alteracoes esfincterianas ou outras intercorrencias, com recomendacao de retorno imediato ao pronto atendimento se necessario.\nOrientado seguimento ambulatorial.\nPaciente refere compreensao das orientacoes, encontrando-se ciente da conduta adotada.\nSolicito RM ambulatorialmente\nAlta da ortopedia.",
+
+    f: "CONDUTA:\nCaso encaminhado a equipe de retaguarda cirurgica (instrucao: cite o nome do hospital se informado pelo medico; se nao informado, omita o nome do hospital e escreva apenas \"a equipe de retaguarda cirurgica\").\nRepresentada na presente data pela equipe (instrucao: cite o nome do medico da retaguarda se informado; se nao informado, omita esta frase inteira e sinalize no aviso do topo que o nome da equipe/medico nao foi informado).\nFormalmente discutido com a equipe de retaguarda, que, apos analise clinica e dos exames disponiveis, indica internacao hospitalar para tratamento cirurgico como conduta definitiva.\nIndicada internacao hospitalar para prosseguimento do tratamento cirurgico.\nPaciente devidamente informado acerca do quadro clinico, da indicacao de internacao e da proposta terapeutica.\nPrestados esclarecimentos quanto aos riscos inerentes ao tratamento proposto, incluindo, entre outros, dor cronica, hemorragia, deiscencia de sutura, infeccao, pseudoartrose, consolidacao viciosa ou nao consolidacao, complicacoes clinicas intercorrentes (tais como infeccoes respiratorias, eventos infecciosos sistemicos e sepse), bem como eventos adversos graves, inclusive obito.\nPaciente refere ter compreendido as informacoes prestadas, encontrando-se ciente e de acordo com a conduta proposta, optando por dar seguimento ao tratamento indicado."
+  };
+
+  var NOMES_TEMPLATES = {
+    a: '1o Atendimento',
+    b: 'Trauma (Anamnese 1 Etapa)',
+    c: 'Liberacao - RX Limpo',
+    d: 'Liberacao - Fratura',
+    e: 'Cronico (Lombago - Migue)',
+    f: 'Canetada Internar'
+  };
+
+  Object.keys(TEMPLATES_ATUAIS).forEach(function(letra) {
+    document.getElementById('tplEdit_' + letra).value = TEMPLATES_ATUAIS[letra];
+  });
+
+  var btnCopiarTemplates = document.getElementById('btnCopiarTemplates');
+  btnCopiarTemplates.addEventListener('click', function() {
+    var instrucoes = document.getElementById('instrucoesLivres').value.trim();
+
+    var texto = '[INSTRUCAO PARA CLAUDE: os templates abaixo sao a versao atual (possivelmente editada pelo usuario) ';
+    texto += 'da aba "Ver templates" do site PS Ortop. Se algum texto foi alterado em relacao ao que ja esta no arquivo ';
+    texto += 'api/gerar.js, aplique a mudanca substituindo o conteudo correspondente em TEMPLATES. Se houver instrucoes ';
+    texto += 'adicionais no final, aplique-as tambem, no arquivo ou local mais apropriado. Ao final, devolva o(s) ';
+    texto += 'arquivo(s) atualizado(s) prontos para eu substituir no GitHub.]\n\n';
+
+    Object.keys(TEMPLATES_ATUAIS).forEach(function(letra) {
+      var valorAtual = document.getElementById('tplEdit_' + letra).value;
+      texto += '--- ' + letra + ') ' + NOMES_TEMPLATES[letra] + ' ---\n' + valorAtual + '\n\n';
+    });
+
+    if (instrucoes) {
+      texto += '--- OUTRAS INSTRUCOES DO USUARIO ---\n' + instrucoes + '\n';
+    }
+
+    navigator.clipboard.writeText(texto.trim()).then(function() {
+      btnCopiarTemplates.textContent = 'Copiado - cole no chat com o Claude';
+      btnCopiarTemplates.classList.add('copiado');
+      setTimeout(function() {
+        btnCopiarTemplates.textContent = 'Copiar para o Claude';
+        btnCopiarTemplates.classList.remove('copiado');
+      }, 3000);
+    });
+  });
 })();
 </script>
 
