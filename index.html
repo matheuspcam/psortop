@@ -411,6 +411,103 @@
   .oculto { display: none !important; }
 
   .tpl-editor-item { margin-bottom: 16px; }
+
+  /* --- Accordion de textos prontos --- */
+  .cat-prontos {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+
+  .cat-header {
+    width: 100%;
+    padding: 15px 18px;
+    background: transparent;
+    border: none;
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.12s ease;
+  }
+
+  .cat-header:hover { background: rgba(79, 184, 148, 0.06); }
+
+  .cat-header .contador {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--ink-dim);
+    font-family: var(--mono);
+  }
+
+  .cat-header .seta {
+    color: var(--accent);
+    font-size: 12px;
+    transition: transform 0.15s ease;
+    margin-left: 10px;
+  }
+
+  .cat-prontos.aberta .cat-header .seta { transform: rotate(90deg); }
+
+  .cat-body {
+    display: none;
+    padding: 0 14px 14px;
+  }
+
+  .cat-prontos.aberta .cat-body { display: block; }
+
+  .item-pronto {
+    background: #0d1312;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+  }
+
+  .item-pronto:last-child { margin-bottom: 0; }
+
+  .item-pronto-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .item-pronto-titulo {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .btn-copiar-item {
+    flex-shrink: 0;
+    padding: 5px 12px;
+    background: transparent;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+
+  .btn-copiar-item:hover { background: var(--accent); color: #0f1615; }
+  .btn-copiar-item.copiado { background: var(--accent); color: #0f1615; }
+
+  .item-pronto textarea {
+    min-height: 70px;
+    font-size: 12.5px;
+    font-family: var(--mono);
+    line-height: 1.5;
+  }
   .tpl-editor-item:last-child { margin-bottom: 0; }
   .tpl-editor-item .label { display: flex; align-items: center; gap: 6px; }
   .tpl-editor-item textarea { min-height: 140px; font-family: var(--mono); font-size: 12.5px; }
@@ -468,6 +565,7 @@
 
   <div class="abas">
     <button type="button" class="aba-btn active" data-aba="gerar">Gerar prontuário</button>
+    <button type="button" class="aba-btn" data-aba="prontos">Textos prontos</button>
     <button type="button" class="aba-btn" data-aba="templates">Ver templates</button>
   </div>
 
@@ -509,6 +607,7 @@
       <div class="tpl-grid" id="tplGridReavaliacao">
         <button type="button" data-t="c" data-grupo="reavaliacao"><span class="letra">c</span>Liberação — RX Limpo</button>
         <button type="button" data-t="d" data-grupo="reavaliacao"><span class="letra">d</span>Liberação — Fratura</button>
+        <button type="button" data-t="g" data-grupo="reavaliacao"><span class="letra">g</span>Discussão</button>
         <button type="button" data-t="f" data-grupo="reavaliacao"><span class="letra">f</span>Canetada Internar</button>
       </div>
 
@@ -530,6 +629,7 @@
           <button type="button" data-t="e5" data-grupo="completo"><span class="letra">e5</span>Manguito Rotador / Ombralgia</button>
           <button type="button" data-t="e6" data-grupo="completo"><span class="letra">e6</span>Tendinopatia (genérico)</button>
           <button type="button" data-t="e7" data-grupo="completo"><span class="letra">e7</span>Gonalgia Não Traumática</button>
+          <button type="button" data-t="e8" data-grupo="completo"><span class="letra">e8</span>Outro / Genérico</button>
         </div>
       </div>
 
@@ -556,6 +656,13 @@
       </div>
       <button class="btn-recomecar" id="btnRecomecar">Começar de novo</button>
     </div>
+  </div>
+
+  <div id="abaProntos" class="oculto">
+    <div class="hint" style="margin-bottom:12px;">
+      Textos fixos, prontos para copiar e colar direto — não passam pela IA. Clique numa categoria para abrir.
+    </div>
+    <div id="containerProntos"></div>
   </div>
 
   <div id="abaTemplates" class="oculto">
@@ -606,6 +713,7 @@
 
   var abaBtns = document.querySelectorAll('.aba-btn');
   var abaGerar = document.getElementById('abaGerar');
+  var abaProntos = document.getElementById('abaProntos');
   var abaTemplates = document.getElementById('abaTemplates');
 
   abaBtns.forEach(function(btn) {
@@ -614,6 +722,7 @@
       btn.classList.add('active');
       var aba = btn.dataset.aba;
       abaGerar.classList.toggle('oculto', aba !== 'gerar');
+      abaProntos.classList.toggle('oculto', aba !== 'prontos');
       abaTemplates.classList.toggle('oculto', aba !== 'templates');
     });
   });
@@ -913,7 +1022,11 @@
 
     e7: "HDA: Paciente refere dor crônica no joelho (instrução: D/E se informado) com piora há (instrução: tempo informado), sem trauma recente.\nRefere piora à deambulação / flexão / subir e descer escadas / esforço (instrução: citar as que forem informadas).\nNega febre.\nNega sinais sistêmicos.\nNega outras queixas relevantes no momento.\n\nEXAME FÍSICO:\nSem deformidade importante.\nSem sinais flogísticos exuberantes.\nDor à palpação da (instrução: interlinha articular / compartimento medial / compartimento lateral / região patelofemoral, conforme informado).\nSem crepitações grosseiras.\nAmplitude de movimento preservada ou limitada por dor.\nSem instabilidade grosseira ao exame inicial.\nNeurovascular distal preservado.\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência neste momento.\nPrescritas analgesia e orientações gerais.\nOrientado evitar sobrecarga e atividades de impacto até melhora.\n(Instrução: as linhas abaixo — RM, RX, fisioterapia — são um MENU. Inclua apenas as que o médico mencionou ter solicitado ou oferecido.)\nSolicito RM e encaminho ao ambulatório para reavaliação e seguimento.\nOfereço RX e paciente decide por não realizar o exame hoje, mantendo apenas a solicitação de RM ambulatorial.\nFisioterapia.\nExplicado ao paciente o quadro atual e a conduta proposta nesta avaliação.\nEsclarecido que a evolução clínica deve ser acompanhada, podendo haver necessidade de reavaliação conforme resposta ao tratamento e investigação complementar.\nOrientado quanto a sinais de alarme e necessidade de retorno em caso de febre, edema importante, incapacidade funcional progressiva ou outras intercorrências.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.",
 
-    f: "EM TEMPO:\nAvalio radiografias do segmento acometido, evidenciando fratura (instrução: se o médico informou qual segmento/osso, cite-o aqui; se não informou, mantenha a frase genérica \"do segmento acometido\"), sem indicação de tratamento incruento, com necessidade de abordagem cirúrgica.\n\nCONDUTA:\nCaso encaminhado à equipe de retaguarda cirúrgica (instrução: cite o nome do hospital se informado pelo médico; se não informado, omita o nome do hospital e escreva apenas \"à equipe de retaguarda cirúrgica\").\nRepresentada na presente data pela equipe (instrução: cite o nome do médico da retaguarda se informado; se não informado, omita esta frase inteira e sinalize no aviso do topo que o nome da equipe/médico não foi informado).\n(Instrução: a linha abaixo — sobre discussão formal com a equipe de retaguarda — é OPCIONAL. Inclua apenas se o médico mencionar que discutiu o caso com a equipe; se ele apenas indicou internação sem mencionar discussão prévia, omita esta linha inteira e vá direto para \"Indicada internação hospitalar...\")\nFormalmente discutido com a equipe de retaguarda, que, após análise clínica e dos exames disponíveis, indica internação hospitalar para tratamento cirúrgico como conduta definitiva.\nIndicada internação hospitalar para prosseguimento do tratamento cirúrgico.\nPaciente devidamente informado acerca do quadro clínico, da indicação de internação e da proposta terapêutica.\nPrestados esclarecimentos quanto aos riscos inerentes ao tratamento proposto, incluindo, entre outros, dor crônica, hemorragia, deiscência de sutura, infecção, pseudoartrose, consolidação viciosa ou não consolidação, complicações clínicas intercorrentes (tais como infecções respiratórias, eventos infecciosos sistêmicos e sepse), bem como eventos adversos graves, inclusive óbito.\nPaciente refere ter compreendido as informações prestadas, encontrando-se ciente e de acordo com a conduta proposta, optando por dar seguimento ao tratamento indicado."
+    e8: "HDA: Paciente refere quadro de (instrução: use a queixa e o segmento informados pelo médico — ex: \"dor em quadril direito\", \"dor em cotovelo esquerdo\") de caráter crônico (instrução: acrescente o tempo de evolução e/ou padrão de piora apenas se informados; se não informados, não force referência temporal).\nNega trauma agudo relacionado à queixa atual.\nNega febre.\nNega déficit sensitivo ou motor.\nNega demais queixas associadas.\n\nEXAME FÍSICO:\nSem lesões cutâneas.\nSem deformidade evidente.\nSem sinais flogísticos exuberantes.\nDor à palpação (instrução: cite a região/estrutura específica informada pelo médico; se não informada, use \"no segmento acometido\").\nSem crepitações ou bloqueio articular.\nAmplitude de movimento preservada ou limitada por dor.\nForça muscular preservada.\nNeurovascular distal preservado.\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência neste momento.\nPrescritas analgesia e orientações gerais.\nOrientado repouso relativo, modificação temporária de atividades e medidas locais.\n(Instrução: inclua exames complementares — RX, USG, RM — e/ou fisioterapia e/ou encaminhamento ambulatorial APENAS se o médico mencionou. Cite o exame e a região coerentes com o segmento informado. Não invente exames.)\nExplicado ao paciente o quadro atual e a conduta proposta nesta avaliação.\nEsclarecido que a evolução clínica deve ser acompanhada, podendo haver necessidade de reavaliação conforme resposta ao tratamento.\nOrientado quanto a sinais de alarme e necessidade de retorno em caso de piora, sinais flogísticos importantes, déficit funcional progressivo ou outras intercorrências.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.",
+
+    f: "EM TEMPO:\nAvalio radiografias do segmento acometido, evidenciando fratura (instrução: se o médico informou qual segmento/osso, cite-o aqui; se não informou, mantenha a frase genérica \"do segmento acometido\"), sem indicação de tratamento incruento, com necessidade de abordagem cirúrgica.\n\nCONDUTA:\nCaso encaminhado à equipe de retaguarda cirúrgica (instrução: cite o nome do hospital se informado pelo médico; se não informado, omita o nome do hospital e escreva apenas \"à equipe de retaguarda cirúrgica\").\nRepresentada na presente data pela equipe (instrução: cite o nome do médico da retaguarda se informado; se não informado, omita esta frase inteira e sinalize no aviso do topo que o nome da equipe/médico não foi informado).\n(Instrução: a linha abaixo — sobre discussão formal com a equipe de retaguarda — é OPCIONAL. Inclua apenas se o médico mencionar que discutiu o caso com a equipe; se ele apenas indicou internação sem mencionar discussão prévia, omita esta linha inteira e vá direto para \"Indicada internação hospitalar...\")\nFormalmente discutido com a equipe de retaguarda, que, após análise clínica e dos exames disponíveis, indica internação hospitalar para tratamento cirúrgico como conduta definitiva.\nIndicada internação hospitalar para prosseguimento do tratamento cirúrgico.\nPaciente devidamente informado acerca do quadro clínico, da indicação de internação e da proposta terapêutica.\nPrestados esclarecimentos quanto aos riscos inerentes ao tratamento proposto, incluindo, entre outros, dor crônica, hemorragia, deiscência de sutura, infecção, pseudoartrose, consolidação viciosa ou não consolidação, complicações clínicas intercorrentes (tais como infecções respiratórias, eventos infecciosos sistêmicos e sepse), bem como eventos adversos graves, inclusive óbito.\nPaciente refere ter compreendido as informações prestadas, encontrando-se ciente e de acordo com a conduta proposta, optando por dar seguimento ao tratamento indicado.",
+
+    g: "CONDUTA:\nExplico ao paciente e ao familiar as possíveis modalidades de tratamento, tanto cirúrgico quanto conservador, bem como os riscos e benefícios envolvidos em cada uma delas.\nOriento sobre a gravidade da fratura e suas possíveis complicações, incluindo limitação do arco de movimento, déficit funcional, dor crônica e/ou deformidade residual.\nApós esclarecimentos, opta-se, neste momento, pelo tratamento conservador.\nInformo ao paciente e ao familiar que o caso será encaminhado para discussão e reavaliação pela equipe do Trauma Ortopédico, que realizará contato para agendamento de uma avaliação complementar ambulatorial em breve, com o objetivo de reavaliar a lesão e definir a conduta definitiva em conjunto com o paciente e seus familiares."
   };
 
   var NOMES_TEMPLATES = {
@@ -928,8 +1041,219 @@
     e5: "Crônico — Manguito Rotador / Ombralgia",
     e6: "Crônico — Tendinopatia (modelo genérico)",
     e7: "Crônico — Gonalgia Não Traumática",
-    f: "Canetada Internar"
+    e8: "Crônico — Outro / Genérico",
+    f: "Canetada Internar",
+    g: "Discussão"
   };
+
+  var TEXTOS_PRONTOS = [
+    {
+      "categoria": "Retorno",
+      "itens": [
+        {
+          "titulo": "Retorno Ambulatorial — Após Trauma",
+          "texto": "Solicito agendamento de retorno ambulatorial com ortopedista especialista neste serviço, em 10 dias, para reavaliação clínica e acompanhamento evolutivo."
+        },
+        {
+          "titulo": "Retorno PS — Após Trauma",
+          "texto": "Solicito retorno via pronto-socorro com ortopedista neste serviço, em 7 dias, para reavaliação clínica e acompanhamento evolutivo."
+        },
+        {
+          "titulo": "Retorno Ambulatorial — Após Exame",
+          "texto": "Solicito agendamento de retorno ambulatorial com ortopedista especialista neste serviço, após a realização do exame solicitado nesta avaliação, para reavaliação clínica e definição de conduta."
+        }
+      ]
+    },
+    {
+      "categoria": "Medicações",
+      "itens": [
+        {
+          "titulo": "SUS — Uso Oral",
+          "texto": "USO ORAL:\n\nDIPIRONA 500MG _____________________________________________\nTOMAR 02 COMPRIMIDOS DE 6/6 HORAS, SE APRESENTAR DOR\n\nCETOPROFENO 100MG __________________________________________\nTOMAR 01 COMPRIMIDO DE 12/12 HORAS, POR 05 DIAS\n\nCICLOBENZAPRINA 10MG _______________________________________\nTOMAR 01 COMPRIMIDO AO DIA, TOMAR A NOITE, POR 05 DIAS\n\nTRAMADOL 50MG ______________________________________________\nTOMAR 01 COMPRIMIDO DE 8/8 HORAS, SE APRESENTAR DOR INTENSA\n\nPARACETAMOL + CODEÍNA 500MG/30MG ___________________________\nTOMAR 01 COMPRIMIDO DE 8/8 HORAS, SE APRESENTAR DOR INTENSA"
+        },
+        {
+          "titulo": "Convênio — Uso Oral",
+          "texto": "USO ORAL:\n\n- NOVALGINA 1G\nTOMAR 01 COMPRIMIDO DE 6/6H SE DOR E POR, NO MÁXIMO, 7 DIAS\n\n- ALGINAC RETARD\nTOMAR 01 COMPRIMIDO AO DIA, SE DOR FORTE, POR ATÉ 5 DIAS\n\n- TRAMAL 50MG\nTOMAR 01 COMPRIMIDO DE 8/8H, SE DOR MUITO FORTE, POR ATÉ 5 DIAS\n\n- MIOSAN 10MG\nTOMAR 01 COMPRIMIDO 1X À NOITE POR 5 NOITES"
+        },
+        {
+          "titulo": "Pediátrico — Gotas",
+          "texto": "USO ORAL\n\nDIPIRONA 500MG/ML _____________________________________________\nTOMAR 01 GOTA/KG (MÁXIMO DE 40 GOTAS) DE 6/6 HORAS, SE APRESENTAR DOR\n\nIBUPROFENO 100MG/ML __________________________________________\nTOMAR 01 GOTA/KG (MÁXIMO DE 40 GOTAS) DE 12/12 HORAS, SE APRESENTAR DOR, POR ATÉ 05 DIAS."
+        },
+        {
+          "titulo": "Pediátrico — Marcas",
+          "texto": "USO ORAL\n\n1. ALIVIUM GC 200 MG/ML_________ 1 FRASCO\nTOMAR GOTAS VIA ORAL DE 8/8 HORAS SE DOR, POR ATÉ 05 DIAS.\n\n2. PRATIUM 140 MG/ML_____________ 1 FRASCO\nTOMAR GOTAS VIA ORAL DE 6/6 HORAS SE DOR.\n\n3. LISADOR DIP 500 MG/ML ____________ 1 FRASCO\nTOMAR GOTAS VIA ORAL DE 6/6 HORAS SE DOR.\n\n4. ONDIF 4MG ______________________ 10 FILMES\nTOMAR 1 FILME DISPERSÍVEL NA LÍNGUA DE 8/8H SE NÁUSEAS OU VÔMITOS."
+        },
+        {
+          "titulo": "Antibiótico",
+          "texto": "USO ORAL\n\nCEFALEXINA 500MG ___________________________________________\nTOMAR 01 COMPRIMIDO DE 6/6 HORAS, POR 14 DIAS"
+        },
+        {
+          "titulo": "Injetável — Dexa-Citoneurin",
+          "texto": "USO INJETÁVEL\n1) Dexa-Citoneurin NFF -------------------------------------------------------------------------- 3 AMPOLAS\nCianocobalamina 5.000mcg + Dexametasona 4mg + Piridoxina 100mg + Tiamina 100mg\n- Aplicar 1 ampola via intramuscular profunda a cada 3 dias (em um total de 3 aplicações)"
+        },
+        {
+          "titulo": "Crioterapia",
+          "texto": "USO TÓPICO\n- REALIZAR COMPRESSA FRIA (GELO) NO LOCAL INDICADO, 3 A 4 VEZES AO DIA, POR 15 A 20 MINUTOS EM CADA APLICAÇÃO, PROTEGENDO A PELE COM PANO OU TOALHA PARA EVITAR CONTATO DIRETO DO GELO COM A PELE."
+        },
+        {
+          "titulo": "Insulina — Esquema",
+          "texto": "APLICAR INSULINA REGULAR, SE DEXTRO:\n180-200: 2UI\n201-250: 4UI\n251-300: 6UI\n301-350: 8UI\n351-400: 10UI\n>400: 12 UI INFORMAR EQUIPE MÉDICA"
+        }
+      ]
+    },
+    {
+      "categoria": "Imobilizações",
+      "itens": [
+        {
+          "titulo": "Muletas",
+          "texto": "USO ORTOPÉDICO\n1) 01 PAR DE MULETAS__________________________\nUTILIZAR ATÉ REAVALIAÇÃO ORTOPÉDICA CONFORME RETORNO MÉDICO ENTREGUE"
+        },
+        {
+          "titulo": "Brace de Joelho",
+          "texto": "USO ORTOPÉDICO\n1) BRACE DE JOELHO______________________\nUTILIZAR NO MEMBRO AFETADO ATÉ REAVALIAÇÃO ORTOPÉDICA CONFORME RETORNO MÉDICO ENTREGUE"
+        },
+        {
+          "titulo": "Robofoot",
+          "texto": "USO ORTOPÉDICO\n1) ROBOFOOT_____________________\nUTILIZAR NO MEMBRO AFETADO ATÉ REAVALIAÇÃO ORTOPÉDICA CONFORME RETORNO MÉDICO ENTREGUE"
+        },
+        {
+          "titulo": "Sandália Baruk",
+          "texto": "USO ORTOPÉDICO\n1) SANDALIA BARUK________________________\nUTILIZAR NO MEMBRO AFETADO ATÉ REAVALIAÇÃO ORTOPÉDICA CONFORME RETORNO MÉDICO ENTREGUE"
+        },
+        {
+          "titulo": "Órtese Antebraquiopalmar",
+          "texto": "USO ORTOPÉDICO\n1) ÓRTESE ANTEBRAQUEOPALMAR COM BLOQUEIO DE POLEGAR__________________\nUTILIZAR NO MEMBRO AFETADO ATÉ REAVALIAÇÃO ORTOPÉDICA CONFORME RETORNO MÉDICO ENTREGUE"
+        },
+        {
+          "titulo": "Tipoia de Velpeau",
+          "texto": "USO ORTOPÉDICO\n1) TIPOIA DE VELPEAU________________________\nUTILIZAR NO MEMBRO AFETADO ATÉ REAVALIAÇÃO ORTOPÉDICA CONFORME RETORNO MÉDICO ENTREGUE"
+        }
+      ]
+    },
+    {
+      "categoria": "Evasão",
+      "itens": [
+        {
+          "titulo": "Evasão — Primeiro Atendimento",
+          "texto": "PACIENTE CONVOCADO NOMINALMENTE PARA ATENDIMENTO POR MEIO DE SISTEMA SONORO E CHAMADA PRESENCIAL EM SALA DE ESPERA, SEM SUCESSO. REALIZADAS BUSCAS NAS DEPENDÊNCIAS DA UNIDADE, PORÉM O PACIENTE NÃO FOI LOCALIZADO PARA CONTINUIDADE DA ASSISTÊNCIA MÉDICA.\nDIANTE DA IMPOSSIBILIDADE DE PROSSEGUIR COM O EXAME FÍSICO, DIAGNÓSTICO OU CONDUTA TERAPÊUTICA DEVIDO À AUSÊNCIA DO PACIENTE, REGISTRO A EVASÃO DO MESMO DA UNIDADE DE SAÚDE. ENCERRO O ATENDIMENTO POR ABANDONO/EVASÃO ATÉ A PRESENTE HORA."
+        },
+        {
+          "titulo": "Evasão — Reavaliação / Plantão Noturno",
+          "texto": "ASSUMO O PLANTÃO NOTURNO.\nCHECO LISTA DE PACIENTES AGUARDANDO REAVALIAÇÃO E VERIFICO A PRESENÇA DO MESMO NO SISTEMA.\nCHAMO NO SISTEMA, NOMINALMENTE NA SALA DE ESPERA POR TRÊS VEZES CONSECUTIVAS, EM VOZ AUDÍVEL, E PROCURO PRESENCIALMENTE NAS DEPENDÊNCIAS DA UNIDADE, SEM SUCESSO NA SUA LOCALIZAÇÃO.\nDIANTE DA AUSÊNCIA DO PACIENTE NO MOMENTO DA CHAMADA E DA IMPOSSIBILIDADE DE REALIZAR A REAVALIAÇÃO ORTOPÉDICA, REGISTRO A EVASÃO DELE DA UNIDADE HOSPITALAR."
+        }
+      ]
+    },
+    {
+      "categoria": "Atestados",
+      "itens": [
+        {
+          "titulo": "Atestado de Trabalho",
+          "texto": "Atesto, para os devidos fins, que o paciente acima identificado foi avaliado por mim nesta data, havendo indicação de afastamento de suas atividades laborais pelo período de ____ (____) dias, a contar desta data.\n\nCID-10: ______\n\nAutorizo a inclusão do CID neste documento.\n\nAssinatura do paciente/responsável: ____________________________________"
+        },
+        {
+          "titulo": "Atestado Pediatria",
+          "texto": "Atesto, para os devidos fins, que o paciente acima identificado foi avaliado por mim nesta data, havendo indicação de dispensa das aulas de educação física e demais atividades esportivas pelo período de ____ (____) dias."
+        }
+      ]
+    },
+    {
+      "categoria": "Exames",
+      "itens": [
+        {
+          "titulo": "RNM Coluna Lombar",
+          "texto": "SOLICITO:\nRNM de Coluna Lombar\nDiagnóstico: Lombalgia\nCID-10: M54.5"
+        },
+        {
+          "titulo": "RNM Joelho",
+          "texto": "SOLICITO:\nRNM de Joelho\nDiagnóstico: Dor Articular / Contusão\nCID-10: M25.5 (Dor articular) ou S80.0 (Contusão)"
+        },
+        {
+          "titulo": "RNM Ombro",
+          "texto": "SOLICITO:\nRNM de Ombro\nDiagnóstico: Suspeita de Lesão de Manguito Rotador\nCID-10: M75 (Lesões do ombro)"
+        },
+        {
+          "titulo": "RNM Tornozelo e Pé",
+          "texto": "SOLICITO:\nRNM de Tornozelo e Pé\nDiagnóstico: Entorse de Tornozelo / Contusão\nCID-10: S93.4 (Entorse e distensão) ou S90.0 (Contusão)"
+        },
+        {
+          "titulo": "USG Pé — Fascite Plantar",
+          "texto": "SOLICITO:\nUSG de Pé Esquerdo (Fascite Plantar)\nDiagnóstico: Suspeita de Fascite Plantar\nCID-10: M72.2 (Fibromatose fascial / Fascite plantar)"
+        }
+      ]
+    },
+    {
+      "categoria": "Fisioterapia",
+      "itens": [
+        {
+          "titulo": "Fisioterapia — Lombalgia",
+          "texto": "SOLICITO:\n10 sessões de fisioterapia\nDiagnóstico: Lombalgia\nCID-10: M54.5"
+        }
+      ]
+    }
+  ];
+
+  // --- Aba: Textos prontos (accordion) ---
+  var containerProntos = document.getElementById('containerProntos');
+
+  TEXTOS_PRONTOS.forEach(function(cat, catIdx) {
+    var catDiv = document.createElement('div');
+    catDiv.className = 'cat-prontos';
+
+    var header = document.createElement('button');
+    header.type = 'button';
+    header.className = 'cat-header';
+    header.innerHTML = '<span><span class="seta">&#9654;</span> ' + cat.categoria + '</span><span class="contador">' + cat.itens.length + '</span>';
+
+    var body = document.createElement('div');
+    body.className = 'cat-body';
+
+    cat.itens.forEach(function(item, itemIdx) {
+      var itemDiv = document.createElement('div');
+      itemDiv.className = 'item-pronto';
+
+      var topo = document.createElement('div');
+      topo.className = 'item-pronto-topo';
+
+      var titulo = document.createElement('span');
+      titulo.className = 'item-pronto-titulo';
+      titulo.textContent = item.titulo;
+
+      var btnCopiar = document.createElement('button');
+      btnCopiar.type = 'button';
+      btnCopiar.className = 'btn-copiar-item';
+      btnCopiar.textContent = 'Copiar';
+
+      var ta = document.createElement('textarea');
+      ta.value = item.texto;
+      ta.id = 'pronto_' + catIdx + '_' + itemIdx;
+      ta.rows = Math.min(12, item.texto.split('\n').length + 1);
+
+      btnCopiar.addEventListener('click', function() {
+        navigator.clipboard.writeText(ta.value).then(function() {
+          btnCopiar.textContent = 'Copiado';
+          btnCopiar.classList.add('copiado');
+          setTimeout(function() {
+            btnCopiar.textContent = 'Copiar';
+            btnCopiar.classList.remove('copiado');
+          }, 1800);
+        });
+      });
+
+      topo.appendChild(titulo);
+      topo.appendChild(btnCopiar);
+      itemDiv.appendChild(topo);
+      itemDiv.appendChild(ta);
+      body.appendChild(itemDiv);
+    });
+
+    header.addEventListener('click', function() {
+      catDiv.classList.toggle('aberta');
+    });
+
+    catDiv.appendChild(header);
+    catDiv.appendChild(body);
+    containerProntos.appendChild(catDiv);
+  });
 
   var containerEditor = document.getElementById('containerTemplatesEditor');
   var ordemTemplates = Object.keys(TEMPLATES_ATUAIS);
