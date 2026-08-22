@@ -7,14 +7,15 @@
 <title>PS Ortop</title>
 <style>
   :root {
-    --bg: #0f1615;
-    --panel: #161f1e;
-    --panel-border: #26332f;
-    --ink: #e8ede9;
-    --ink-dim: #9caaa3;
-    --accent: #4fb894;
-    --accent-dim: #2c5a4a;
-    --danger: #d97757;
+    --bg: #eef1ee;
+    --panel: #ffffff;
+    --panel-border: #d3dad4;
+    --ink: #1d2b26;
+    --ink-dim: #5f7169;
+    --accent: #1e7a5a;
+    --accent-dim: #d8ece3;
+    --danger: #b3502e;
+    --danger-bg: #fdf0eb;
     --mono: 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
     --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
@@ -39,43 +40,38 @@
   }
 
   header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    padding: 16px 18px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, var(--accent-dim), var(--panel) 70%);
-    border: 1px solid var(--accent);
-  }
-
-  header .titulo-grupo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    text-align: center;
+    margin-bottom: 22px;
+    padding: 22px 18px 20px;
+    border-radius: 14px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-top: 3px solid var(--accent);
   }
 
   header .icone {
-    font-size: 22px;
+    display: block;
+    font-size: 30px;
     line-height: 1;
+    margin-bottom: 8px;
   }
 
   header h1 {
-    font-size: 17px;
+    font-size: 20px;
     font-weight: 700;
-    letter-spacing: 0.01em;
+    letter-spacing: -0.01em;
     margin: 0;
     color: var(--ink);
   }
 
-  header .tag {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--accent);
-    background: rgba(79, 184, 148, 0.12);
-    padding: 4px 9px;
-    border-radius: 6px;
-    border: 1px solid var(--accent-dim);
+  header .subtitulo {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
   }
 
   .abas {
@@ -98,9 +94,9 @@
   }
 
   .abas button.active {
-    background: var(--panel);
+    background: var(--accent);
     border-color: var(--accent);
-    color: var(--ink);
+    color: #ffffff;
   }
 
   .card {
@@ -143,7 +139,9 @@
   .seg button.active {
     background: var(--accent-dim);
     border-color: var(--accent);
-    color: var(--ink);
+    border-width: 2px;
+    color: var(--accent);
+    font-weight: 600;
   }
 
   .seg button:hover:not(.active) {
@@ -167,13 +165,14 @@
   }
 
   .seg-3 button.active small {
-    color: var(--ink);
-    opacity: 0.75;
+    color: var(--accent);
+    opacity: 0.85;
+    font-weight: 400;
   }
 
   textarea, input[type="text"], input[type="password"] {
     width: 100%;
-    background: #0d1312;
+    background: #f7f9f7;
     border: 1px solid var(--panel-border);
     border-radius: 8px;
     color: var(--ink);
@@ -227,7 +226,8 @@
   .tpl-grid button.active {
     background: var(--accent-dim);
     border-color: var(--accent);
-    color: var(--ink);
+    color: var(--accent);
+    font-weight: 600;
   }
 
   .tpl-grid button:hover:not(.active):not(.oculto) {
@@ -247,7 +247,7 @@
     background: var(--accent);
     border: none;
     border-radius: 8px;
-    color: #0f1615;
+    color: #ffffff;
     font-size: 15px;
     font-weight: 700;
     cursor: pointer;
@@ -259,7 +259,7 @@
 
   .avisoCard {
     display: none;
-    background: #2a1f1a;
+    background: var(--danger-bg);
     border: 1px solid var(--danger);
     border-radius: 10px;
     padding: 14px 16px;
@@ -289,7 +289,7 @@
     font-size: 14px;
     line-height: 1.6;
     color: var(--ink);
-    background: #0d1312;
+    background: #f7f9f7;
     border: 1px solid var(--panel-border);
     border-radius: 8px;
     padding: 16px;
@@ -302,7 +302,7 @@
     background: var(--accent);
     border: none;
     border-radius: 8px;
-    color: #0f1615;
+    color: #ffffff;
     font-size: 13px;
     font-weight: 700;
     cursor: pointer;
@@ -318,6 +318,7 @@
 
   .btn-copiar-lateral.copiado {
     background: var(--ink);
+    color: #ffffff;
   }
 
   .btn-recomecar {
@@ -336,7 +337,7 @@
 
   .btn-recomecar:hover {
     background: var(--danger);
-    color: #1a1010;
+    color: #ffffff;
   }
 
   .erro {
@@ -396,7 +397,7 @@
     background: var(--accent);
     border: none;
     border-radius: 8px;
-    color: #0f1615;
+    color: #ffffff;
     font-weight: 700;
     cursor: pointer;
   }
@@ -437,7 +438,7 @@
     transition: background 0.12s ease;
   }
 
-  .cat-header:hover { background: rgba(79, 184, 148, 0.06); }
+  .cat-header:hover { background: var(--accent-dim); }
 
   .cat-header .contador {
     font-size: 11px;
@@ -503,8 +504,8 @@
     transition: all 0.12s ease;
   }
 
-  .btn-copiar-item:hover { background: var(--accent); color: #0f1615; }
-  .btn-copiar-item.copiado { background: var(--accent); color: #0f1615; }
+  .btn-copiar-item:hover { background: var(--accent); color: #ffffff; }
+  .btn-copiar-item.copiado { background: var(--accent); color: #ffffff; }
 
   .item-pronto textarea {
     background: transparent;
@@ -534,7 +535,7 @@
     background: var(--accent);
     border: none;
     border-radius: 8px;
-    color: #0f1615;
+    color: #ffffff;
     font-size: 15px;
     font-weight: 700;
     cursor: pointer;
@@ -542,7 +543,7 @@
   }
 
   .btn-copiar-templates:hover { opacity: 0.9; }
-  .btn-copiar-templates.copiado { background: var(--ink); }
+  .btn-copiar-templates.copiado { background: var(--ink); color: #ffffff; }
 
   @media (max-width: 480px) {
     .tpl-grid { grid-template-columns: 1fr; }
@@ -571,11 +572,9 @@
 
 <div class="wrap oculto" id="telaApp">
   <header>
-    <div class="titulo-grupo">
-      <span class="icone">&#129439;</span>
-      <h1>PS Ortop</h1>
-    </div>
-    <span class="tag">prontuário</span>
+    <span class="icone">&#127973;</span>
+    <h1>PS Ortop</h1>
+    <span class="subtitulo">Gerador de prontuário</span>
   </header>
 
   <div class="abas">
