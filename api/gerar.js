@@ -98,7 +98,7 @@ ESTILO DE SAÍDA:
 Se for reavaliação, mantenha coerência com o atendimento inicial informado e destaque a evolução em relação ao quadro inicial.
 
 FORMATO DA RESPOSTA:
-Se precisar sinalizar algo faltante, ambíguo ou assumido, coloque isso em uma ou mais linhas no topo, cada uma começando com "⚠️ ATENÇÃO:", seguidas de uma linha em branco, e então o texto do prontuário — já completo, corrido e pronto para copiar, sem nenhuma lacuna.`;
+Se precisar sinalizar algo faltante, ambíguo ou assumido, coloque isso em uma ou mais linhas no topo. CADA linha de aviso deve começar EXATAMENTE com o texto "⚠️ ATENÇÃO:" (esse emoji, esse espaço, essas palavras, nesta ordem, sem variação), seguida do restante da frase. Cada linha de aviso deve ser curta e direta — uma frase objetiva de no máximo 15 palavras, indicando só o que falta ou foi assumido, sem explicações longas ou justificativas. Prefira várias linhas curtas a uma linha longa. Depois de todos os avisos, deixe uma linha em branco, e então o texto do prontuário — já completo, corrido e pronto para copiar, sem nenhuma lacuna. Se não houver nada a sinalizar, não escreva nenhuma linha de aviso — vá direto para o texto do prontuário.`;
 }
 
 const TEMPLATES = {
