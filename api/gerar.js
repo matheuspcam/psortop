@@ -71,13 +71,20 @@ REGRAS GERAIS:
 - Não inventar dados clínicos — trabalhar apenas com o que for fornecido
 - Os dados que o médico envia podem estar corridos, diretos, picotados ou informais — sua função é organizar, corrigir e adequar ao padrão do template, nunca replicar o estilo de escrita recebido
 
-REGRA CRÍTICA — PROIBIDO DEIXAR LACUNAS NO TEXTO FINAL:
-O texto do prontuário será copiado e colado DIRETO em um sistema hospitalar real, sem revisão linha a linha. Por isso:
+REGRA CRÍTICA — O TEXTO PRECISA FAZER SENTIDO CLÍNICO SOZINHO:
+O texto do prontuário será copiado e colado DIRETO em um sistema hospitalar real, na correria, SEM revisão linha a linha. Um texto fluente mas clinicamente sem sentido é PIOR que um erro visível, porque passa despercebido. Por isso:
 - O texto final NUNCA pode conter colchetes, placeholders, reticências, "[a preencher]", "___", parênteses com a palavra "instrução", ou qualquer marcação indicando informação faltante
-- Os modelos de referência abaixo contêm trechos entre parênteses começando com "(instrução: ...)" — esses trechos são orientações PARA VOCÊ seguir ao gerar o texto, e NUNCA devem aparecer, nem parafraseados, no resultado final. Siga a orientação (preencha com o dado informado ou aplique o fallback indicado) e apague o parêntese inteiro do texto de saída
-- Se um dado do template não foi informado e não há fallback genérico indicado, omita a linha ou frase inteira, mantendo o restante do texto coerente
-- Nunca deixe uma frase pela metade ou com um vazio visível
+- Os modelos de referência abaixo contêm trechos entre parênteses começando com "(instrução: ...)" — esses trechos são orientações PARA VOCÊ seguir ao gerar o texto, e NUNCA devem aparecer, nem parafraseados, no resultado final. Siga a orientação e apague o parêntese inteiro do texto de saída
+- Toda frase que você escrever precisa fazer sentido clínico completo por si só. NUNCA produza frases com lacunas disfarçadas — exemplos do que é PROIBIDO: "refere quadro de torcicolo há, evoluindo com..." (falta o tempo), "trauma em há 2 dias" (falta o segmento), "dor em ombro há" (falta o tempo)
+- Se um dado variável específico (tempo de evolução, segmento acometido, lado D/E, mecanismo do trauma) NÃO foi informado, você tem duas opções, nesta ordem: (1) reescrever a frase de forma naturalmente completa sem aquele dado — ex: em vez de "refere trauma em tornozelo há [nada]", escreva "refere trauma em tornozelo, evoluindo com dor local desde então"; ou (2) se a frase não fizer sentido sem o dado, omitir a frase inteira, mantendo o restante coerente
+- Nunca deixe uma frase pela metade, com preposição solta ("há", "em", "de") sem complemento, ou com vazio visível
 - Todo e qualquer aviso sobre informação faltante, ambígua, ou assumida vai SOMENTE na linha de aviso no topo (começando com "⚠️ "), nunca dentro do corpo do prontuário
+
+REGRA — NEGATIVAS DE ROTINA SEMPRE PERMANECEM:
+As negativas padronizadas que já constam nos modelos (ex: "Nega trauma", "Nega febre", "Nega TCE", "Nega perda ponderal", "Nega demais queixas associadas", "Nega alterações esfincterianas", "Nega outros traumas associados") são afirmações de rotina da anamnese dirigida — o médico sempre pergunta isso, e na ausência de relato em contrário elas são verdadeiras. Por isso:
+- Essas negativas SEMPRE entram no texto final, mesmo que o médico não tenha mencionado nada sobre elas
+- Elas NÃO são afetadas pela regra de dados faltantes acima, porque não dependem de nenhum dado variável para fazer sentido
+- Só remova ou altere uma negativa se o médico informou algo que a contradiz (ex: se ele disse "refere febre", troque a linha "Nega febre" pelo achado real)
 
 REGRAS DE USO DOS TEMPLATES:
 - Os modelos fornecidos são padrões de redação, não textos para copiar cegamente
@@ -85,15 +92,19 @@ REGRAS DE USO DOS TEMPLATES:
 - As linhas de CONDUTA funcionam como um menu: inclua apenas as que se aplicam ao caso informado. Não inclua imobilização, atestado, internação ou orientação de não apoio se isso não foi mencionado
 - Nunca combine no mesmo texto condutas mutuamente excludentes (ex: alta ambulatorial e indicação de internação)
 
+REGRA — SEXO E IDADE SÃO APENAS CONTEXTO CLÍNICO, NUNCA APARECEM NO TEXTO:
+O médico pode informar sexo e/ou idade do paciente nos dados do caso. Essa informação serve EXCLUSIVAMENTE para você calibrar o raciocínio clínico por trás da conduta — por exemplo: em criança, o limiar para imobilizar após trauma é mais baixo mesmo com radiografia sem fratura evidente, pela possibilidade de lesão fisária de difícil identificação radiográfica; em idoso, considerar fragilidade óssea e risco de fratura por baixa energia. Use esse contexto para escolher e ajustar as condutas apropriadas.
+PROIBIDO: escrever a idade, o sexo, ou qualquer referência a eles no texto final do prontuário — nem diretamente ("paciente de 8 anos", "paciente do sexo feminino"), nem indiretamente ("a criança", "o idoso", "a paciente"). Use sempre "paciente", de forma neutra.
+
 ESTRUTURA:
 Siga EXATAMENTE o modelo de referência fornecido (inclusive estilo, maiúsculas, divisões e organização).
 
 ESTILO DE SAÍDA:
-- Texto contínuo dentro de cada seção (sem tópicos, salvo se o modelo tiver)
 - Alta densidade informativa
 - Padrão de prontuário hospitalar
 - Direto ao ponto
-- OBRIGATÓRIO: deixe uma linha em branco entre cada seção do prontuário (ex: entre "QD:" e "EXAME FÍSICO:", entre "EXAME FÍSICO:" e "EM TEMPO:" ou "CONDUTA:", etc.). Dentro de uma mesma seção, as linhas ficam coladas sem espaço extra entre si — o espaço em branco é só entre uma seção e a próxima
+- OBRIGATÓRIO: cada frase deve começar em uma NOVA LINHA. Nunca junte duas frases na mesma linha formando um parágrafo corrido. Sempre que uma frase termina com ponto final, a próxima frase começa em uma linha nova. Isso vale especialmente dentro de blocos como EXAME FÍSICO e CONDUTA, onde cada achado ou conduta ocupa sua própria linha
+- OBRIGATÓRIO: deixe uma linha em branco entre cada seção do prontuário (ex: entre "HDA:" e "EXAME FÍSICO:", entre "EXAME FÍSICO:" e "EM TEMPO:" ou "CONDUTA:"). Dentro de uma mesma seção, as linhas ficam uma embaixo da outra sem linha em branco entre elas — o espaço em branco é só entre uma seção e a próxima
 
 Se for reavaliação, mantenha coerência com o atendimento inicial informado e destaque a evolução em relação ao quadro inicial.
 
@@ -417,6 +428,34 @@ Esclarecido que a evolução clínica deve ser acompanhada, podendo haver necess
 Orientado quanto a sinais de alarme e necessidade de retorno em caso de febre, edema importante, incapacidade funcional progressiva ou outras intercorrências.
 Paciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.`
   },
+  e8: {
+    nome: 'Crônico — Outro / Genérico',
+    texto: `HDA: Paciente refere quadro de (instrução: use a queixa e o segmento informados pelo médico — ex: "dor em quadril direito", "dor em cotovelo esquerdo") de caráter crônico (instrução: acrescente o tempo de evolução e/ou padrão de piora apenas se informados; se não informados, não force referência temporal).
+Nega trauma agudo relacionado à queixa atual.
+Nega febre.
+Nega déficit sensitivo ou motor.
+Nega demais queixas associadas.
+
+EXAME FÍSICO:
+Sem lesões cutâneas.
+Sem deformidade evidente.
+Sem sinais flogísticos exuberantes.
+Dor à palpação (instrução: cite a região/estrutura específica informada pelo médico; se não informada, use "no segmento acometido").
+Sem crepitações ou bloqueio articular.
+Amplitude de movimento preservada ou limitada por dor.
+Força muscular preservada.
+Neurovascular distal preservado.
+
+CONDUTA:
+Sem indicação de procedimento ortopédico de urgência neste momento.
+Prescritas analgesia e orientações gerais.
+Orientado repouso relativo, modificação temporária de atividades e medidas locais.
+(Instrução: inclua exames complementares — RX, USG, RM — e/ou fisioterapia e/ou encaminhamento ambulatorial APENAS se o médico mencionou. Cite o exame e a região coerentes com o segmento informado. Não invente exames.)
+Explicado ao paciente o quadro atual e a conduta proposta nesta avaliação.
+Esclarecido que a evolução clínica deve ser acompanhada, podendo haver necessidade de reavaliação conforme resposta ao tratamento.
+Orientado quanto a sinais de alarme e necessidade de retorno em caso de piora, sinais flogísticos importantes, déficit funcional progressivo ou outras intercorrências.
+Paciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.`
+  },
   f: {
     nome: 'Canetada Internar',
     texto: `EM TEMPO:
@@ -431,6 +470,14 @@ Indicada internação hospitalar para prosseguimento do tratamento cirúrgico.
 Paciente devidamente informado acerca do quadro clínico, da indicação de internação e da proposta terapêutica.
 Prestados esclarecimentos quanto aos riscos inerentes ao tratamento proposto, incluindo, entre outros, dor crônica, hemorragia, deiscência de sutura, infecção, pseudoartrose, consolidação viciosa ou não consolidação, complicações clínicas intercorrentes (tais como infecções respiratórias, eventos infecciosos sistêmicos e sepse), bem como eventos adversos graves, inclusive óbito.
 Paciente refere ter compreendido as informações prestadas, encontrando-se ciente e de acordo com a conduta proposta, optando por dar seguimento ao tratamento indicado.`
+  },
+  g: {
+    nome: 'Discussão',
+    texto: `CONDUTA:
+Explico ao paciente e ao familiar as possíveis modalidades de tratamento, tanto cirúrgico quanto conservador, bem como os riscos e benefícios envolvidos em cada uma delas.
+Oriento sobre a gravidade da fratura e suas possíveis complicações, incluindo limitação do arco de movimento, déficit funcional, dor crônica e/ou deformidade residual.
+Após esclarecimentos, opta-se, neste momento, pelo tratamento conservador.
+Informo ao paciente e ao familiar que o caso será encaminhado para discussão e reavaliação pela equipe do Trauma Ortopédico, que realizará contato para agendamento de uma avaliação complementar ambulatorial em breve, com o objetivo de reavaliar a lesão e definir a conduta definitiva em conjunto com o paciente e seus familiares.`
   }
 };
 
