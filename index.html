@@ -705,7 +705,10 @@
 
     linhas.forEach(function(l) {
       var linhaLimpa = l.trim();
-      if (!terminouAvisos && linhaLimpa.indexOf('ATENÇÃO:') === 0) {
+      // Detecta a linha de aviso mesmo com variações de emoji/espaço antes de "ATENÇÃO:"
+      var ehLinhaDeAviso = linhaLimpa.indexOf('ATENÇÃO:') !== -1 && linhaLimpa.indexOf('ATENÇÃO:') < 5;
+
+      if (!terminouAvisos && ehLinhaDeAviso) {
         avisos.push(linhaLimpa);
       } else if (!terminouAvisos && linhaLimpa === '' && avisos.length > 0 && corpo.length === 0) {
         // pula linha em branco logo apos os avisos, e so separador
