@@ -463,21 +463,25 @@
   .cat-prontos.aberta .cat-body { display: block; }
 
   .item-pronto {
-    background: #0d1312;
-    border: 1px solid var(--panel-border);
-    border-radius: 8px;
-    padding: 12px 14px;
-    margin-bottom: 8px;
+    background: transparent;
+    border: none;
+    border-top: 1px solid var(--panel-border);
+    border-radius: 0;
+    padding: 14px 0 4px;
+    margin-bottom: 0;
   }
 
-  .item-pronto:last-child { margin-bottom: 0; }
+  .item-pronto:first-child {
+    border-top: none;
+    padding-top: 4px;
+  }
 
   .item-pronto-topo {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 10px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
 
   .item-pronto-titulo {
@@ -503,10 +507,21 @@
   .btn-copiar-item.copiado { background: var(--accent); color: #0f1615; }
 
   .item-pronto textarea {
-    min-height: 70px;
+    background: transparent;
+    border: none;
+    padding: 0;
     font-size: 12.5px;
     font-family: var(--mono);
-    line-height: 1.5;
+    line-height: 1.6;
+    color: var(--ink);
+    resize: none;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  .item-pronto textarea:focus {
+    outline: none;
+    border: none;
   }
   .tpl-editor-item:last-child { margin-bottom: 0; }
   .tpl-editor-item .label { display: flex; align-items: center; gap: 6px; }
@@ -1226,7 +1241,12 @@
       var ta = document.createElement('textarea');
       ta.value = item.texto;
       ta.id = 'pronto_' + catIdx + '_' + itemIdx;
-      ta.rows = Math.min(12, item.texto.split('\n').length + 1);
+
+      function ajustarAltura() {
+        ta.style.height = 'auto';
+        ta.style.height = (ta.scrollHeight + 2) + 'px';
+      }
+      ta.addEventListener('input', ajustarAltura);
 
       btnCopiar.addEventListener('click', function() {
         navigator.clipboard.writeText(ta.value).then(function() {
@@ -1248,6 +1268,13 @@
 
     header.addEventListener('click', function() {
       catDiv.classList.toggle('aberta');
+      // recalcula altura dos textareas ao abrir (nao da para medir elemento oculto)
+      if (catDiv.classList.contains('aberta')) {
+        body.querySelectorAll('textarea').forEach(function(t) {
+          t.style.height = 'auto';
+          t.style.height = (t.scrollHeight + 2) + 'px';
+        });
+      }
     });
 
     catDiv.appendChild(header);
