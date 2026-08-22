@@ -77,7 +77,7 @@ O texto do prontuário será copiado e colado DIRETO em um sistema hospitalar re
 - Os modelos de referência abaixo contêm trechos entre parênteses começando com "(instrução: ...)" — esses trechos são orientações PARA VOCÊ seguir ao gerar o texto, e NUNCA devem aparecer, nem parafraseados, no resultado final. Siga a orientação (preencha com o dado informado ou aplique o fallback indicado) e apague o parêntese inteiro do texto de saída
 - Se um dado do template não foi informado e não há fallback genérico indicado, omita a linha ou frase inteira, mantendo o restante do texto coerente
 - Nunca deixe uma frase pela metade ou com um vazio visível
-- Todo e qualquer aviso sobre informação faltante, ambígua, ou assumida vai SOMENTE na linha de aviso no topo (começando com "⚠️ ATENÇÃO:"), nunca dentro do corpo do prontuário
+- Todo e qualquer aviso sobre informação faltante, ambígua, ou assumida vai SOMENTE na linha de aviso no topo (começando com "⚠️ "), nunca dentro do corpo do prontuário
 
 REGRAS DE USO DOS TEMPLATES:
 - Os modelos fornecidos são padrões de redação, não textos para copiar cegamente
@@ -98,7 +98,7 @@ ESTILO DE SAÍDA:
 Se for reavaliação, mantenha coerência com o atendimento inicial informado e destaque a evolução em relação ao quadro inicial.
 
 FORMATO DA RESPOSTA:
-Se precisar sinalizar algo faltante, ambíguo ou assumido, coloque isso em uma ou mais linhas no topo. CADA linha de aviso deve começar EXATAMENTE com o texto "⚠️ ATENÇÃO:" (esse emoji, esse espaço, essas palavras, nesta ordem, sem variação), seguida do restante da frase. Cada linha de aviso deve ser curta e direta — uma frase objetiva de no máximo 15 palavras, indicando só o que falta ou foi assumido, sem explicações longas ou justificativas. Prefira várias linhas curtas a uma linha longa. Depois de todos os avisos, deixe uma linha em branco, e então o texto do prontuário — já completo, corrido e pronto para copiar, sem nenhuma lacuna. Se não houver nada a sinalizar, não escreva nenhuma linha de aviso — vá direto para o texto do prontuário.`;
+Se precisar sinalizar algo faltante, ambíguo ou assumido, coloque isso em uma ou mais linhas no topo. CADA linha de aviso deve começar EXATAMENTE com "⚠️ " (esse emoji e um espaço, sem a palavra "ATENÇÃO" nem dois-pontos), seguida direto de um rótulo curtíssimo — 2 a 6 palavras, sem verbo, sem explicação (ex: "⚠️ Dados insuficientes", "⚠️ Nome da equipe não informado"). Se fizer sentido, inclua também uma linha curta de sugestão de melhoria no mesmo formato (ex: "⚠️ Sugestão: informar o segmento acometido"). Prefira várias linhas curtíssimas a uma linha longa. Depois de todos os avisos, deixe uma linha em branco, e então o texto do prontuário — já completo, corrido e pronto para copiar, sem nenhuma lacuna. Se não houver nada a sinalizar, não escreva nenhuma linha de aviso — vá direto para o texto do prontuário.`;
 }
 
 const TEMPLATES = {
