@@ -4,7 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>PS Ortop</title>
+<title>OrtopIA</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiNmZmZmZmYiLz48cmVjdCB4PSIxMiIgeT0iNiIgd2lkdGg9IjQwIiBoZWlnaHQ9IjUyIiByeD0iNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWU3YTVhIiBzdHJva2Utd2lkdGg9IjMiLz48bGluZSB4MT0iMjAiIHkxPSIxNyIgeDI9IjMwIiB5Mj0iMTciIHN0cm9rZT0iIzFlN2E1YSIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC40NSIvPjxwYXRoIGQ9Ik0yOCAyNmg4djdoN3Y4aC03djdoLTh2LTdoLTd2LThoN3oiIGZpbGw9IiMxZTdhNWEiLz48cGF0aCBkPSJNNDAgMTdsMS44LTQgMS44IDQgNCAxLjgtNCAxLjgtMS44IDQtMS44LTQtNC0xLjh6IiBmaWxsPSIjMWU3YTVhIiBvcGFjaXR5PSIwLjkiLz48bGluZSB4MT0iMjAiIHkxPSI1MiIgeDI9IjQ0IiB5Mj0iNTIiIHN0cm9rZT0iIzFlN2E1YSIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC40NSIvPjwvc3ZnPg==">
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiNmZmZmZmYiLz48cmVjdCB4PSIxMiIgeT0iNiIgd2lkdGg9IjQwIiBoZWlnaHQ9IjUyIiByeD0iNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWU3YTVhIiBzdHJva2Utd2lkdGg9IjMiLz48bGluZSB4MT0iMjAiIHkxPSIxNyIgeDI9IjMwIiB5Mj0iMTciIHN0cm9rZT0iIzFlN2E1YSIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC40NSIvPjxwYXRoIGQ9Ik0yOCAyNmg4djdoN3Y4aC03djdoLTh2LTdoLTd2LThoN3oiIGZpbGw9IiMxZTdhNWEiLz48cGF0aCBkPSJNNDAgMTdsMS44LTQgMS44IDQgNCAxLjgtNCAxLjgtMS44IDQtMS44LTQtNC0xLjh6IiBmaWxsPSIjMWU3YTVhIiBvcGFjaXR5PSIwLjkiLz48bGluZSB4MT0iMjAiIHkxPSI1MiIgeDI9IjQ0IiB5Mj0iNTIiIHN0cm9rZT0iIzFlN2E1YSIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC40NSIvPjwvc3ZnPg==">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="OrtopIA">
+<meta name="theme-color" content="#1e7a5a">
 <style>
   :root {
     --bg: #eef1ee;
@@ -40,38 +46,30 @@
   }
 
   header {
-    text-align: center;
+    display: flex;
+    align-items: center;
+    gap: 12px;
     margin-bottom: 22px;
-    padding: 22px 18px 20px;
+    padding: 18px 20px;
     border-radius: 14px;
     background: var(--panel);
     border: 1px solid var(--panel-border);
     border-top: 3px solid var(--accent);
   }
 
-  header .icone {
+  header .logo {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
     display: block;
-    font-size: 30px;
-    line-height: 1;
-    margin-bottom: 8px;
   }
 
   header h1 {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 700;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
     margin: 0;
     color: var(--ink);
-  }
-
-  header .subtitulo {
-    display: block;
-    margin-top: 5px;
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--ink-dim);
   }
 
   .abas {
@@ -572,24 +570,29 @@
 
 <div class="wrap oculto" id="telaApp">
   <header>
-    <span class="icone">&#127973;</span>
-    <h1>PS Ortop</h1>
-    <span class="subtitulo">Gerador de prontuário</span>
+    <svg class="logo" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="12" y="6" width="40" height="52" rx="5" fill="none" stroke="#1e7a5a" stroke-width="3"/>
+      <line x1="20" y1="17" x2="30" y2="17" stroke="#1e7a5a" stroke-width="2.5" stroke-linecap="round" opacity="0.45"/>
+      <path d="M28 26 h8 v7 h7 v8 h-7 v7 h-8 v-7 h-7 v-8 h7 z" fill="#1e7a5a"/>
+      <path d="M40 17 l1.8 -4 1.8 4 4 1.8 -4 1.8 -1.8 4 -1.8 -4 -4 -1.8 z" fill="#1e7a5a" opacity="0.9"/>
+      <line x1="20" y1="52" x2="44" y2="52" stroke="#1e7a5a" stroke-width="2.5" stroke-linecap="round" opacity="0.45"/>
+    </svg>
+    <h1>OrtopIA</h1>
   </header>
 
   <div class="abas">
     <button type="button" class="aba-btn active" data-aba="gerar">Gerar prontuário</button>
-    <button type="button" class="aba-btn" data-aba="prontos">Textos prontos</button>
     <button type="button" class="aba-btn" data-aba="templates">Ver templates</button>
+    <button type="button" class="aba-btn" data-aba="prontos">Textos prontos</button>
   </div>
 
   <div id="abaGerar">
     <div class="card">
       <span class="label">Tipo de atendimento</span>
       <div class="seg seg-3">
-        <button type="button" class="tipo-btn active" data-tipo="inicial">Atendimento inicial<small>vai reavaliar depois</small></button>
-        <button type="button" class="tipo-btn" data-tipo="reavaliacao">Reavaliação<small>de atendimento anterior</small></button>
-        <button type="button" class="tipo-btn" data-tipo="completo">Atendimento completo<small>resolvido nesta consulta</small></button>
+        <button type="button" class="tipo-btn active" data-tipo="inicial">Atendimento inicial</button>
+        <button type="button" class="tipo-btn" data-tipo="reavaliacao">Reavaliação</button>
+        <button type="button" class="tipo-btn" data-tipo="completo">Atendimento completo</button>
       </div>
     </div>
 
@@ -612,7 +615,7 @@
     </div>
 
     <div class="card">
-      <span class="label">Modelo de referência</span>
+      <span class="label" id="labelModelo">Modelo de referência</span>
 
       <div class="tpl-grid" id="tplGridInicial">
         <button type="button" data-t="a" data-grupo="inicial"><span class="letra">a</span>1º Atendimento</button>
@@ -677,6 +680,13 @@
       Textos fixos, prontos para copiar e colar direto — não passam pela IA. Clique numa categoria para abrir.
     </div>
     <div id="containerProntos"></div>
+
+    <div class="card instrucoes-livres" style="margin-top:14px;">
+      <span class="label">Outras instruções para o Claude (opcional)</span>
+      <textarea id="instrucoesProntos" placeholder="Ex: adiciona um texto novo para... / muda a ordem das categorias / corrige a dose de..."></textarea>
+    </div>
+
+    <button class="btn-copiar-templates" id="btnCopiarProntos">Copiar para o Claude</button>
   </div>
 
   <div id="abaTemplates" class="oculto">
@@ -750,6 +760,7 @@
   var labelDados = document.getElementById('labelDados');
   var tplHint = document.getElementById('tplHint');
 
+  var labelModelo = document.getElementById('labelModelo');
   var gridInicial = document.getElementById('tplGridInicial');
   var gridReavaliacao = document.getElementById('tplGridReavaliacao');
   var blocoCompleto = document.getElementById('blocoCompleto');
@@ -770,15 +781,18 @@
     blocoCompleto.classList.add('oculto');
 
     if (tipoAtendimento === 'inicial') {
-      gridInicial.classList.remove('oculto');
+      labelModelo.classList.add('oculto');
+      gridInicial.classList.add('oculto');
       var unico = gridInicial.querySelector('button');
       unico.classList.add('active');
       templatesSelecionados = [unico.dataset.t];
-      tplHint.textContent = 'Modelo único para atendimento inicial.';
+      tplHint.textContent = '';
     } else if (tipoAtendimento === 'reavaliacao') {
+      labelModelo.classList.remove('oculto');
       gridReavaliacao.classList.remove('oculto');
       tplHint.textContent = 'Pode selecionar mais de um (ex: Fratura + Canetada Internar).';
     } else if (tipoAtendimento === 'completo') {
+      labelModelo.classList.remove('oculto');
       blocoCompleto.classList.remove('oculto');
       aplicarSubCompleto();
     }
@@ -791,12 +805,12 @@
     subBtns.forEach(function(b) { b.classList.toggle('active', b.dataset.sub === subCompleto); });
 
     if (subCompleto === 'trauma') {
-      gridTrauma.classList.remove('oculto');
+      gridTrauma.classList.add('oculto');
       gridCronico.classList.add('oculto');
       var unico = gridTrauma.querySelector('button');
       unico.classList.add('active');
       templatesSelecionados = [unico.dataset.t];
-      tplHint.textContent = 'Modelo único para trauma resolvido nesta consulta.';
+      tplHint.textContent = '';
     } else {
       gridTrauma.classList.add('oculto');
       gridCronico.classList.remove('oculto');
@@ -1062,19 +1076,27 @@
 
   var TEXTOS_PRONTOS = [
     {
-      "categoria": "Retorno",
+      "categoria": "Exames",
       "itens": [
         {
-          "titulo": "Retorno Ambulatorial — Após Trauma",
-          "texto": "Solicito agendamento de retorno ambulatorial com ortopedista especialista neste serviço, em 10 dias, para reavaliação clínica e acompanhamento evolutivo."
+          "titulo": "RNM Coluna Lombar",
+          "texto": "SOLICITO:\nRNM de Coluna Lombar\nDiagnóstico: Lombalgia\nCID-10: M54.5"
         },
         {
-          "titulo": "Retorno PS — Após Trauma",
-          "texto": "Solicito retorno via pronto-socorro com ortopedista neste serviço, em 7 dias, para reavaliação clínica e acompanhamento evolutivo."
+          "titulo": "RNM Joelho",
+          "texto": "SOLICITO:\nRNM de Joelho\nDiagnóstico: Dor Articular / Contusão\nCID-10: M25.5 (Dor articular) ou S80.0 (Contusão)"
         },
         {
-          "titulo": "Retorno Ambulatorial — Após Exame",
-          "texto": "Solicito agendamento de retorno ambulatorial com ortopedista especialista neste serviço, após a realização do exame solicitado nesta avaliação, para reavaliação clínica e definição de conduta."
+          "titulo": "RNM Ombro",
+          "texto": "SOLICITO:\nRNM de Ombro\nDiagnóstico: Suspeita de Lesão de Manguito Rotador\nCID-10: M75 (Lesões do ombro)"
+        },
+        {
+          "titulo": "RNM Tornozelo e Pé",
+          "texto": "SOLICITO:\nRNM de Tornozelo e Pé\nDiagnóstico: Entorse de Tornozelo / Contusão\nCID-10: S93.4 (Entorse e distensão) ou S90.0 (Contusão)"
+        },
+        {
+          "titulo": "USG Pé — Fascite Plantar",
+          "texto": "SOLICITO:\nUSG de Pé Esquerdo (Fascite Plantar)\nDiagnóstico: Suspeita de Fascite Plantar\nCID-10: M72.2 (Fibromatose fascial / Fascite plantar)"
         }
       ]
     },
@@ -1082,12 +1104,12 @@
       "categoria": "Medicações",
       "itens": [
         {
-          "titulo": "SUS — Uso Oral",
-          "texto": "USO ORAL:\n\nDIPIRONA 500MG _____________________________________________\nTOMAR 02 COMPRIMIDOS DE 6/6 HORAS, SE APRESENTAR DOR\n\nCETOPROFENO 100MG __________________________________________\nTOMAR 01 COMPRIMIDO DE 12/12 HORAS, POR 05 DIAS\n\nCICLOBENZAPRINA 10MG _______________________________________\nTOMAR 01 COMPRIMIDO AO DIA, TOMAR A NOITE, POR 05 DIAS\n\nTRAMADOL 50MG ______________________________________________\nTOMAR 01 COMPRIMIDO DE 8/8 HORAS, SE APRESENTAR DOR INTENSA\n\nPARACETAMOL + CODEÍNA 500MG/30MG ___________________________\nTOMAR 01 COMPRIMIDO DE 8/8 HORAS, SE APRESENTAR DOR INTENSA"
-        },
-        {
           "titulo": "Convênio — Uso Oral",
           "texto": "USO ORAL:\n\n- NOVALGINA 1G\nTOMAR 01 COMPRIMIDO DE 6/6H SE DOR E POR, NO MÁXIMO, 7 DIAS\n\n- ALGINAC RETARD\nTOMAR 01 COMPRIMIDO AO DIA, SE DOR FORTE, POR ATÉ 5 DIAS\n\n- TRAMAL 50MG\nTOMAR 01 COMPRIMIDO DE 8/8H, SE DOR MUITO FORTE, POR ATÉ 5 DIAS\n\n- MIOSAN 10MG\nTOMAR 01 COMPRIMIDO 1X À NOITE POR 5 NOITES"
+        },
+        {
+          "titulo": "SUS — Uso Oral",
+          "texto": "USO ORAL:\n\nDIPIRONA 500MG _____________________________________________\nTOMAR 02 COMPRIMIDOS DE 6/6 HORAS, SE APRESENTAR DOR\n\nCETOPROFENO 100MG __________________________________________\nTOMAR 01 COMPRIMIDO DE 12/12 HORAS, POR 05 DIAS\n\nCICLOBENZAPRINA 10MG _______________________________________\nTOMAR 01 COMPRIMIDO AO DIA, TOMAR A NOITE, POR 05 DIAS\n\nTRAMADOL 50MG ______________________________________________\nTOMAR 01 COMPRIMIDO DE 8/8 HORAS, SE APRESENTAR DOR INTENSA\n\nPARACETAMOL + CODEÍNA 500MG/30MG ___________________________\nTOMAR 01 COMPRIMIDO DE 8/8 HORAS, SE APRESENTAR DOR INTENSA"
         },
         {
           "titulo": "Pediátrico — Gotas",
@@ -1145,15 +1167,15 @@
       ]
     },
     {
-      "categoria": "Evasão",
+      "categoria": "Fisioterapia",
       "itens": [
         {
-          "titulo": "Evasão — Primeiro Atendimento",
-          "texto": "PACIENTE CONVOCADO NOMINALMENTE PARA ATENDIMENTO POR MEIO DE SISTEMA SONORO E CHAMADA PRESENCIAL EM SALA DE ESPERA, SEM SUCESSO. REALIZADAS BUSCAS NAS DEPENDÊNCIAS DA UNIDADE, PORÉM O PACIENTE NÃO FOI LOCALIZADO PARA CONTINUIDADE DA ASSISTÊNCIA MÉDICA.\nDIANTE DA IMPOSSIBILIDADE DE PROSSEGUIR COM O EXAME FÍSICO, DIAGNÓSTICO OU CONDUTA TERAPÊUTICA DEVIDO À AUSÊNCIA DO PACIENTE, REGISTRO A EVASÃO DO MESMO DA UNIDADE DE SAÚDE. ENCERRO O ATENDIMENTO POR ABANDONO/EVASÃO ATÉ A PRESENTE HORA."
+          "titulo": "Fisioterapia — Lombalgia",
+          "texto": "SOLICITO:\n10 sessões de fisioterapia\nDiagnóstico: Lombalgia\nCID-10: M54.5"
         },
         {
-          "titulo": "Evasão — Reavaliação / Plantão Noturno",
-          "texto": "ASSUMO O PLANTÃO NOTURNO.\nCHECO LISTA DE PACIENTES AGUARDANDO REAVALIAÇÃO E VERIFICO A PRESENÇA DO MESMO NO SISTEMA.\nCHAMO NO SISTEMA, NOMINALMENTE NA SALA DE ESPERA POR TRÊS VEZES CONSECUTIVAS, EM VOZ AUDÍVEL, E PROCURO PRESENCIALMENTE NAS DEPENDÊNCIAS DA UNIDADE, SEM SUCESSO NA SUA LOCALIZAÇÃO.\nDIANTE DA AUSÊNCIA DO PACIENTE NO MOMENTO DA CHAMADA E DA IMPOSSIBILIDADE DE REALIZAR A REAVALIAÇÃO ORTOPÉDICA, REGISTRO A EVASÃO DELE DA UNIDADE HOSPITALAR."
+          "titulo": "Acupuntura — Lombalgia",
+          "texto": "SOLICITO:\n10 sessões de acupuntura\nDiagnóstico: Lombalgia\nCID-10: M54.5"
         }
       ]
     },
@@ -1171,36 +1193,32 @@
       ]
     },
     {
-      "categoria": "Exames",
+      "categoria": "Retorno",
       "itens": [
         {
-          "titulo": "RNM Coluna Lombar",
-          "texto": "SOLICITO:\nRNM de Coluna Lombar\nDiagnóstico: Lombalgia\nCID-10: M54.5"
+          "titulo": "Retorno Ambulatorial — Após Trauma",
+          "texto": "Solicito agendamento de retorno ambulatorial com ortopedista especialista neste serviço, em 10 dias, para reavaliação clínica e acompanhamento evolutivo."
         },
         {
-          "titulo": "RNM Joelho",
-          "texto": "SOLICITO:\nRNM de Joelho\nDiagnóstico: Dor Articular / Contusão\nCID-10: M25.5 (Dor articular) ou S80.0 (Contusão)"
+          "titulo": "Retorno PS — Após Trauma",
+          "texto": "Solicito retorno via pronto-socorro com ortopedista neste serviço, em 7 dias, para reavaliação clínica e acompanhamento evolutivo."
         },
         {
-          "titulo": "RNM Ombro",
-          "texto": "SOLICITO:\nRNM de Ombro\nDiagnóstico: Suspeita de Lesão de Manguito Rotador\nCID-10: M75 (Lesões do ombro)"
-        },
-        {
-          "titulo": "RNM Tornozelo e Pé",
-          "texto": "SOLICITO:\nRNM de Tornozelo e Pé\nDiagnóstico: Entorse de Tornozelo / Contusão\nCID-10: S93.4 (Entorse e distensão) ou S90.0 (Contusão)"
-        },
-        {
-          "titulo": "USG Pé — Fascite Plantar",
-          "texto": "SOLICITO:\nUSG de Pé Esquerdo (Fascite Plantar)\nDiagnóstico: Suspeita de Fascite Plantar\nCID-10: M72.2 (Fibromatose fascial / Fascite plantar)"
+          "titulo": "Retorno Ambulatorial — Após Exame",
+          "texto": "Solicito agendamento de retorno ambulatorial com ortopedista especialista neste serviço, após a realização do exame solicitado nesta avaliação, para reavaliação clínica e definição de conduta."
         }
       ]
     },
     {
-      "categoria": "Fisioterapia",
+      "categoria": "Evasão",
       "itens": [
         {
-          "titulo": "Fisioterapia — Lombalgia",
-          "texto": "SOLICITO:\n10 sessões de fisioterapia\nDiagnóstico: Lombalgia\nCID-10: M54.5"
+          "titulo": "Evasão — Primeiro Atendimento",
+          "texto": "PACIENTE CONVOCADO NOMINALMENTE PARA ATENDIMENTO POR MEIO DE SISTEMA SONORO E CHAMADA PRESENCIAL EM SALA DE ESPERA, SEM SUCESSO. REALIZADAS BUSCAS NAS DEPENDÊNCIAS DA UNIDADE, PORÉM O PACIENTE NÃO FOI LOCALIZADO PARA CONTINUIDADE DA ASSISTÊNCIA MÉDICA.\nDIANTE DA IMPOSSIBILIDADE DE PROSSEGUIR COM O EXAME FÍSICO, DIAGNÓSTICO OU CONDUTA TERAPÊUTICA DEVIDO À AUSÊNCIA DO PACIENTE, REGISTRO A EVASÃO DO MESMO DA UNIDADE DE SAÚDE. ENCERRO O ATENDIMENTO POR ABANDONO/EVASÃO ATÉ A PRESENTE HORA."
+        },
+        {
+          "titulo": "Evasão — Reavaliação / Plantão Noturno",
+          "texto": "ASSUMO O PLANTÃO NOTURNO.\nCHECO LISTA DE PACIENTES AGUARDANDO REAVALIAÇÃO E VERIFICO A PRESENÇA DO MESMO NO SISTEMA.\nCHAMO NO SISTEMA, NOMINALMENTE NA SALA DE ESPERA POR TRÊS VEZES CONSECUTIVAS, EM VOZ AUDÍVEL, E PROCURO PRESENCIALMENTE NAS DEPENDÊNCIAS DA UNIDADE, SEM SUCESSO NA SUA LOCALIZAÇÃO.\nDIANTE DA AUSÊNCIA DO PACIENTE NO MOMENTO DA CHAMADA E DA IMPOSSIBILIDADE DE REALIZAR A REAVALIAÇÃO ORTOPÉDICA, REGISTRO A EVASÃO DELE DA UNIDADE HOSPITALAR."
         }
       ]
     }
@@ -1279,6 +1297,38 @@
     catDiv.appendChild(header);
     catDiv.appendChild(body);
     containerProntos.appendChild(catDiv);
+  });
+
+  var btnCopiarProntos = document.getElementById('btnCopiarProntos');
+  btnCopiarProntos.addEventListener('click', function() {
+    var instrucoes = document.getElementById('instrucoesProntos').value.trim();
+
+    var texto = '[INSTRUCAO PARA CLAUDE: os textos prontos abaixo sao a versao atual (possivelmente editada pelo usuario) ';
+    texto += 'da aba "Textos prontos" do site OrtopIA. Se algum texto foi alterado em relacao ao que ja esta no arquivo ';
+    texto += 'index.html, aplique a mudanca substituindo o conteudo correspondente em TEXTOS_PRONTOS. Se houver instrucoes ';
+    texto += 'adicionais no final, aplique-as tambem. Ao final, devolva o(s) arquivo(s) atualizado(s) prontos para eu ';
+    texto += 'substituir no GitHub.]\n\n';
+
+    TEXTOS_PRONTOS.forEach(function(cat, catIdx) {
+      texto += '=== ' + cat.categoria + ' ===\n\n';
+      cat.itens.forEach(function(item, itemIdx) {
+        var campo = document.getElementById('pronto_' + catIdx + '_' + itemIdx);
+        texto += '--- ' + item.titulo + ' ---\n' + (campo ? campo.value : item.texto) + '\n\n';
+      });
+    });
+
+    if (instrucoes) {
+      texto += '--- OUTRAS INSTRUCOES DO USUARIO ---\n' + instrucoes + '\n';
+    }
+
+    navigator.clipboard.writeText(texto.trim()).then(function() {
+      btnCopiarProntos.textContent = 'Copiado - cole no chat com o Claude';
+      btnCopiarProntos.classList.add('copiado');
+      setTimeout(function() {
+        btnCopiarProntos.textContent = 'Copiar para o Claude';
+        btnCopiarProntos.classList.remove('copiado');
+      }, 3000);
+    });
   });
 
   var containerEditor = document.getElementById('containerTemplatesEditor');
