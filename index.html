@@ -582,6 +582,7 @@
 
   <div class="abas">
     <button type="button" class="aba-btn active" data-aba="gerar">Gerar prontuário</button>
+    <button type="button" class="aba-btn" data-aba="mensagens">Mensagens</button>
     <button type="button" class="aba-btn" data-aba="templates">Ver templates</button>
     <button type="button" class="aba-btn" data-aba="prontos">Textos prontos</button>
   </div>
@@ -689,6 +690,37 @@
     <button class="btn-copiar-templates" id="btnCopiarProntos">Copiar para o Claude</button>
   </div>
 
+  <div id="abaMensagens" class="oculto">
+    <div class="card">
+      <span class="label">Tipo de mensagem</span>
+      <div class="tpl-grid" id="msgGrid">
+        <button type="button" class="msg-btn active" data-m="chefe">Para o chefe<br><small style="font-weight:400; opacity:0.75;">ficha de encaminhamento</small></button>
+        <button type="button" class="msg-btn" data-m="internacao">Solicitação de internação<br><small style="font-weight:400; opacity:0.75;">informativo</small></button>
+        <button type="button" class="msg-btn" data-m="paciente">Para o paciente<br><small style="font-weight:400; opacity:0.75;">retorno via WhatsApp</small></button>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="label">Dados</span>
+      <textarea id="msgDados" placeholder="Cole os dados do jeito que tiver: nome, matrícula, idade, diagnóstico, telefone, data e horário do retorno..."></textarea>
+      <div class="hint" id="msgHint">Nome, matrícula, idade, HD, telefone. Anticoagulante/marcapasso só se for SIM.</div>
+    </div>
+
+    <button class="btn-gerar" id="btnGerarMsg">Gerar mensagem</button>
+    <div class="spinner" id="spinnerMsg"><span class="dot"></span> Gerando...</div>
+    <div class="erro" id="erroMsgMensagem"></div>
+
+    <div class="avisoCard" id="avisoCardMsg"></div>
+
+    <div class="card resultado" id="resultadoCardMsg">
+      <div class="resultado-linha">
+        <div class="resultado-texto" id="resultadoTextoMsg"></div>
+        <button class="btn-copiar-lateral" id="btnCopiarMsg">COPIAR</button>
+      </div>
+      <button class="btn-recomecar" id="btnRecomecarMsg">Começar de novo</button>
+    </div>
+  </div>
+
   <div id="abaTemplates" class="oculto">
     <div class="card">
       <div class="hint" style="margin-top:0; margin-bottom:14px;">
@@ -737,6 +769,7 @@
 
   var abaBtns = document.querySelectorAll('.aba-btn');
   var abaGerar = document.getElementById('abaGerar');
+  var abaMensagens = document.getElementById('abaMensagens');
   var abaProntos = document.getElementById('abaProntos');
   var abaTemplates = document.getElementById('abaTemplates');
 
@@ -746,6 +779,7 @@
       btn.classList.add('active');
       var aba = btn.dataset.aba;
       abaGerar.classList.toggle('oculto', aba !== 'gerar');
+      abaMensagens.classList.toggle('oculto', aba !== 'mensagens');
       abaProntos.classList.toggle('oculto', aba !== 'prontos');
       abaTemplates.classList.toggle('oculto', aba !== 'templates');
     });
@@ -1225,6 +1259,130 @@
   ];
 
   // --- Aba: Textos prontos (accordion) ---
+  // --- Aba: Mensagens ---
+  var msgSelecionada = 'chefe';
+  var msgBtns = document.querySelectorAll('.msg-btn');
+  var msgHint = document.getElementById('msgHint');
+  var msgDados = document.getElementById('msgDados');
+  var btnGerarMsg = document.getElementById('btnGerarMsg');
+  var spinnerMsg = document.getElementById('spinnerMsg');
+  var erroMsgMensagem = document.getElementById('erroMsgMensagem');
+  var avisoCardMsg = document.getElementById('avisoCardMsg');
+  var resultadoCardMsg = document.getElementById('resultadoCardMsg');
+  var resultadoTextoMsg = document.getElementById('resultadoTextoMsg');
+  var btnCopiarMsg = document.getElementById('btnCopiarMsg');
+  var btnRecomecarMsg = document.getElementById('btnRecomecarMsg');
+
+  var MSG_HINTS = {
+    chefe: 'Nome, matrícula, idade, HD, telefone. Anticoagulante/marcapasso só se for SIM.',
+    internacao: 'Nome, matrícula, idade, diagnóstico, tempo de sala, hospital de origem e destino.',
+    paciente: 'Nome, conduta, data e horário do retorno. Padrão: tratamento conservador, PS do Hospital Madrid.'
+  };
+
+  var MSG_PLACEHOLDERS = {
+    chefe: 'Cole os dados do jeito que tiver: nome, matrícula, idade, diagnóstico, telefone...',
+    internacao: 'Ex: Carlos Mendes, mat 059169-6, 84a, infeccao material sintese PO patela D 07/26, sala 2h, origem HSM Santiago, transferir Tailandia',
+    paciente: 'Ex: Maria Silva, retorno terça que vem às 14h, tratamento conservador'
+  };
+
+  msgBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      msgBtns.forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      msgSelecionada = btn.dataset.m;
+      msgHint.textContent = MSG_HINTS[msgSelecionada] || '';
+      msgDados.placeholder = MSG_PLACEHOLDERS[msgSelecionada] || '';
+    });
+  });
+
+  function renderizarMensagem(textoCompleto) {
+    var r = separarAvisoDoTexto(textoCompleto);
+    if (r.avisos.length) {
+      avisoCardMsg.innerHTML = r.avisos.map(function(a) { return '<div>' + a + '</div>'; }).join('');
+      avisoCardMsg.classList.add('show');
+    } else {
+      avisoCardMsg.classList.remove('show');
+      avisoCardMsg.innerHTML = '';
+    }
+    resultadoTextoMsg.textContent = r.corpoTexto;
+    resultadoCardMsg.classList.add('show');
+    btnCopiarMsg.textContent = 'COPIAR';
+    btnCopiarMsg.classList.remove('copiado');
+  }
+
+  btnGerarMsg.addEventListener('click', function() {
+    var dados = msgDados.value.trim();
+    erroMsgMensagem.classList.remove('show');
+
+    if (!dados) {
+      erroMsgMensagem.textContent = 'Preencha os dados.';
+      erroMsgMensagem.classList.add('show');
+      return;
+    }
+
+    btnGerarMsg.disabled = true;
+    spinnerMsg.classList.add('show');
+    resultadoCardMsg.classList.remove('show');
+    avisoCardMsg.classList.remove('show');
+
+    var hoje = new Date();
+    var diasSemana = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+    var dataHoje = hoje.toLocaleDateString('pt-BR') + ' (' + diasSemana[hoje.getDay()] + ')';
+
+    fetch('/api/gerar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pin: pinAtual,
+        modo: 'mensagem',
+        template: msgSelecionada,
+        dadosCaso: dados,
+        dataHoje: dataHoje
+      })
+    }).then(function(resp) {
+      return resp.json().then(function(data) {
+        if (!resp.ok) {
+          if (resp.status === 401) {
+            sessionStorage.removeItem('pin_ps');
+            erroMsgMensagem.textContent = 'PIN incorreto. Recarregue a página.';
+          } else {
+            erroMsgMensagem.textContent = data.erro || 'Erro ao gerar a mensagem.';
+          }
+          erroMsgMensagem.classList.add('show');
+          return;
+        }
+        renderizarMensagem(data.texto || '');
+        resultadoCardMsg.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }).catch(function() {
+      erroMsgMensagem.textContent = 'Falha de conexão. Verifique a internet e tente novamente.';
+      erroMsgMensagem.classList.add('show');
+    }).finally(function() {
+      btnGerarMsg.disabled = false;
+      spinnerMsg.classList.remove('show');
+    });
+  });
+
+  btnCopiarMsg.addEventListener('click', function() {
+    navigator.clipboard.writeText(resultadoTextoMsg.innerText).then(function() {
+      btnCopiarMsg.textContent = 'COPIADO';
+      btnCopiarMsg.classList.add('copiado');
+      setTimeout(function() {
+        btnCopiarMsg.textContent = 'COPIAR';
+        btnCopiarMsg.classList.remove('copiado');
+      }, 2000);
+    });
+  });
+
+  btnRecomecarMsg.addEventListener('click', function() {
+    msgDados.value = '';
+    resultadoCardMsg.classList.remove('show');
+    avisoCardMsg.classList.remove('show');
+    erroMsgMensagem.classList.remove('show');
+    resultadoTextoMsg.textContent = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
   var containerProntos = document.getElementById('containerProntos');
 
   TEXTOS_PRONTOS.forEach(function(cat, catIdx) {
