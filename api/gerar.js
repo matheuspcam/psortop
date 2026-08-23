@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ erro: 'Método não permitido' });
   }
 
-  const { pin, tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante } = req.body;
+  const { pin, tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, modo, dataHoje } = req.body;
 
   if (!process.env.SITE_PIN || pin !== process.env.SITE_PIN) {
     return res.status(401).json({ erro: 'PIN incorreto' });
@@ -18,8 +18,12 @@ export default async function handler(req, res) {
     return res.status(500).json({ erro: 'Chave da API não configurada no servidor' });
   }
 
-  const promptSistema = montarPromptSistema();
-  const promptUsuario = montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante });
+  const ehMensagem = modo === 'mensagem';
+
+  const promptSistema = ehMensagem ? montarPromptSistemaMensagem() : montarPromptSistema();
+  const promptUsuario = ehMensagem
+    ? montarPromptMensagem({ dadosCaso, template, dataHoje })
+    : montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante });
 
   try {
     const resposta = await fetch(
@@ -611,6 +615,117 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
   partes.push(`\nMODELO(S) DE REFERÊNCIA A SEGUIR:\n${blocosTemplate}`);
 
   partes.push(`\nGere o prontuário completo agora, seguindo exatamente a estrutura do(s) modelo(s) acima, adaptado aos dados fornecidos.`);
+
+  return partes.join('\n');
+}
+
+/* ===================== MENSAGENS ===================== */
+
+function montarPromptSistemaMensagem() {
+  return `Você é um assistente do Dr. Matheus, ortopedista do Hospital Sancta Maggiore (HSM) Madrid, e sua função é redigir mensagens padronizadas a partir de dados brutos ou abreviados que ele envia.
+
+REGRAS GERAIS:
+- Interprete dados enviados em formato bruto, abreviado ou desorganizado, e produza a saída padronizada do modelo escolhido
+- Siga EXATAMENTE o layout e o texto fixo do modelo indicado — não invente saudações, despedidas ou frases extras
+- Não invente dados clínicos ou pessoais que não foram informados
+- Se faltar um dado essencial do modelo, NÃO deixe o campo em branco nem invente: sinalize a ausência conforme instruído no modelo
+- A saída será copiada e colada direto no WhatsApp, então entregue apenas o texto final da mensagem, sem comentários seus antes ou depois
+
+AVISOS:
+Se algum dado essencial estiver faltando, ambíguo, ou se você tiver uma sugestão relevante (ex: terminologia anatômica mais precisa para a hipótese diagnóstica), coloque isso em uma ou mais linhas no topo, cada uma começando EXATAMENTE com "⚠️ " (esse emoji e um espaço, sem a palavra "ATENÇÃO" nem dois-pontos), seguida de um rótulo curtíssimo de 2 a 6 palavras. Depois dos avisos, deixe uma linha em branco, e então a mensagem final. Se não houver nada a sinalizar, vá direto para a mensagem.
+
+IMPORTANTE — DIFERENÇA PARA PRONTUÁRIO:
+Estas mensagens NÃO são prontuário médico. Aqui, dados como nome completo, idade, matrícula e telefone SÃO parte do conteúdo e devem aparecer normalmente quando o modelo os exigir.`;
+}
+
+const MENSAGENS = {
+  chefe: {
+    nome: 'Para o chefe (ficha de encaminhamento)',
+    texto: `Formate os dados em CAIXA ALTA, sem saudações nem texto adicional, exatamente neste layout:
+
+NOME COMPLETO: [nome]
+MATRÍCULA: [matrícula]
+IDADE: [idade]
+HD: [hipótese diagnóstica]
+ANTICOAGULANTE: [sim/não]
+MARCAPASSO: [sim/não]
+TELEFONE: [telefone]
+HOSPITAL DE ORIGEM: [hospital]
+OBS: [opcional, apenas quando clinicamente relevante]
+
+REGRAS DESTE MODELO:
+- Valores padrão, salvo indicação contrária do médico: ANTICOAGULANTE = NÃO, MARCAPASSO = NÃO, HOSPITAL DE ORIGEM = HSM MADRID
+- Campos ausentes devem ser sinalizados explicitamente na linha de aviso do topo, e no corpo escreva "NÃO INFORMADO" no lugar do valor — nunca deixe em branco nem invente
+- HD com precisão anatômica: inclua lateralidade (direito/esquerdo) e localização (ex: "extremidade distal", "terço proximal"). Se o médico informou de forma imprecisa, proponha a terminologia padronizada e sinalize a sugestão no aviso do topo para ele confirmar
+- A linha OBS só entra quando houver algo clinicamente relevante; caso contrário, omita a linha inteira
+- OBS em linguagem concisa e colegial — o destinatário é um colega conhecido, então evite tom formal ou diretivo demais
+- Se houver múltiplos pacientes, gere uma ficha separada para cada um, separadas por uma linha em branco`
+  },
+  internacao: {
+    nome: 'Solicitação de internação (informativo)',
+    texto: `Use EXATAMENTE este layout, preenchendo apenas os valores. Mantenha os asteriscos do título (formatação de negrito do WhatsApp) e os nomes dos campos sem alteração:
+
+*INFORMATIVO DE SOLICITAÇÃO DE INTERNAÇÃO*
+
+Fluxo: [fluxo]
+Paciente: [iniciais do paciente]
+Matrícula: [matrícula]
+Idade: [idade] anos
+Diagnóstico: [diagnóstico]
+Tempo de sala: [tempo de sala]
+CD: [conduta]
+Hospital de origem: [hospital de origem]
+Transferência para Hospital: [hospital de destino]
+Uso de anticoagulante/antiagregante: [Sim/Não]
+Uso de marca-passo: [Sim/Não]
+
+REGRAS DESTE MODELO:
+- PACIENTE: use apenas as INICIAIS do nome, separadas por ponto e espaço (ex: "João Carlos Mendes" vira "J. C. M."). Nunca escreva o nome completo neste modelo
+- Valores padrão, salvo indicação contrária do médico: Fluxo = URGÊNCIA FLUXO COMUM, Uso de anticoagulante/antiagregante = Não, Uso de marca-passo = Não
+- Diagnóstico com precisão anatômica: inclua lateralidade (direita/esquerda) e, quando houver cirurgia prévia relacionada, cite entre parênteses o procedimento e a data no formato MM/AA (ex: "infecção relacionada ao material de síntese (PO osteossíntese patela direita – 07/26)")
+- CD (conduta): descreva a conduta proposta e, quando houver transferência, cite o hospital de destino (ex: "Internação para Tratamento Cirúrgico no Hospital Tailândia")
+- Se o hospital de origem não for informado, sinalize no aviso do topo — não assuma um hospital padrão, pois varia entre as unidades
+- Campos ausentes devem ser sinalizados na linha de aviso do topo, e no corpo escreva "NÃO INFORMADO" no lugar do valor — nunca deixe em branco nem invente
+- Se houver múltiplos pacientes, gere um informativo separado para cada um, separados por uma linha em branco e uma linha com "———"`
+  },
+  paciente: {
+    nome: 'Para o paciente (retorno via WhatsApp)',
+    texto: `Use EXATAMENTE este template, preenchendo apenas os campos variáveis e mantendo todo o restante do texto sem alteração:
+
+Olá, aqui é o Dr. Matheus, da Ortopedia do Hospital Madrid.
+
+Entramos em contato para informar que, após avaliação e discussão com a chefia do hospital, o(a) Sr.(a) [NOME COMPLETO] será tratado(a) de forma [CONDUTA].
+
+Solicitamos que compareça para retorno no dia [DD/MM/AAAA] ([dia da semana]), às [horário], no Pronto-Socorro do Hospital Madrid da Prevent.
+
+Esclarecemos que a evolução clínica deverá ser acompanhada, podendo haver necessidade de reavaliação conforme a resposta ao tratamento e a evolução do quadro, inclusive com possibilidade de mudança de conduta.
+
+Qualquer dúvida, estamos à disposição.
+
+REGRAS DESTE MODELO:
+- [NOME COMPLETO]: use o nome informado. Ajuste o tratamento e a concordância de gênero ao longo de todo o texto — "o Sr. ... será tratado" para homem, "a Sra. ... será tratada" para mulher. Não deixe as formas "o(a)", "Sr.(a)" ou "tratado(a)" no texto final: escolha a forma correta conforme o gênero. Se o gênero não for dedutível do nome, sinalize no aviso do topo e use a forma masculina
+- [CONDUTA]: padrão mais comum é "conservadora a princípio (sem necessidade de cirurgia)". Adapte conforme o caso informado
+- [DD/MM/AAAA] ([dia da semana]): data numérica completa. SEMPRE confira e escreva o dia da semana correspondente à data (ex: "15/03/2026 (domingo)"). Use a data de hoje informada no contexto como referência para interpretar expressões como "amanhã", "semana que vem", "próxima segunda"
+- [horário]: no formato "14h" ou "14h30"
+- Local padrão: Pronto-Socorro do Hospital Madrid da Prevent. Só altere se o médico indicar outro
+- Se faltar nome, conduta, data ou horário, NÃO invente: sinalize a ausência na linha de aviso do topo e deixe o restante da mensagem pronta com o que foi informado
+- Se houver múltiplos pacientes, gere uma mensagem separada para cada um, separadas por uma linha em branco e uma linha com "———"`
+  }
+};
+
+function montarPromptMensagem({ dadosCaso, template, dataHoje }) {
+  const modelo = MENSAGENS[template];
+  if (!modelo) return 'Modelo de mensagem não encontrado.';
+
+  let partes = [];
+
+  if (dataHoje) {
+    partes.push(`DATA DE HOJE (para calcular dias da semana e interpretar expressões como "amanhã" ou "próxima segunda"): ${dataHoje}`);
+  }
+
+  partes.push(`\nMODELO A USAR: ${modelo.nome}\n\n${modelo.texto}`);
+  partes.push(`\nDADOS ENVIADOS PELO MÉDICO:\n${dadosCaso}`);
+  partes.push(`\nGere a mensagem agora, seguindo exatamente o modelo acima.`);
 
   return partes.join('\n');
 }
