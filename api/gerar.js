@@ -80,11 +80,11 @@ O texto do prontuário será copiado e colado DIRETO em um sistema hospitalar re
 - Nunca deixe uma frase pela metade, com preposição solta ("há", "em", "de") sem complemento, ou com vazio visível
 - Todo e qualquer aviso sobre informação faltante, ambígua, ou assumida vai SOMENTE na linha de aviso no topo (começando com "⚠️ "), nunca dentro do corpo do prontuário
 
-REGRA — NEGATIVAS DE ROTINA SEMPRE PERMANECEM:
-As negativas padronizadas que já constam nos modelos (ex: "Nega trauma", "Nega febre", "Nega TCE", "Nega perda ponderal", "Nega demais queixas associadas", "Nega alterações esfincterianas", "Nega outros traumas associados") são afirmações de rotina da anamnese dirigida — o médico sempre pergunta isso, e na ausência de relato em contrário elas são verdadeiras. Por isso:
-- Essas negativas SEMPRE entram no texto final, mesmo que o médico não tenha mencionado nada sobre elas
+REGRA — NEGATIVAS E LINHAS PADRÃO SEMPRE PERMANECEM:
+As negativas padronizadas que já constam nos modelos (ex: "Nega trauma", "Nega febre", "Nega TCE", "Nega perda ponderal", "Nega demais queixas associadas", "Nega alterações esfincterianas", "Nega outros traumas associados") são afirmações de rotina da anamnese dirigida — o médico sempre pergunta isso, e na ausência de relato em contrário elas são verdadeiras. O mesmo vale para linhas de conduta marcadas nos modelos como PADRÃO (ex: a oferta de radiografia recusada em decisão compartilhada, nos quadros crônicos). Por isso:
+- Essas linhas SEMPRE entram no texto final, mesmo que o médico não tenha mencionado nada sobre elas
 - Elas NÃO são afetadas pela regra de dados faltantes acima, porque não dependem de nenhum dado variável para fazer sentido
-- Só remova ou altere uma negativa se o médico informou algo que a contradiz (ex: se ele disse "refere febre", troque a linha "Nega febre" pelo achado real)
+- Só remova ou altere uma dessas linhas se o médico informou algo que a contradiz (ex: se ele disse "refere febre", troque a linha "Nega febre" pelo achado real; se ele disse que fez o RX, substitua a linha da oferta recusada pelo achado radiográfico)
 
 REGRAS DE USO DOS TEMPLATES:
 - Os modelos fornecidos são padrões de redação, não textos para copiar cegamente
@@ -257,7 +257,7 @@ CONDUTA:
 Sem indicação de procedimento ortopédico de urgência no momento.
 Instituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.
 Orientado retorno progressivo às atividades conforme tolerância.
-Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: incluir apenas se o médico mencionar que ofereceu o exame e o paciente recusou; se o exame foi realizado ou solicitado, ajuste a linha; se nada foi mencionado, omita.)
+Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)
 Esclarecido que o quadro deve ser acompanhado, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.
 Orientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos, limitação funcional progressiva, alterações de sensibilidade ou força, alterações esfincterianas, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.
 Orientado seguimento ambulatorial.
@@ -299,7 +299,7 @@ CONDUTA:
 Sem indicação de procedimento ortopédico de urgência no momento.
 Instituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.
 Orientado evitar esforços e movimentos bruscos.
-Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: incluir apenas se o médico mencionar que ofereceu o exame e o paciente recusou; se o exame foi realizado ou solicitado, ajuste a linha; se nada foi mencionado, omita.)
+Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)
 Esclarecido que o quadro deve ser acompanhado, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.
 Orientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos, limitação funcional progressiva, alterações de sensibilidade ou força, dor irradiada importante, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.
 Orientado seguimento ambulatorial.
@@ -338,7 +338,7 @@ Sem indicação de procedimento ortopédico de urgência no momento.
 Instituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.
 Orientado evitar movimentos bruscos.
 Indicado colar cervical de espuma por curto período. (Instrução: incluir apenas se mencionado.)
-Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: incluir apenas se o médico mencionar que ofereceu o exame e o paciente recusou; se o exame foi realizado ou solicitado, ajuste a linha; se nada foi mencionado, omita.)
+Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)
 Esclarecido que o quadro deve ser acompanhado, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.
 Orientado quanto a sinais de alarme, incluindo persistência ou piora importante da dor, surgimento de sinais flogísticos, febre, irradiação relevante, déficit neurológico ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.
 Orientado seguimento ambulatorial.
@@ -376,7 +376,7 @@ CONDUTA:
 Sem indicação de procedimento ortopédico de urgência no momento.
 Instituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.
 Orientado alongamento de cadeia posterior e modificação temporária de atividades de impacto.
-Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: incluir apenas se o médico mencionar que ofereceu o exame e o paciente recusou; se o exame foi realizado ou solicitado, ajuste a linha; se nada foi mencionado, omita.)
+Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)
 Esclarecido que o quadro deve ser acompanhado, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.
 Orientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos, limitação funcional progressiva, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.
 Orientado seguimento ambulatorial.
@@ -418,7 +418,7 @@ CONDUTA:
 Sem indicação de procedimento ortopédico de urgência no momento.
 Instituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.
 Orientado evitar atividades repetitivas e movimentos acima da linha do ombro.
-Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: incluir apenas se o médico mencionar que ofereceu o exame e o paciente recusou; se o exame foi realizado ou solicitado, ajuste a linha; se nada foi mencionado, omita.)
+Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)
 Esclarecido que a avaliação inicial pode não demonstrar integralmente a extensão das lesões de partes moles, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.
 Orientado quanto a sinais de alarme, incluindo piora da dor, perda progressiva de força, surgimento de sinais flogísticos, febre, limitação funcional importante ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.
 Orientado seguimento ambulatorial.
@@ -456,7 +456,7 @@ Sem sinais clínicos de trombose venosa profunda.
 CONDUTA:
 Sem indicação de procedimento ortopédico de urgência no momento.
 Instituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.
-Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: incluir apenas se o médico mencionar que ofereceu o exame e o paciente recusou; se o exame foi realizado ou solicitado, ajuste a linha; se nada foi mencionado, omita.)
+Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)
 Esclarecido que o quadro deve ser acompanhado, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.
 Orientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos importantes, déficit funcional progressivo, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.
 Orientado seguimento ambulatorial.
@@ -498,7 +498,7 @@ CONDUTA:
 Sem indicação de procedimento ortopédico de urgência no momento.
 Instituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.
 Orientado evitar sobrecarga e atividades de impacto até melhora.
-Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: incluir apenas se o médico mencionar que ofereceu o exame e o paciente recusou; se o exame foi realizado ou solicitado, ajuste a linha; se nada foi mencionado, omita.)
+Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)
 Esclarecido que o quadro deve ser acompanhado, podendo haver necessidade de reavaliação conforme evolução clínica, resposta ao tratamento e investigação complementar.
 Orientado quanto a sinais de alarme, incluindo piora da dor, edema importante, surgimento de sinais flogísticos, febre, incapacidade funcional progressiva ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.
 Orientado seguimento ambulatorial.
@@ -538,7 +538,7 @@ Sem sinais clínicos de trombose venosa profunda.
 CONDUTA:
 Sem indicação de procedimento ortopédico de urgência no momento.
 Instituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.
-Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: incluir apenas se o médico mencionar que ofereceu o exame e o paciente recusou; se o exame foi realizado ou solicitado, ajuste a linha; se nada foi mencionado, omita.)
+Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)
 Esclarecido que o quadro deve ser acompanhado, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.
 Orientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos importantes, déficit funcional progressivo, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.
 Orientado seguimento ambulatorial.
