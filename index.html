@@ -135,18 +135,18 @@
   /* Navegacao principal: dois botoes grandes */
   .nav-principal {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 10px;
     margin-bottom: 18px;
   }
 
   .nav-principal button {
-    padding: 18px 14px;
+    padding: 16px 8px;
     background: var(--panel);
     border: 1px solid var(--panel-border);
     border-radius: 12px;
     color: var(--ink-dim);
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.12s ease;
@@ -154,10 +154,12 @@
     flex-direction: column;
     align-items: center;
     gap: 7px;
+    text-align: center;
+    line-height: 1.25;
   }
 
   .nav-principal button .nav-icone {
-    font-size: 21px;
+    font-size: 20px;
     line-height: 1;
   }
 
@@ -799,7 +801,6 @@
     </button>
 
     <div class="menu-ferramentas" id="menuFerramentas">
-      <button type="button" data-ir="mensagens">Mensagens</button>
       <button type="button" data-ir="templates">Ver templates</button>
     </div>
   </header>
@@ -808,6 +809,10 @@
     <button type="button" class="nav-btn active" data-aba="gerar">
       <span class="nav-icone">&#128221;</span>
       Gerar prontuário
+    </button>
+    <button type="button" class="nav-btn" data-aba="mensagens">
+      <span class="nav-icone">&#128172;</span>
+      Mensagens
     </button>
     <button type="button" class="nav-btn" data-aba="prontos">
       <span class="nav-icone">&#128203;</span>
@@ -1082,7 +1087,6 @@
   var abaTemplates = document.getElementById('abaTemplates');
 
   var TITULOS_SECAO = {
-    mensagens: 'Mensagens',
     templates: 'Ver templates'
   };
 
@@ -1092,7 +1096,7 @@
     abaProntos.classList.toggle('oculto', aba !== 'prontos');
     abaTemplates.classList.toggle('oculto', aba !== 'templates');
 
-    var ehSecundaria = (aba === 'mensagens' || aba === 'templates');
+    var ehSecundaria = (aba === 'templates');
 
     // Nas secoes secundarias, esconde os botoes grandes e mostra a barra de voltar
     navPrincipal.style.display = ehSecundaria ? 'none' : 'grid';
@@ -1410,6 +1414,12 @@
     });
   }
 
+  var TEMPLATES_AUTOSSUFICIENTES = ['e1', 'e2', 'e3', 'e4', 'e5', 'e6', 'e7'];
+
+  function templatesSaoAutossuficientes(lista) {
+    return lista.length > 0 && lista.every(function(t) { return TEMPLATES_AUTOSSUFICIENTES.indexOf(t) !== -1; });
+  }
+
   btnGerar.addEventListener('click', function() {
     var dadosCaso = document.getElementById('dadosCaso').value.trim();
     var atendimentoInicial = document.getElementById('atendimentoInicial').value.trim();
@@ -1417,13 +1427,13 @@
 
     erroMsg.classList.remove('show');
 
-    if (!dadosCaso) {
-      erroMsg.textContent = 'Preencha os dados do caso.';
+    if (templatesSelecionados.length === 0) {
+      erroMsg.textContent = 'Selecione ao menos um modelo de referência.';
       erroMsg.classList.add('show');
       return;
     }
-    if (templatesSelecionados.length === 0) {
-      erroMsg.textContent = 'Selecione ao menos um modelo de referência.';
+    if (!dadosCaso && !templatesSaoAutossuficientes(templatesSelecionados)) {
+      erroMsg.textContent = 'Preencha os dados do caso.';
       erroMsg.classList.add('show');
       return;
     }
