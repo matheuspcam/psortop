@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ erro: 'Método não permitido' });
   }
 
-  const { pin, tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, modo, dataHoje } = req.body;
+  const { pin, tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, modo, dataHoje, imagens } = req.body;
 
   if (!process.env.SITE_PIN || pin !== process.env.SITE_PIN) {
     return res.status(401).json({ erro: 'PIN incorreto' });
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           system_instruction: { parts: [{ text: promptSistema }] },
-          contents: [{ parts: [{ text: promptUsuario }] }],
+          contents: [{ parts: montarParts(promptUsuario, imagens) }],
           generationConfig: { temperature: 0.3 }
         })
       }
@@ -119,7 +119,7 @@ Se precisar sinalizar algo faltante, ambíguo ou assumido, coloque isso em uma o
 const TEMPLATES = {
   a: {
     nome: '1º Atendimento',
-    texto: `AP: nega alergias, comorbidades ou medicações de uso contínuo
+    texto: `AP: nega alergias
 
 QD:
 
@@ -145,7 +145,9 @@ Reavaliação após (o médico informa o prazo/momento — ex: resultado de exam
   },
   b: {
     nome: 'Trauma (Anamnese 1 Etapa)',
-    texto: `HDA: Paciente refere trauma em (instrução: cite o mecanismo e o segmento informados — ex: "trauma torcional em tornozelo", "trauma direto em joelho", "queda com apoio de mão") (instrução: lado D/E se informado) há (instrução: tempo informado), evoluindo com dor local (instrução: acrescente edema, dificuldade para deambular/mobilizar, ou outros sintomas associados se informados) desde então.
+    texto: `AP: nega alergias.
+
+HDA: Paciente refere trauma em (instrução: cite o mecanismo e o segmento informados — ex: "trauma torcional em tornozelo", "trauma direto em joelho", "queda com apoio de mão") (instrução: lado D/E se informado) há (instrução: tempo informado), evoluindo com dor local (instrução: acrescente edema, dificuldade para deambular/mobilizar, ou outros sintomas associados se informados) desde então.
 Nega outros traumas associados.
 Nega outras queixas relevantes no momento.
 
@@ -228,7 +230,7 @@ Orientado repouso, com elevação do membro acometido e não apoio (NPP), com au
   },
   e1: {
     nome: 'Crônico — Lombalgia Mecânica',
-    texto: `AP: Nega alergias, comorbidades ou uso de medicações contínuas.
+    texto: `AP: nega alergias.
 
 HPMA: Paciente refere lombalgia crônica, com agudização do quadro (instrução: acrescente o tempo de agudização se informado; se não informado, não force referência temporal), com piora à mobilização (instrução: acrescente "após esforço físico" ou "sem fator desencadeante definido" apenas se informado).
 Nega história de trauma.
@@ -271,7 +273,7 @@ Alta da ortopedia. (Instrução: incluir apenas se o médico deu alta.)`
   },
   e2: {
     nome: 'Crônico — Cervicalgia Mecânica',
-    texto: `AP: Nega alergias, comorbidades ou uso de medicações contínuas.
+    texto: `AP: nega alergias.
 
 HPMA: Paciente refere cervicalgia (instrução: acrescente o tempo de evolução se informado; se não informado, não force referência temporal), com piora à mobilização (instrução: acrescente "após esforço físico" ou "sem fator desencadeante definido" apenas se informado).
 Nega história de trauma.
@@ -313,7 +315,7 @@ Alta da ortopedia. (Instrução: incluir apenas se o médico deu alta.)`
   },
   e3: {
     nome: 'Crônico — Torcicolo Agudo',
-    texto: `AP: Nega alergias, comorbidades ou uso de medicações contínuas.
+    texto: `AP: nega alergias.
 
 HPMA: Paciente refere dor cervical (instrução: acrescente o tempo de início se informado; se não informado, não force referência temporal), principalmente à rotação do pescoço.
 Refere início ao acordar / após movimento brusco / sem trauma definido. (Instrução: escolher apenas o que foi informado; se nada foi informado, omita esta linha.)
@@ -351,7 +353,7 @@ Alta da ortopedia. (Instrução: incluir apenas se o médico deu alta.)`
   },
   e4: {
     nome: 'Crônico — Fascite Plantar',
-    texto: `AP: Nega alergias, comorbidades ou uso de medicações contínuas.
+    texto: `AP: nega alergias.
 
 HPMA: Paciente refere dor em região plantar do pé (instrução: lado D/E se informado), predominando em calcâneo e inserção da fáscia plantar, pior aos primeiros passos do dia e após períodos de repouso (instrução: acrescente o tempo de evolução se informado).
 Nega história de trauma.
@@ -391,7 +393,7 @@ Alta da ortopedia. (Instrução: incluir apenas se o médico deu alta.)`
   },
   e5: {
     nome: 'Crônico — Manguito Rotador / Ombralgia',
-    texto: `AP: Nega alergias, comorbidades ou uso de medicações contínuas.
+    texto: `AP: nega alergias.
 
 HPMA: Paciente refere dor em ombro (instrução: lado D/E se informado) (instrução: acrescente o tempo de evolução se informado; se não informado, não force referência temporal), com piora à elevação do membro e aos movimentos acima da linha do ombro.
 Refere dor noturna e dificuldade para deitar sobre o lado acometido. (Instrução: incluir apenas se mencionado.)
@@ -433,7 +435,7 @@ Alta da ortopedia. (Instrução: incluir apenas se o médico deu alta.)`
   },
   e6: {
     nome: 'Crônico — Tendinopatia (modelo genérico)',
-    texto: `AP: Nega alergias, comorbidades ou uso de medicações contínuas.
+    texto: `AP: nega alergias.
 
 HPMA: Paciente refere dor em (instrução: local informado) (instrução: acrescente o tempo de evolução se informado; se não informado, não force referência temporal), de caráter progressivo, relacionada a esforço e movimentos repetitivos (instrução: escolher apenas o que foi informado).
 Nega história de trauma agudo.
@@ -473,7 +475,7 @@ Alta da ortopedia.`
   },
   e7: {
     nome: 'Crônico — Gonalgia Não Traumática',
-    texto: `AP: Nega alergias, comorbidades ou uso de medicações contínuas.
+    texto: `AP: nega alergias.
 
 HPMA: Paciente refere gonalgia crônica (instrução: lado D/E se informado), com agudização do quadro (instrução: acrescente o tempo se informado; se não informado, não force referência temporal), sem trauma recente.
 Refere piora à deambulação, flexão, subir e descer escadas e esforço. (Instrução: citar apenas as que forem informadas; se nenhuma informada, omita esta linha.)
@@ -513,7 +515,7 @@ Alta da ortopedia. (Instrução: incluir apenas se o médico deu alta.)`
   },
   e8: {
     nome: 'Crônico — Outro / Genérico',
-    texto: `AP: Nega alergias, comorbidades ou uso de medicações contínuas.
+    texto: `AP: nega alergias.
 
 HPMA: Paciente refere quadro de (instrução: use a queixa e o segmento informados — ex: "dor em quadril direito", "dor em cotovelo esquerdo") de caráter crônico (instrução: acrescente o tempo de evolução e padrão de piora apenas se informados; se não informados, não force referência temporal).
 Nega história de trauma agudo relacionado à queixa atual.
@@ -628,7 +630,7 @@ REGRAS GERAIS:
 - Interprete dados enviados em formato bruto, abreviado ou desorganizado, e produza a saída padronizada do modelo escolhido
 - Siga EXATAMENTE o layout e o texto fixo do modelo indicado — não invente saudações, despedidas ou frases extras
 - Não invente dados clínicos ou pessoais que não foram informados
-- Se faltar um dado essencial do modelo, NÃO deixe o campo em branco nem invente: sinalize a ausência conforme instruído no modelo
+- Se faltar um dado essencial de um campo de formulário (ex: matrícula, telefone, hospital de origem), deixe o rótulo do campo no lugar mas sem o valor, exatamente como uma ficha preenchida à mão com uma lacuna esquecida — nunca escreva "NÃO INFORMADO", "[a preencher]" ou qualquer marcação, e nunca invente o valor. Sinalize cada campo faltante em uma linha de aviso no topo
 - A saída será copiada e colada direto no WhatsApp, então entregue apenas o texto final da mensagem, sem comentários seus antes ou depois
 
 AVISOS:
@@ -655,7 +657,7 @@ OBS: [opcional, apenas quando clinicamente relevante]
 
 REGRAS DESTE MODELO:
 - Valores padrão, salvo indicação contrária do médico: ANTICOAGULANTE = NÃO, MARCAPASSO = NÃO, HOSPITAL DE ORIGEM = HSM MADRID
-- Campos ausentes devem ser sinalizados explicitamente na linha de aviso do topo, e no corpo escreva "NÃO INFORMADO" no lugar do valor — nunca deixe em branco nem invente
+- Campos ausentes devem ser sinalizados explicitamente na linha de aviso do topo. No corpo da mensagem, deixe a linha com o rótulo mas sem o valor (ex: "TELEFONE: "), exatamente como ficaria se o médico tivesse esquecido de preencher à mão — nunca escreva "NÃO INFORMADO" nem invente um valor. O texto final deve parecer uma ficha preenchida manualmente com uma lacuna esquecida, não um formulário gerado por IA
 - HD com precisão anatômica: inclua lateralidade (direito/esquerdo) e localização (ex: "extremidade distal", "terço proximal"). Se o médico informou de forma imprecisa, proponha a terminologia padronizada e sinalize a sugestão no aviso do topo para ele confirmar
 - A linha OBS só entra quando houver algo clinicamente relevante; caso contrário, omita a linha inteira
 - OBS em linguagem concisa e colegial — o destinatário é um colega conhecido, então evite tom formal ou diretivo demais
@@ -681,12 +683,22 @@ Uso de marca-passo: [Sim/Não]
 
 REGRAS DESTE MODELO:
 - PACIENTE: use apenas as INICIAIS do nome, separadas por ponto e espaço (ex: "João Carlos Mendes" vira "J. C. M."). Nunca escreva o nome completo neste modelo
-- Valores padrão, salvo indicação contrária do médico: Fluxo = URGÊNCIA FLUXO COMUM, Uso de anticoagulante/antiagregante = Não, Uso de marca-passo = Não
-- Diagnóstico com precisão anatômica: inclua lateralidade (direita/esquerda) e, quando houver cirurgia prévia relacionada, cite entre parênteses o procedimento e a data no formato MM/AA (ex: "infecção relacionada ao material de síntese (PO osteossíntese patela direita – 07/26)")
-- CD (conduta): descreva a conduta proposta e, quando houver transferência, cite o hospital de destino (ex: "Internação para Tratamento Cirúrgico no Hospital Tailândia")
-- Se o hospital de origem não for informado, sinalize no aviso do topo — não assuma um hospital padrão, pois varia entre as unidades
-- Campos ausentes devem ser sinalizados na linha de aviso do topo, e no corpo escreva "NÃO INFORMADO" no lugar do valor — nunca deixe em branco nem invente
-- Se houver múltiplos pacientes, gere um informativo separado para cada um, separados por uma linha em branco e uma linha com "———"`
+
+VALORES PADRÃO — esta é uma mensagem padronizada que o médico usa quase sempre da mesma forma. Use estes valores automaticamente, salvo indicação contrária explícita do médico nos dados enviados:
+- Fluxo = URGÊNCIA FLUXO COMUM
+- Tempo de sala = 2h
+- CD = Internação para Tratamento Cirúrgico
+- Transferência para Hospital = HSM Tailândia
+- Uso de anticoagulante/antiagregante = Não
+- Uso de marca-passo = Não
+
+HOSPITAL DE ORIGEM — só pode ser um destes dois: HSM Santiago ou HSM SBC. O médico precisa informar qual dos dois. Se ele não informar, NÃO escolha um sozinho: sinalize no aviso do topo (ex: "⚠️ Hospital de origem não informado") e deixe o campo "Hospital de origem: " sem valor no corpo da mensagem.
+
+CAMPOS QUE SEMPRE VARIAM E SÃO OBRIGATÓRIOS (Paciente, Matrícula, Idade, Diagnóstico): se o médico não informar algum destes, NÃO invente e NÃO escreva "NÃO INFORMADO" no corpo — deixe a linha com o campo e o rótulo, mas sem o valor (ex: "Matrícula: "), exatamente como ficaria se o médico tivesse esquecido de preencher à mão. Ao mesmo tempo, sinalize cada campo faltante em uma linha de aviso no topo, para o médico completar antes de enviar. O texto final deve parecer uma ficha preenchida manualmente com uma lacuna esquecida, não um formulário gerado por IA.
+
+Diagnóstico com precisão anatômica: inclua lateralidade (direita/esquerda) e, quando houver cirurgia prévia relacionada, cite entre parênteses o procedimento e a data no formato MM/AA (ex: "infecção relacionada ao material de síntese (PO osteossíntese patela direita – 07/26)").
+
+Se houver múltiplos pacientes, gere um informativo separado para cada um, separados por uma linha em branco e uma linha com "———".`
   },
   paciente: {
     nome: 'Para o paciente (retorno via WhatsApp)',
@@ -696,7 +708,7 @@ Olá, aqui é o Dr. Matheus, da Ortopedia do Hospital Madrid.
 
 Entramos em contato para informar que, após avaliação e discussão com a chefia do hospital, o(a) Sr.(a) [NOME COMPLETO] será tratado(a) de forma [CONDUTA].
 
-Solicitamos que compareça para retorno no dia [DD/MM/AAAA] ([dia da semana]), às [horário], no Pronto-Socorro do Hospital Madrid da Prevent.
+Solicitamos que compareça para retorno no dia [DD/MM/AAAA] ([dia da semana]), às [horário], no Pronto-Socorro do [HOSPITAL].
 
 Esclarecemos que a evolução clínica deverá ser acompanhada, podendo haver necessidade de reavaliação conforme a resposta ao tratamento e a evolução do quadro, inclusive com possibilidade de mudança de conduta.
 
@@ -704,11 +716,11 @@ Qualquer dúvida, estamos à disposição.
 
 REGRAS DESTE MODELO:
 - [NOME COMPLETO]: use o nome informado. Ajuste o tratamento e a concordância de gênero ao longo de todo o texto — "o Sr. ... será tratado" para homem, "a Sra. ... será tratada" para mulher. Não deixe as formas "o(a)", "Sr.(a)" ou "tratado(a)" no texto final: escolha a forma correta conforme o gênero. Se o gênero não for dedutível do nome, sinalize no aviso do topo e use a forma masculina
-- [CONDUTA]: padrão mais comum é "conservadora a princípio (sem necessidade de cirurgia)". Adapte conforme o caso informado
+- [CONDUTA]: padrão mais comum é "conservadora a princípio (sem necessidade de cirurgia)". Adapte conforme o caso informado — ex: se o médico disser que o tratamento será cirúrgico, use "cirúrgica"
 - [DD/MM/AAAA] ([dia da semana]): data numérica completa. SEMPRE confira e escreva o dia da semana correspondente à data (ex: "15/03/2026 (domingo)"). Use a data de hoje informada no contexto como referência para interpretar expressões como "amanhã", "semana que vem", "próxima segunda"
 - [horário]: no formato "14h" ou "14h30"
-- Local padrão: Pronto-Socorro do Hospital Madrid da Prevent. Só altere se o médico indicar outro
-- Se faltar nome, conduta, data ou horário, NÃO invente: sinalize a ausência na linha de aviso do topo e deixe o restante da mensagem pronta com o que foi informado
+- [HOSPITAL]: só pode ser um destes dois: "HSM Santiago" ou "HSM SBC". VALOR PADRÃO se o médico não especificar: HSM Santiago. Só use HSM SBC se o médico mencionar explicitamente
+- Se faltar nome, conduta, data ou horário, deixe o campo do template sem preencher (mantendo a frase ao redor coerente) e sinalize a ausência na linha de aviso do topo — nunca invente o valor nem escreva "NÃO INFORMADO"
 - Se houver múltiplos pacientes, gere uma mensagem separada para cada um, separadas por uma linha em branco e uma linha com "———"`
   }
 };
@@ -728,4 +740,35 @@ function montarPromptMensagem({ dadosCaso, template, dataHoje }) {
   partes.push(`\nGere a mensagem agora, seguindo exatamente o modelo acima.`);
 
   return partes.join('\n');
+}
+
+/* ===================== IMAGENS ===================== */
+
+// Monta o array de "parts" para a API do Gemini, incluindo imagens quando houver.
+// Limita a quantidade e o tamanho para não estourar a requisição.
+const MAX_IMAGENS = 6;
+
+function montarParts(promptUsuario, imagens) {
+  const parts = [];
+
+  if (Array.isArray(imagens) && imagens.length) {
+    imagens.slice(0, MAX_IMAGENS).forEach(img => {
+      if (img && img.base64 && img.mimeType) {
+        parts.push({
+          inline_data: {
+            mime_type: img.mimeType,
+            data: img.base64
+          }
+        });
+      }
+    });
+
+    parts.push({
+      text: 'As imagens acima foram anexadas pelo médico. Leia o conteúdo delas (laudos, resultados de exame, prints de sistema, radiografias) e use as informações relevantes junto com os dados em texto abaixo. Se a imagem estiver ilegível ou não contiver informação útil, sinalize isso em uma linha de aviso no topo. Nunca invente conteúdo que não esteja visível na imagem.'
+    });
+  }
+
+  parts.push({ text: promptUsuario });
+
+  return parts;
 }
