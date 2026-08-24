@@ -676,30 +676,28 @@
   .cat-prontos.aberta .cat-body { display: block; }
 
   .item-pronto {
-    background: transparent;
-    border: none;
-    border-top: 1px solid var(--panel-border);
-    border-radius: 0;
-    padding: 14px 0 4px;
-    margin-bottom: 0;
+    background: #0d1312;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 14px 16px 16px;
+    margin-bottom: 14px;
   }
 
-  .item-pronto:first-child {
-    border-top: none;
-    padding-top: 4px;
-  }
+  .item-pronto:last-child { margin-bottom: 0; }
 
   .item-pronto-topo {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 10px;
-    margin-bottom: 6px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--panel-border);
   }
 
   .item-pronto-titulo {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 13.5px;
+    font-weight: 700;
     color: var(--accent);
   }
 
@@ -722,10 +720,10 @@
   .item-pronto textarea {
     background: transparent;
     border: none;
-    padding: 0;
+    padding: 2px 0 0;
     font-size: 12.5px;
     font-family: var(--mono);
-    line-height: 1.6;
+    line-height: 1.7;
     color: var(--ink);
     resize: none;
     overflow: hidden;
