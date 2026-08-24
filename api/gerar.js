@@ -9,8 +9,8 @@ export default async function handler(req, res) {
     return res.status(401).json({ erro: 'PIN incorreto' });
   }
 
-  if (!dadosCaso || !template) {
-    return res.status(400).json({ erro: 'Faltam dados do caso ou template selecionado' });
+  if (!template) {
+    return res.status(400).json({ erro: 'Falta o template selecionado' });
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
@@ -608,7 +608,11 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
     partes.push(`\nATENDIMENTO INICIAL (para contexto e coerência — destaque a evolução em relação a isto):\n${atendimentoInicial}`);
   }
 
-  partes.push(`\nDADOS DO CASO ATUAL:\n${dadosCaso}`);
+  if (dadosCaso && dadosCaso.trim()) {
+    partes.push(`\nDADOS DO CASO ATUAL:\n${dadosCaso}`);
+  } else {
+    partes.push(`\nDADOS DO CASO ATUAL: não informados. O médico optou por gerar o prontuário usando apenas o modelo padrão abaixo, sem alterações — use o texto do modelo de referência tal como está (com as negativas de rotina padrão), sem inventar achados nem deixar de gerar o texto.`);
+  }
 
   if (extra && extra.trim()) {
     partes.push(`\nINFORMAÇÕES ADICIONAIS (ex: resultado de exame, achados específicos):\n${extra}`);
