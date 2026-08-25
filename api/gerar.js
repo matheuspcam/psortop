@@ -3,13 +3,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ erro: 'Método não permitido' });
   }
 
-  const { pin, tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, modo, dataHoje, imagens, resultadoAnterior, instrucaoAjuste } = req.body;
+  const { pin, tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, modo, dataHoje, imagens, resultadoAnterior, instrucaoAjuste, categoria, exemplos, pedido, tipoAtestado, diasAfastamento, diagnosticoAtestado } = req.body;
 
   if (!process.env.SITE_PIN || pin !== process.env.SITE_PIN) {
     return res.status(401).json({ erro: 'PIN incorreto' });
   }
 
-  if (!template) {
+  const ehAvulso = modo === 'avulso';
+
+  if (!ehAvulso && !template) {
     return res.status(400).json({ erro: 'Falta o template selecionado' });
   }
 
@@ -21,10 +23,15 @@ export default async function handler(req, res) {
   const ehAjuste = !!(resultadoAnterior && instrucaoAjuste);
   const ehMensagem = modo === 'mensagem';
 
-  const promptSistema = ehMensagem ? montarPromptSistemaMensagem() : montarPromptSistema();
-  const promptUsuario = ehMensagem
-    ? montarPromptMensagem({ dadosCaso, template, dataHoje })
-    : montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante });
+  const promptSistema = ehAvulso
+    ? montarPromptSistemaAvulso()
+    : (ehMensagem ? montarPromptSistemaMensagem() : montarPromptSistema());
+
+  const promptUsuario = ehAvulso
+    ? montarPromptAvulso({ categoria, exemplos, pedido, tipoAtestado, diasAfastamento, diagnosticoAtestado })
+    : (ehMensagem
+      ? montarPromptMensagem({ dadosCaso, template, dataHoje })
+      : montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante }));
 
   const contents = ehAjuste
     ? [
@@ -751,6 +758,48 @@ function montarPromptMensagem({ dadosCaso, template, dataHoje }) {
   partes.push(`\nMODELO A USAR: ${modelo.nome}\n\n${modelo.texto}`);
   partes.push(`\nDADOS ENVIADOS PELO MÉDICO:\n${dadosCaso}`);
   partes.push(`\nGere a mensagem agora, seguindo exatamente o modelo acima.`);
+
+  return partes.join('\n');
+}
+
+/* ===================== GERADOR AVULSO (Exames / Fisioterapia / Atestados) ===================== */
+// Usado na aba "Textos prontos", quando o caso foge dos itens já cadastrados.
+// Gera um item novo no mesmo formato dos exemplos já existentes daquela categoria,
+// sem salvar nada — é só para aquele uso pontual.
+
+function montarPromptSistemaAvulso() {
+  return `Você é um assistente do Dr. Matheus, ortopedista do Hospital Sancta Maggiore (HSM) Madrid.
+Sua função é gerar UM único item de texto pronto (pedido de exame, encaminhamento de fisioterapia, ou atestado), no MESMO formato e estilo dos exemplos fornecidos daquela categoria.
+
+REGRAS GERAIS:
+- Copie exatamente o padrão de estrutura, pontuação e organização dos exemplos (ex: "SOLICITO:" seguido de linhas, ou o texto corrido de um atestado)
+- Se a categoria envolver CID-10 e o médico não informou o código, você deve determinar o CID-10 correto com base no diagnóstico informado — essa é justamente a parte que o médico não sabe de cabeça e está pedindo para você resolver
+- Se não tiver certeza absoluta do CID-10 mais adequado, escolha o mais clinicamente apropriado e comum para aquele diagnóstico; nunca deixe o campo de CID em branco ou com placeholder
+- Não invente detalhes que não foram pedidos (lado, quantidade de sessões, etc.) além do que os exemplos já trazem como padrão — mantenha esses valores padrão dos exemplos quando não especificado
+- Devolva APENAS o texto final do item, pronto para copiar e colar. Sem comentários antes ou depois, sem aspas, sem markdown`;
+}
+
+function montarPromptAvulso({ categoria, exemplos, pedido, tipoAtestado, diasAfastamento, diagnosticoAtestado }) {
+  let partes = [];
+
+  partes.push(`CATEGORIA: ${categoria}`);
+
+  if (Array.isArray(exemplos) && exemplos.length) {
+    partes.push(`\nEXEMPLOS JÁ CADASTRADOS NESTA CATEGORIA (siga exatamente este formato/estilo):\n`);
+    exemplos.forEach(function(ex) {
+      partes.push(`--- ${ex.titulo} ---\n${ex.texto}\n`);
+    });
+  }
+
+  if (categoria === 'Atestados') {
+    partes.push(`\nUse como base o exemplo de "${tipoAtestado === 'pediatria' ? 'Atestado Pediatria' : 'Atestado de Trabalho'}" acima.`);
+    partes.push(`Dias de afastamento/dispensa: ${diasAfastamento || 'não informado — mantenha o formato do exemplo (linha em branco para preencher à mão) se não for possível determinar'}`);
+    partes.push(`Diagnóstico informado pelo médico: ${diagnosticoAtestado}`);
+    partes.push(`\nGere o atestado completo, preenchendo os dias e determinando o CID-10 correto a partir do diagnóstico informado (apenas se o exemplo de referência tiver campo de CID-10).`);
+  } else {
+    partes.push(`\nPEDIDO DO MÉDICO (o que ele precisa, do jeito que escreveu):\n${pedido}`);
+    partes.push(`\nGere o item completo agora, no mesmo formato dos exemplos acima, adaptado ao pedido.`);
+  }
 
   return partes.join('\n');
 }

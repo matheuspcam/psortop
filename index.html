@@ -491,6 +491,24 @@
     color: #ffffff;
   }
 
+  .duas-caixas-ajuste {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .duas-caixas-ajuste .caixa-ajuste,
+  .duas-caixas-ajuste .caixa-sugerir {
+    margin-top: 0;
+  }
+
+  @media (max-width: 640px) {
+    .duas-caixas-ajuste {
+      grid-template-columns: 1fr;
+    }
+  }
+
   .caixa-ajuste {
     margin-top: 16px;
     padding: 14px 16px;
@@ -797,6 +815,100 @@
 
   .cat-prontos.aberta .cat-body { display: block; }
 
+  .gerador-avulso {
+    margin-top: 4px;
+    padding: 14px 16px;
+    background: var(--accent-dim);
+    border: 1px dashed var(--accent);
+    border-radius: 8px;
+  }
+
+  .gerador-avulso-titulo {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 3px;
+  }
+
+  .gerador-avulso-hint {
+    font-size: 11.5px;
+    color: var(--ink-dim);
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  .gerador-avulso textarea,
+  .gerador-avulso input[type="text"] {
+    width: 100%;
+    padding: 9px 11px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: var(--sans);
+    color: var(--ink);
+    resize: vertical;
+    margin-bottom: 8px;
+  }
+
+  .gerador-avulso textarea { min-height: 54px; }
+
+  .gerador-avulso-linha2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .btn-gerar-avulso {
+    width: 100%;
+    padding: 10px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.12s ease;
+  }
+
+  .btn-gerar-avulso:hover { opacity: 0.9; }
+  .btn-gerar-avulso:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .resultado-avulso {
+    display: none;
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: var(--panel);
+    border: 1.5px solid var(--accent);
+    border-radius: 8px;
+  }
+
+  .resultado-avulso.show { display: block; }
+
+  .resultado-avulso-texto {
+    white-space: pre-wrap;
+    font-size: 12.5px;
+    font-family: var(--mono);
+    line-height: 1.6;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+
+  .erro-avulso {
+    color: var(--danger);
+    font-size: 12px;
+    margin-top: 6px;
+    display: none;
+  }
+
+  .erro-avulso.show { display: block; }
+
+  @media (max-width: 480px) {
+    .gerador-avulso-linha2 { grid-template-columns: 1fr; }
+  }
+
   .item-pronto {
     background: var(--panel);
     border: 1.5px solid var(--accent);
@@ -954,6 +1066,13 @@
         <button type="button" class="tipo-btn" data-tipo="reavaliacao">Reavaliação</button>
         <button type="button" class="tipo-btn" data-tipo="completo">Atendimento completo</button>
       </div>
+
+      <div class="field" style="margin-top:14px;">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="checkbox" id="toggleAcompanhante" style="width:16px; height:16px; accent-color: var(--accent);">
+          <span style="font-size:13px; color: var(--ink-dim);">História relatada por acompanhante (ex: pais de criança, cuidador de idoso)</span>
+        </label>
+      </div>
     </div>
 
     <div class="card oculto" id="blocoInicial">
@@ -968,6 +1087,9 @@
         <span class="label" id="labelDados">Dados do caso</span>
         <textarea id="dadosCaso" placeholder="Escreva do seu jeito, corrido: queixa, achados de exame, o que mudou..."></textarea>
       </div>
+    </div>
+
+    <div class="card">
       <div class="field">
         <span class="label">Exame / laudo (opcional)</span>
         <div class="campo-com-upload">
@@ -1020,13 +1142,6 @@
       </div>
 
       <div class="hint" id="tplHint">Pode selecionar mais de um (ex: Fratura + Canetada Internar).</div>
-
-      <div class="field" style="margin-top:14px;">
-        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-          <input type="checkbox" id="toggleAcompanhante" style="width:16px; height:16px; accent-color: var(--accent);">
-          <span style="font-size:13px; color: var(--ink-dim);">História relatada por acompanhante (ex: pais de criança, cuidador de idoso)</span>
-        </label>
-      </div>
     </div>
 
     <button class="btn-gerar" id="btnGerar">Gerar prontuário</button>
@@ -1041,18 +1156,20 @@
         <button class="btn-copiar-lateral" id="btnCopiarLateral">COPIAR</button>
       </div>
 
-      <div class="caixa-ajuste" id="caixaAjuste">
-        <span class="caixa-ajuste-titulo">Ajustar esta geração</span>
-        <textarea id="instrucaoAjuste" placeholder="Ex: tira a parte de TVP / troca o lado para esquerdo / encurta a conduta..."></textarea>
-        <button type="button" class="btn-ajustar" id="btnAjustar">Ajustar</button>
-        <div class="spinner" id="spinnerAjuste"><span class="dot"></span> Ajustando...</div>
-      </div>
+      <div class="duas-caixas-ajuste">
+        <div class="caixa-ajuste" id="caixaAjuste">
+          <span class="caixa-ajuste-titulo">Ajustar esta geração</span>
+          <textarea id="instrucaoAjuste" placeholder="Ex: tira a parte de TVP / troca o lado para esquerdo / encurta a conduta..."></textarea>
+          <button type="button" class="btn-ajustar" id="btnAjustar">Ajustar</button>
+          <div class="spinner" id="spinnerAjuste"><span class="dot"></span> Ajustando...</div>
+        </div>
 
-      <div class="caixa-sugerir" id="caixaSugerir">
-        <span class="caixa-sugerir-titulo">⚠️ Sugerir mudança permanente</span>
-        <div class="caixa-sugerir-hint">Isso salva sua observação para você revisar comigo depois — não altera o texto acima agora.</div>
-        <textarea id="sugestaoMudanca" placeholder="Ex: o template de Gonalgia deveria sempre perguntar sobre derrame articular..."></textarea>
-        <button type="button" class="btn-sugerir" id="btnSugerir">Salvar sugestão</button>
+        <div class="caixa-sugerir" id="caixaSugerir">
+          <span class="caixa-sugerir-titulo">⚠️ Sugerir mudança permanente</span>
+          <div class="caixa-sugerir-hint">Isso salva sua observação para você revisar comigo depois — não altera o texto acima agora.</div>
+          <textarea id="sugestaoMudanca" placeholder="Ex: o template de Gonalgia deveria sempre perguntar sobre derrame articular..."></textarea>
+          <button type="button" class="btn-sugerir" id="btnSugerir">Salvar sugestão</button>
+        </div>
       </div>
 
       <button class="btn-recomecar" id="btnRecomecar">Começar de novo</button>
@@ -1110,18 +1227,20 @@
         <button class="btn-copiar-lateral" id="btnCopiarMsg">COPIAR</button>
       </div>
 
-      <div class="caixa-ajuste" id="caixaAjusteMsg">
-        <span class="caixa-ajuste-titulo">Ajustar esta geração</span>
-        <textarea id="instrucaoAjusteMsg" placeholder="Ex: troca o horário do retorno / tira a menção ao anticoagulante..."></textarea>
-        <button type="button" class="btn-ajustar" id="btnAjustarMsg">Ajustar</button>
-        <div class="spinner" id="spinnerAjusteMsg"><span class="dot"></span> Ajustando...</div>
-      </div>
+      <div class="duas-caixas-ajuste">
+        <div class="caixa-ajuste" id="caixaAjusteMsg">
+          <span class="caixa-ajuste-titulo">Ajustar esta geração</span>
+          <textarea id="instrucaoAjusteMsg" placeholder="Ex: troca o horário do retorno / tira a menção ao anticoagulante..."></textarea>
+          <button type="button" class="btn-ajustar" id="btnAjustarMsg">Ajustar</button>
+          <div class="spinner" id="spinnerAjusteMsg"><span class="dot"></span> Ajustando...</div>
+        </div>
 
-      <div class="caixa-sugerir" id="caixaSugerirMsg">
-        <span class="caixa-sugerir-titulo">⚠️ Sugerir mudança permanente</span>
-        <div class="caixa-sugerir-hint">Isso salva sua observação para você revisar comigo depois — não altera o texto acima agora.</div>
-        <textarea id="sugestaoMudancaMsg" placeholder="Ex: a mensagem para o chefe deveria sempre perguntar o telefone..."></textarea>
-        <button type="button" class="btn-sugerir" id="btnSugerirMsg">Salvar sugestão</button>
+        <div class="caixa-sugerir" id="caixaSugerirMsg">
+          <span class="caixa-sugerir-titulo">⚠️ Sugerir mudança permanente</span>
+          <div class="caixa-sugerir-hint">Isso salva sua observação para você revisar comigo depois — não altera o texto acima agora.</div>
+          <textarea id="sugestaoMudancaMsg" placeholder="Ex: a mensagem para o chefe deveria sempre perguntar o telefone..."></textarea>
+          <button type="button" class="btn-sugerir" id="btnSugerirMsg">Salvar sugestão</button>
+        </div>
       </div>
 
       <button class="btn-recomecar" id="btnRecomecarMsg">Começar de novo</button>
@@ -2239,6 +2358,11 @@
       body.appendChild(itemDiv);
     });
 
+    var CATEGORIAS_COM_GERADOR = ['Exames', 'Fisioterapia', 'Atestados'];
+    if (CATEGORIAS_COM_GERADOR.indexOf(cat.categoria) !== -1) {
+      body.appendChild(criarGeradorAvulso(cat));
+    }
+
     header.addEventListener('click', function() {
       catDiv.classList.toggle('aberta');
       // recalcula altura dos textareas ao abrir (nao da para medir elemento oculto)
@@ -2254,6 +2378,135 @@
     catDiv.appendChild(body);
     containerProntos.appendChild(catDiv);
   });
+
+  function criarGeradorAvulso(cat) {
+    var wrap = document.createElement('div');
+    wrap.className = 'gerador-avulso';
+
+    var titulo = document.createElement('span');
+    titulo.className = 'gerador-avulso-titulo';
+    titulo.textContent = 'Não achou o que precisa? Gere na hora';
+
+    var hint = document.createElement('div');
+    hint.className = 'gerador-avulso-hint';
+    hint.textContent = 'Passa pela IA, no mesmo formato dos itens acima. Não fica salvo — é só para este caso.';
+
+    wrap.appendChild(titulo);
+    wrap.appendChild(hint);
+
+    var ehAtestado = cat.categoria === 'Atestados';
+    var selectTipo, inputDias, textareaDiagnostico, textareaPedido;
+
+    if (ehAtestado) {
+      var linha2 = document.createElement('div');
+      linha2.className = 'gerador-avulso-linha2';
+
+      selectTipo = document.createElement('select');
+      selectTipo.innerHTML = '<option value="trabalho">Atestado de Trabalho</option><option value="pediatria">Atestado Pediatria</option>';
+      selectTipo.style.cssText = 'padding:9px 11px; background:var(--panel); border:1px solid var(--panel-border); border-radius:8px; font-size:13px; color:var(--ink); margin-bottom:8px; width:100%;';
+
+      inputDias = document.createElement('input');
+      inputDias.type = 'text';
+      inputDias.placeholder = 'Dias de afastamento (ex: 5)';
+
+      linha2.appendChild(selectTipo);
+      linha2.appendChild(inputDias);
+      wrap.appendChild(linha2);
+
+      textareaDiagnostico = document.createElement('textarea');
+      textareaDiagnostico.placeholder = 'Diagnóstico (ex: entorse de tornozelo) — a IA descobre o CID-10 certo';
+      wrap.appendChild(textareaDiagnostico);
+    } else {
+      textareaPedido = document.createElement('textarea');
+      textareaPedido.placeholder = cat.categoria === 'Fisioterapia'
+        ? 'Ex: 10 sessões de RPG, diagnóstico de escoliose'
+        : 'Ex: USG de punho, suspeita de tendinite de De Quervain';
+      wrap.appendChild(textareaPedido);
+    }
+
+    var btnGerar = document.createElement('button');
+    btnGerar.type = 'button';
+    btnGerar.className = 'btn-gerar-avulso';
+    btnGerar.textContent = 'Gerar';
+    wrap.appendChild(btnGerar);
+
+    var erro = document.createElement('div');
+    erro.className = 'erro-avulso';
+    wrap.appendChild(erro);
+
+    var resultadoDiv = document.createElement('div');
+    resultadoDiv.className = 'resultado-avulso';
+    var resultadoTextoDiv = document.createElement('div');
+    resultadoTextoDiv.className = 'resultado-avulso-texto';
+    var btnCopiarResultado = document.createElement('button');
+    btnCopiarResultado.type = 'button';
+    btnCopiarResultado.className = 'btn-copiar-item';
+    btnCopiarResultado.textContent = 'Copiar';
+    resultadoDiv.appendChild(resultadoTextoDiv);
+    resultadoDiv.appendChild(btnCopiarResultado);
+    wrap.appendChild(resultadoDiv);
+
+    btnCopiarResultado.addEventListener('click', function() {
+      navigator.clipboard.writeText(resultadoTextoDiv.textContent).then(function() {
+        btnCopiarResultado.textContent = 'Copiado';
+        setTimeout(function() { btnCopiarResultado.textContent = 'Copiar'; }, 1800);
+      });
+    });
+
+    btnGerar.addEventListener('click', function() {
+      erro.classList.remove('show');
+
+      var payload = { pin: pinAtual, modo: 'avulso', categoria: cat.categoria, exemplos: cat.itens };
+
+      if (ehAtestado) {
+        var diagnostico = textareaDiagnostico.value.trim();
+        if (!diagnostico) {
+          erro.textContent = 'Escreva o diagnóstico.';
+          erro.classList.add('show');
+          return;
+        }
+        payload.tipoAtestado = selectTipo.value;
+        payload.diasAfastamento = inputDias.value.trim();
+        payload.diagnosticoAtestado = diagnostico;
+      } else {
+        var pedido = textareaPedido.value.trim();
+        if (!pedido) {
+          erro.textContent = 'Escreva o pedido.';
+          erro.classList.add('show');
+          return;
+        }
+        payload.pedido = pedido;
+      }
+
+      btnGerar.disabled = true;
+      btnGerar.textContent = 'Gerando...';
+      resultadoDiv.classList.remove('show');
+
+      fetch('/api/gerar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(function(resp) {
+        return resp.json().then(function(data) {
+          if (!resp.ok) {
+            erro.textContent = data.erro || 'Erro ao gerar o texto.';
+            erro.classList.add('show');
+            return;
+          }
+          resultadoTextoDiv.textContent = (data.texto || '').trim();
+          resultadoDiv.classList.add('show');
+        });
+      }).catch(function() {
+        erro.textContent = 'Falha de conexão. Verifique a internet e tente novamente.';
+        erro.classList.add('show');
+      }).finally(function() {
+        btnGerar.disabled = false;
+        btnGerar.textContent = 'Gerar';
+      });
+    });
+
+    return wrap;
+  }
 
   var btnCopiarProntos = document.getElementById('btnCopiarProntos');
   btnCopiarProntos.addEventListener('click', function() {
