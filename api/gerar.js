@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ erro: 'Método não permitido' });
   }
 
-  const { pin, tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, modo, dataHoje, imagens } = req.body;
+  const { pin, tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, modo, dataHoje, imagens, resultadoAnterior, instrucaoAjuste } = req.body;
 
   if (!process.env.SITE_PIN || pin !== process.env.SITE_PIN) {
     return res.status(401).json({ erro: 'PIN incorreto' });
@@ -18,12 +18,21 @@ export default async function handler(req, res) {
     return res.status(500).json({ erro: 'Chave da API não configurada no servidor' });
   }
 
+  const ehAjuste = !!(resultadoAnterior && instrucaoAjuste);
   const ehMensagem = modo === 'mensagem';
 
   const promptSistema = ehMensagem ? montarPromptSistemaMensagem() : montarPromptSistema();
   const promptUsuario = ehMensagem
     ? montarPromptMensagem({ dadosCaso, template, dataHoje })
     : montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante });
+
+  const contents = ehAjuste
+    ? [
+        { role: 'user', parts: montarParts(promptUsuario, imagens) },
+        { role: 'model', parts: [{ text: resultadoAnterior }] },
+        { role: 'user', parts: [{ text: `Ajuste pontual no texto que você acabou de gerar, mantendo tudo o mais como está e alterando apenas o que foi pedido abaixo. Devolva o texto completo já corrigido, no mesmo formato (incluindo a linha de aviso "⚠️ " no topo, se houver):\n\n${instrucaoAjuste}` }] }
+      ]
+    : [{ role: 'user', parts: montarParts(promptUsuario, imagens) }];
 
   try {
     const resposta = await fetch(
@@ -36,7 +45,7 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           system_instruction: { parts: [{ text: promptSistema }] },
-          contents: [{ parts: montarParts(promptUsuario, imagens) }],
+          contents: contents,
           generationConfig: { temperature: 0.3 }
         })
       }
