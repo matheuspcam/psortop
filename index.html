@@ -1275,7 +1275,15 @@
   <div id="abaSugestoes" class="oculto">
     <div class="card">
       <div class="hint" style="margin-top:0; margin-bottom:14px;">
-        Sugestões de mudança salvas durante o plantão, através do botão "Salvar sugestão" nas telas de Gerar e Mensagens. Copie tudo e cole numa mensagem para o Claude quando tiver tempo — ao copiar, a lista é limpa.
+        Sugestões de mudança salvas durante o plantão, através do botão "Salvar sugestão" nas telas de Gerar e Mensagens, ou escritas direto aqui. Copie tudo e cole numa mensagem para o Claude quando tiver tempo. A lista não é limpa automaticamente — use "Apagar tudo" quando já tiver resolvido.
+      </div>
+
+      <div class="gerador-avulso" style="margin-bottom:14px;">
+        <span class="gerador-avulso-titulo">Adicionar lembrete manual</span>
+        <div class="gerador-avulso-hint">Para algo que você já sabe que precisa mudar, sem precisar estar numa geração específica.</div>
+        <textarea id="novaSugestaoManual" placeholder="Ex: trocar a cor do botão de copiar / revisar o template de fascite plantar..."></textarea>
+        <button type="button" class="btn-gerar-avulso" id="btnAdicionarSugestaoManual">Adicionar à lista</button>
+        <div class="erro-avulso" id="erroSugestaoManual"></div>
       </div>
 
       <div id="listaSugestoesPendentes"></div>
@@ -1283,6 +1291,7 @@
     </div>
 
     <button class="btn-copiar-templates" id="btnCopiarSugestoes">Copiar tudo para o Claude</button>
+    <button class="btn-recomecar" id="btnApagarSugestoes" style="margin-top:10px;">Apagar tudo</button>
   </div>
 </div>
 
@@ -2747,24 +2756,91 @@
     });
 
     navigator.clipboard.writeText(texto.trim()).then(function() {
-      return fetch('/api/sugestoes', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: pinAtual })
-      });
-    }).then(function() {
-      btnCopiarSugestoes.textContent = 'Copiado - lista limpa';
+      btnCopiarSugestoes.textContent = 'Copiado - cole no chat com o Claude';
       btnCopiarSugestoes.classList.add('copiado');
       setTimeout(function() {
         btnCopiarSugestoes.textContent = 'Copiar tudo para o Claude';
         btnCopiarSugestoes.classList.remove('copiado');
+      }, 2500);
+    });
+  });
+
+  var novaSugestaoManual = document.getElementById('novaSugestaoManual');
+  var btnAdicionarSugestaoManual = document.getElementById('btnAdicionarSugestaoManual');
+  var erroSugestaoManual = document.getElementById('erroSugestaoManual');
+
+  btnAdicionarSugestaoManual.addEventListener('click', function() {
+    var observacao = novaSugestaoManual.value.trim();
+    erroSugestaoManual.classList.remove('show');
+
+    if (!observacao) {
+      erroSugestaoManual.textContent = 'Escreva o lembrete antes de adicionar.';
+      erroSugestaoManual.classList.add('show');
+      return;
+    }
+
+    btnAdicionarSugestaoManual.disabled = true;
+    btnAdicionarSugestaoManual.textContent = 'Adicionando...';
+
+    fetch('/api/sugestoes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pin: pinAtual,
+        aba: 'Lembrete manual',
+        template: '',
+        resultadoGerado: '',
+        observacao: observacao
+      })
+    }).then(function(resp) {
+      return resp.json().then(function(data) {
+        if (!resp.ok) {
+          erroSugestaoManual.textContent = data.erro || 'Erro ao adicionar.';
+          erroSugestaoManual.classList.add('show');
+          return;
+        }
+        novaSugestaoManual.value = '';
         carregarSugestoesPendentes();
-      }, 2500);
+      });
     }).catch(function() {
-      btnCopiarSugestoes.textContent = 'Erro ao limpar - tente de novo';
+      erroSugestaoManual.textContent = 'Falha de conexão. Tente novamente.';
+      erroSugestaoManual.classList.add('show');
+    }).finally(function() {
+      btnAdicionarSugestaoManual.disabled = false;
+      btnAdicionarSugestaoManual.textContent = 'Adicionar à lista';
+    });
+  });
+
+  var btnApagarSugestoes = document.getElementById('btnApagarSugestoes');
+  var confirmandoApagar = false;
+
+  btnApagarSugestoes.addEventListener('click', function() {
+    if (!confirmandoApagar) {
+      confirmandoApagar = true;
+      btnApagarSugestoes.textContent = 'Confirmar? Isso não pode ser desfeito';
       setTimeout(function() {
-        btnCopiarSugestoes.textContent = 'Copiar tudo para o Claude';
-      }, 2500);
+        confirmandoApagar = false;
+        btnApagarSugestoes.textContent = 'Apagar tudo';
+      }, 4000);
+      return;
+    }
+
+    confirmandoApagar = false;
+    btnApagarSugestoes.disabled = true;
+    btnApagarSugestoes.textContent = 'Apagando...';
+
+    fetch('/api/sugestoes', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: pinAtual })
+    }).then(function() {
+      btnApagarSugestoes.textContent = 'Apagar tudo';
+      carregarSugestoesPendentes();
+    }).catch(function() {
+      btnApagarSugestoes.textContent = 'Erro ao apagar - tente de novo';
+      setTimeout(function() { btnApagarSugestoes.textContent = 'Apagar tudo'; }, 2500);
+    }).finally(function() {
+      btnApagarSugestoes.disabled = false;
     });
   });
 })();
