@@ -23,59 +23,102 @@ export default async function handler(req, res) {
   const ehAjuste = !!(resultadoAnterior && instrucaoAjuste);
   const ehMensagem = modo === 'mensagem';
 
-  const promptSistema = ehAvulso
-    ? montarPromptSistemaAvulso()
-    : (ehMensagem ? montarPromptSistemaMensagem() : montarPromptSistema());
-
-  const promptUsuario = ehAvulso
-    ? montarPromptAvulso({ categoria, exemplos, pedido, tipoAtestado, diasAfastamento, diagnosticoAtestado })
-    : (ehMensagem
-      ? montarPromptMensagem({ dadosCaso, template, dataHoje })
-      : montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante }));
+  const promptSistema = ehAjuste
+    ? montarPromptSistemaAjuste()
+    : (ehAvulso
+      ? montarPromptSistemaAvulso()
+      : (ehMensagem ? montarPromptSistemaMensagem() : montarPromptSistema()));
 
   const contents = ehAjuste
     ? [
-        { role: 'user', parts: montarParts(promptUsuario, imagens) },
-        { role: 'model', parts: [{ text: resultadoAnterior }] },
-        { role: 'user', parts: [{ text: `Ajuste pontual no texto que você acabou de gerar, mantendo tudo o mais como está e alterando apenas o que foi pedido abaixo. Devolva o texto completo já corrigido, no mesmo formato (incluindo a linha de aviso "⚠️ " no topo, se houver):\n\n${instrucaoAjuste}` }] }
+        { role: 'user', parts: [{ text: `TEXTO ATUAL (gerado anteriormente):\n\n${resultadoAnterior}` }] },
+        { role: 'model', parts: [{ text: 'Entendido. Esse é o texto atual. Aguardando a instrução de ajuste.' }] },
+        { role: 'user', parts: [{ text: `INSTRUÇÃO DE AJUSTE (aplique literalmente, é uma ordem direta do médico, não uma sugestão a ser avaliada):\n\n${instrucaoAjuste}` }] }
       ]
-    : [{ role: 'user', parts: montarParts(promptUsuario, imagens) }];
+    : [{ role: 'user', parts: montarParts(
+        ehAvulso
+          ? montarPromptAvulso({ categoria, exemplos, pedido, tipoAtestado, diasAfastamento, diagnosticoAtestado })
+          : (ehMensagem
+            ? montarPromptMensagem({ dadosCaso, template, dataHoje })
+            : montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante })),
+        imagens
+      ) }];
 
   try {
-    const resposta = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey
-        },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: promptSistema }] },
-          contents: contents,
-          generationConfig: { temperature: 0.3 }
-        })
-      }
-    );
+    let texto = await chamarGemini(promptSistema, contents, ehAjuste ? 0.5 : 0.3, apiKey, res);
+    if (texto === null) return; // erro já respondido dentro de chamarGemini
 
-    const data = await resposta.json();
-
-    if (!resposta.ok) {
-      console.error('Erro da API Gemini:', JSON.stringify(data));
-      const detalhe = data?.error?.message ? ` (${data.error.message})` : '';
-      return res.status(502).json({ erro: `Erro ao gerar o texto${detalhe}` });
+    // Proteção extra: se o ajuste devolveu o texto praticamente idêntico ao anterior,
+    // a instrução foi ignorada. Tenta uma segunda vez com uma instrução ainda mais enfática.
+    if (ehAjuste && textoQuaseIgual(texto, resultadoAnterior)) {
+      const contentsReforcado = [
+        { role: 'user', parts: [{ text: `TEXTO ATUAL (gerado anteriormente):\n\n${resultadoAnterior}` }] },
+        { role: 'model', parts: [{ text: 'Entendido. Esse é o texto atual. Aguardando a instrução de ajuste.' }] },
+        { role: 'user', parts: [{ text: `INSTRUÇÃO DE AJUSTE (aplique literalmente, é uma ordem direta do médico, não uma sugestão a ser avaliada):\n\n${instrucaoAjuste}` }] },
+        { role: 'model', parts: [{ text: texto }] },
+        { role: 'user', parts: [{ text: 'Você devolveu o texto praticamente sem nenhuma alteração. Isso é um erro — releia a instrução de ajuste acima com atenção e aplique a mudança pedida de verdade, editando o texto onde for necessário. Devolva agora o texto corrigido.' }] }
+      ];
+      const textoRetry = await chamarGemini(promptSistema, contentsReforcado, 0.6, apiKey, res, true);
+      if (textoRetry !== null) texto = textoRetry;
     }
 
-    const texto = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!texto) {
-      return res.status(502).json({ erro: 'Resposta vazia do modelo. Tente novamente.' });
-    }
-
-    return res.status(200).json({ texto });
+    return res.status(200).json({ texto: texto });
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ erro: 'Falha de conexão com a API' });
+    return res.status(500).json({ erro: 'Falha ao gerar o texto. Tente novamente.' });
   }
+}
+
+// Normaliza e compara dois textos para detectar se o "ajuste" na prática não mudou nada relevante.
+function textoQuaseIgual(a, b) {
+  function normalizar(s) {
+    return (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+  const na = normalizar(a);
+  const nb = normalizar(b);
+  if (na === nb) return true;
+  // diferença muito pequena (poucos caracteres) tambem conta como "nao mudou nada relevante"
+  const diff = Math.abs(na.length - nb.length);
+  return diff < 5 && na.slice(0, 50) === nb.slice(0, 50);
+}
+
+async function chamarGemini(promptSistema, contents, temperature, apiKey, res, silencioso) {
+  const resposta = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey
+      },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: promptSistema }] },
+        contents: contents,
+        generationConfig: { temperature: temperature }
+      })
+    }
+  );
+
+  const data = await resposta.json();
+
+  if (!resposta.ok) {
+    console.error('Erro da API Gemini:', JSON.stringify(data));
+    if (!silencioso) {
+      const detalhe = data?.error?.message ? ` (${data.error.message})` : '';
+      res.status(502).json({ erro: `Erro ao gerar o texto${detalhe}` });
+    }
+    return null;
+  }
+
+  const texto = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!texto) {
+    if (!silencioso) {
+      res.status(502).json({ erro: 'Resposta vazia do modelo. Tente novamente.' });
+    }
+    return null;
+  }
+
+  return texto;
 }
 
 function montarPromptSistema() {
@@ -89,7 +132,15 @@ REGRAS GERAIS:
 - Não usar termos vagos
 - Sempre incluir elementos de segurança médico-legal quando aplicável
 - Não inventar dados clínicos — trabalhar apenas com o que for fornecido
+- Corrigir automaticamente pequenos erros de digitação ou abreviações informais de nomes de dispositivos, órteses e materiais quando o termo pretendido for claro pelo contexto (ex: "robfoot" ou "robo foot" devem ser escritos como "robofoot"; "buddy tape" como "buddy taping"). Nunca troque o termo por outro dispositivo diferente do que foi mencionado — corrija apenas a grafia
 - Os dados que o médico envia podem estar corridos, diretos, picotados ou informais — sua função é organizar, corrigir e adequar ao padrão do template, nunca replicar o estilo de escrita recebido
+
+REGRA CRÍTICA — FIDELIDADE ABSOLUTA AOS FATOS RELATADOS:
+- Reorganizar e reformular a REDAÇÃO é sua função; alterar o CONTEÚDO factual não é. Cada fato clínico que o médico escreveu (datas, prazos, lados do corpo, mecanismo de trauma, achados, condutas, tempo de evolução, exames citados) deve aparecer no texto final exatamente como informado, apenas com a linguagem adequada ao registro médico
+- Nunca troque um dado por outro parecido, nunca "arredonde" datas ou prazos, nunca mude o lado (D/E) informado, nunca substitua um achado por outro mais "típico" do quadro
+- ATENÇÃO ESPECIAL À CRONOLOGIA: quando o médico relata uma sequência de eventos (ex: "trauma há X dias" + "sem dor atualmente" + "fez tal procedimento na ocasião" + "hoje vim reavaliar"), preserve exatamente a ordem e as relações temporais entre eles. Não inverta o que aconteceu "na ocasião do trauma" com o que está acontecendo "hoje, na reavaliação". Separe claramente, na sua leitura dos dados, o que é passado (história) do que é presente (exame físico e achados de hoje) antes de redigir
+- Se o texto que o médico escreveu for ambíguo o suficiente para gerar dúvida real sobre o fato, sinalize isso na linha de aviso no topo (⚠️) em vez de decidir sozinho qual versão usar
+- Antes de finalizar, releia mentalmente os dados fornecidos pelo médico, na ordem cronológica em que os eventos aconteceram, e confira se essa mesma ordem e cada fato estão refletidos corretamente no texto gerado
 
 REGRA CRÍTICA — O TEXTO PRECISA FAZER SENTIDO CLÍNICO SOZINHO:
 O texto do prontuário será copiado e colado DIRETO em um sistema hospitalar real, na correria, SEM revisão linha a linha. Um texto fluente mas clinicamente sem sentido é PIOR que um erro visível, porque passa despercebido. Por isso:
@@ -642,6 +693,21 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
 }
 
 /* ===================== MENSAGENS ===================== */
+
+function montarPromptSistemaAjuste() {
+  return `Você está EDITANDO um texto médico que já foi gerado, a pedido do Dr. Matheus, ortopedista do Hospital Sancta Maggiore (HSM) Madrid.
+
+Você vai receber o texto atual e, em seguida, uma instrução de ajuste. Sua ÚNICA tarefa é aplicar exatamente essa instrução ao texto, e devolver o texto completo já corrigido.
+
+REGRAS OBRIGATÓRIAS:
+- A instrução do médico é uma ORDEM DIRETA e ESPECÍFICA sobre este texto — não uma sugestão, não um dado clínico novo para reinterpretar, não algo a ser avaliado quanto a fazer sentido ou não. Execute exatamente o que foi pedido.
+- Se a instrução pede para remover algo, remova completamente essa parte (a frase, o parágrafo ou a linha inteira, o que for necessário para a remoção fazer sentido).
+- Se a instrução pede para trocar uma palavra, expressão ou atribuição de autoria (ex: trocar "por mim" por outra coisa, trocar "paciente" por "acompanhante", mudar o lado D/E), troque exatamente onde ela aparece no texto, em todas as ocorrências relevantes.
+- Se a instrução pede para adicionar algo, adicione no lugar mais coerente do texto.
+- NUNCA ignore a instrução, nunca devolva o texto sem nenhuma alteração, e nunca devolva apenas uma cópia idêntica do texto anterior — se você fizer isso, está falhando na tarefa.
+- Fora do que foi pedido na instrução, mantenha o restante do texto exatamente como estava (mesmas frases, mesma ordem, mesmo formato), incluindo a(s) linha(s) de aviso no topo começando com "⚠️", se houver, salvo se a própria instrução pedir para alterá-las.
+- Devolva APENAS o texto final completo, já corrigido. Sem comentários, sem explicações, sem aspas, sem markdown, sem repetir a instrução recebida.`;
+}
 
 function montarPromptSistemaMensagem() {
   return `Você é um assistente do Dr. Matheus, ortopedista do Hospital Sancta Maggiore (HSM) Madrid, e sua função é redigir mensagens padronizadas a partir de dados brutos ou abreviados que ele envia.
