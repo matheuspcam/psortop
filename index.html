@@ -439,10 +439,11 @@
     display: flex;
     flex-direction: row;
     gap: 8px;
-    align-items: stretch;
+    align-items: flex-start;
   }
 
   .btn-copiar-lateral {
+    align-self: stretch;
     flex-shrink: 0;
     width: 44px;
     background: var(--accent);
@@ -471,6 +472,10 @@
     background: var(--accent-dim);
     border: 1px solid var(--accent);
     border-radius: 8px;
+    position: sticky;
+    top: 16px;
+    align-self: flex-start;
+    max-height: calc(100vh - 32px);
   }
 
   .ajuste-lateral-titulo {
@@ -1026,7 +1031,22 @@
     margin-bottom: 14px;
   }
 
+  .item-pronto.item-pronto-fechado {
+    padding-bottom: 14px;
+  }
+
   .item-pronto:last-child { margin-bottom: 0; }
+
+  .item-pronto-seta {
+    display: inline-block;
+    font-size: 9px;
+    color: var(--accent);
+    transition: transform 0.15s ease;
+  }
+
+  .item-pronto:not(.item-pronto-fechado) .item-pronto-seta {
+    transform: rotate(90deg);
+  }
 
   .item-pronto-topo {
     display: flex;
@@ -1036,6 +1056,12 @@
     margin-bottom: 10px;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--panel-border);
+  }
+
+  .item-pronto-fechado .item-pronto-topo {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
   }
 
   .item-pronto-titulo {
@@ -2486,20 +2512,31 @@
     var body = document.createElement('div');
     body.className = 'cat-body';
 
-    var CATEGORIAS_SO_GERADOR = ['Exames', 'Fisioterapia'];
+    var CATEGORIAS_SO_GERADOR = ['Exames', 'Fisioterapia', 'Atestados'];
     var ehSoGerador = CATEGORIAS_SO_GERADOR.indexOf(cat.categoria) !== -1;
 
     if (!ehSoGerador) {
       cat.itens.forEach(function(item, itemIdx) {
         var itemDiv = document.createElement('div');
-        itemDiv.className = 'item-pronto';
+        itemDiv.className = 'item-pronto item-pronto-fechado';
 
         var topo = document.createElement('div');
         topo.className = 'item-pronto-topo';
+        topo.style.cursor = 'pointer';
+
+        var tituloWrap = document.createElement('span');
+        tituloWrap.style.cssText = 'display:flex; align-items:center; gap:6px;';
+
+        var seta = document.createElement('span');
+        seta.className = 'item-pronto-seta';
+        seta.innerHTML = '&#9654;';
 
         var titulo = document.createElement('span');
         titulo.className = 'item-pronto-titulo';
         titulo.textContent = item.titulo;
+
+        tituloWrap.appendChild(seta);
+        tituloWrap.appendChild(titulo);
 
         var btnCopiar = document.createElement('button');
         btnCopiar.type = 'button';
@@ -2509,6 +2546,7 @@
         var ta = document.createElement('textarea');
         ta.value = item.texto;
         ta.id = 'pronto_' + catIdx + '_' + itemIdx;
+        ta.style.display = 'none';
 
         function ajustarAltura() {
           ta.style.height = 'auto';
@@ -2516,7 +2554,16 @@
         }
         ta.addEventListener('input', ajustarAltura);
 
-        btnCopiar.addEventListener('click', function() {
+        topo.addEventListener('click', function(e) {
+          if (e.target === btnCopiar) return;
+          var abrindo = ta.style.display === 'none';
+          ta.style.display = abrindo ? 'block' : 'none';
+          itemDiv.classList.toggle('item-pronto-fechado', !abrindo);
+          if (abrindo) ajustarAltura();
+        });
+
+        btnCopiar.addEventListener('click', function(e) {
+          e.stopPropagation();
           navigator.clipboard.writeText(ta.value).then(function() {
             btnCopiar.textContent = 'Copiado';
             btnCopiar.classList.add('copiado');
@@ -2527,7 +2574,7 @@
           });
         });
 
-        topo.appendChild(titulo);
+        topo.appendChild(tituloWrap);
         topo.appendChild(btnCopiar);
         itemDiv.appendChild(topo);
         itemDiv.appendChild(ta);
@@ -2542,9 +2589,10 @@
 
     header.addEventListener('click', function() {
       catDiv.classList.toggle('aberta');
-      // recalcula altura dos textareas ao abrir (nao da para medir elemento oculto)
+      // recalcula altura dos textareas visiveis ao abrir a categoria
       if (catDiv.classList.contains('aberta')) {
         body.querySelectorAll('textarea').forEach(function(t) {
+          if (t.style.display === 'none') return;
           t.style.height = 'auto';
           t.style.height = (t.scrollHeight + 2) + 'px';
         });
