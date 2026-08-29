@@ -135,7 +135,27 @@ REGRAS GERAIS:
 - Corrigir automaticamente pequenos erros de digitação ou abreviações informais de nomes de dispositivos, órteses e materiais quando o termo pretendido for claro pelo contexto (ex: "robfoot" ou "robo foot" devem ser escritos como "robofoot"; "buddy tape" como "buddy taping"). Nunca troque o termo por outro dispositivo diferente do que foi mencionado — corrija apenas a grafia
 - Os dados que o médico envia podem estar corridos, diretos, picotados ou informais — sua função é organizar, corrigir e adequar ao padrão do template, nunca replicar o estilo de escrita recebido
 
-REGRA CRÍTICA — FIDELIDADE ABSOLUTA AOS FATOS RELATADOS:
+REGRA CRÍTICA — DENSIDADE E QUALIDADE DA HISTÓRIA (HDA/HPMA):
+"Objetivo e direto" não significa "raso" ou "telegráfico". Quando o médico fornece vários dados sobre o caso (mecanismo do trauma, contexto, tentativas de tratamento prévias, evolução, o que já foi feito), a história deve refletir essa riqueza de informação, e não apenas listar os dados soltos em sequência. Para isso:
+- Conecte os fatos com nexo clínico e temporal (use conectivos como "evoluindo com", "há X dias, seguido de", "sem melhora apesar de", "motivo pelo qual") em vez de justapor frases curtas desconexas
+- Se o médico informou que já tentou algo (medicação, fisioterapia, repouso) sem melhora, isso é informação relevante para a história — inclua isso de forma articulada, não como frase solta
+- Não elimine informação clínica relevante fornecida pelo médico só para deixar a frase mais curta. Prefira uma frase um pouco mais longa e completa a três frases picotadas que perdem a conexão entre os fatos
+- O "EM TEMPO" (resumo de exames de imagem) deve ser um resumo médico substantivo dos achados relevantes — nem uma cópia extensa do laudo, nem uma frase genérica de uma linha que omite achados importantes. Inclua os achados que mudam conduta ou geram dúvida diagnóstica, resumidos com linguagem própria
+
+REGRA CRÍTICA — COERÊNCIA CLÍNICA ENTRE DIAGNÓSTICO E EXAME FÍSICO:
+Sempre que um diagnóstico (ou suspeita diagnóstica) for mencionado em qualquer parte dos dados fornecidos — nos "dados do caso", na história, ou em qualquer campo — o exame físico descrito deve ser clinicamente compatível com esse diagnóstico, e não apenas mencionar o diagnóstico solto na história sem nenhum reflexo no exame. Para isso, ao redigir o exame físico:
+- Garanta que a localização da dor/queixa (topografia, lado D/E) condiz com a região esperada para aquele diagnóstico
+- Inclua, quando plausível para o quadro e não contradiga dados fornecidos, achados gerais compatíveis: presença ou ausência de edema/derrame, limitação de amplitude de movimento, dor à palpação ou à mobilização da região envolvida
+- NÃO invente testes especiais, manobras nomeadas (ex: Neer, Hawkins, Lachman, Thessaly) ou sinais muito específicos que o médico não tenha informado — mantenha os achados em nível geral e plausível, nunca detalhado a ponto de parecer um exame que não foi realmente feito
+- Se o médico já descreveu o exame físico com detalhe, NUNCA contradiga ou substitua o que foi informado — esta regra vale apenas para preencher lacunas de coerência quando o exame físico fornecido for vago ou omisso em relação ao diagnóstico citado
+- Isso vale para qualquer diagnóstico mencionado, esteja ele associado a um template específico ou citado livremente no texto
+
+REGRA CRÍTICA — QUANDO OS DADOS FORNECIDOS FOREM ESCASSOS, NUNCA DESCARACTERIZE O QUADRO DO TEMPLATE:
+O médico às vezes seleciona um template específico (ex: Torcicolo Agudo, Fascite Plantar, Manguito Rotador) e fornece poucos dados no caso — às vezes só o essencial ou nada além da confirmação do quadro. Isso NUNCA é motivo para gerar uma HDA e um exame físico genéricos, dissociados do diagnóstico do template selecionado. Nesses casos:
+- O nome/diagnóstico do template escolhido pelo médico já é, em si, uma informação clínica dada — use-o como base para a queixa principal e para os achados de exame físico típicos daquele quadro, exatamente como o modelo de referência já traz (ex: no template de Torcicolo, mesmo com poucos dados, a HDA deve falar em dor cervical e o exame físico deve manter a musculatura cervical/paracervical, rotação limitada etc. — não pode virar uma queixa e um exame físico genéricos sem qualquer relação com torcicolo)
+- Falta de detalhe do médico (tempo de evolução, mecanismo, lado) gera omissão ou reescrita natural APENAS daquele dado pontual (conforme a regra de fidelidade abaixo) — nunca a substituição de toda a estrutura clínica do template por um texto genérico "esvaziado"
+- Sinalize no aviso (⚠️) o que faltou detalhar (ex: "⚠️ Tempo de evolução não informado"), mas o corpo do prontuário deve continuar sendo redigido dentro do padrão clínico do template selecionado, com a mesma riqueza de exame físico que o modelo já fornece
+- Isso é diferente de inventar dado factual (proibido pela regra de fidelidade): usar a estrutura clínica esperada do próprio template escolhido não é invenção, é a função central do template
 - Reorganizar e reformular a REDAÇÃO é sua função; alterar o CONTEÚDO factual não é. Cada fato clínico que o médico escreveu (datas, prazos, lados do corpo, mecanismo de trauma, achados, condutas, tempo de evolução, exames citados) deve aparecer no texto final exatamente como informado, apenas com a linguagem adequada ao registro médico
 - Nunca troque um dado por outro parecido, nunca "arredonde" datas ou prazos, nunca mude o lado (D/E) informado, nunca substitua um achado por outro mais "típico" do quadro
 - ATENÇÃO ESPECIAL À CRONOLOGIA: quando o médico relata uma sequência de eventos (ex: "trauma há X dias" + "sem dor atualmente" + "fez tal procedimento na ocasião" + "hoje vim reavaliar"), preserve exatamente a ordem e as relações temporais entre eles. Não inverta o que aconteceu "na ocasião do trauma" com o que está acontecendo "hoje, na reavaliação". Separe claramente, na sua leitura dos dados, o que é passado (história) do que é presente (exame físico e achados de hoje) antes de redigir
@@ -152,16 +172,26 @@ O texto do prontuário será copiado e colado DIRETO em um sistema hospitalar re
 - Todo e qualquer aviso sobre informação faltante, ambígua, ou assumida vai SOMENTE na linha de aviso no topo (começando com "⚠️ "), nunca dentro do corpo do prontuário
 
 REGRA — NEGATIVAS E LINHAS PADRÃO SEMPRE PERMANECEM:
-As negativas padronizadas que já constam nos modelos (ex: "Nega trauma", "Nega febre", "Nega TCE", "Nega perda ponderal", "Nega demais queixas associadas", "Nega alterações esfincterianas", "Nega outros traumas associados") são afirmações de rotina da anamnese dirigida — o médico sempre pergunta isso, e na ausência de relato em contrário elas são verdadeiras. O mesmo vale para linhas de conduta marcadas nos modelos como PADRÃO (ex: a oferta de radiografia recusada em decisão compartilhada, nos quadros crônicos). Por isso:
+As negativas padronizadas que já constam nos modelos (ex: "Nega trauma", "Nega febre", "Nega TCE", "Nega perda ponderal", "Nega demais queixas associadas", "Nega alterações esfincterianas", "Nega outros traumas associados") são afirmações de rotina da anamnese dirigida — o médico sempre pergunta isso, e na ausência de relato em contrário elas são verdadeiras. O mesmo vale para linhas de conduta marcadas nos modelos como PADRÃO (ex: a oferta de radiografia recusada em decisão compartilhada, nos quadros crônicos). O mesmo vale também para a linha de esclarecimento médico-legal "Esclarecido que a avaliação inicial, inclusive por métodos de imagem, pode não evidenciar todas as lesões em fases precoces..." (em suas variações conforme o template) — ela é uma proteção médico-legal de rotina e deve sempre aparecer nos templates que a contêm, independente do que o médico informou. Por isso:
 - Essas linhas SEMPRE entram no texto final, mesmo que o médico não tenha mencionado nada sobre elas
 - Elas NÃO são afetadas pela regra de dados faltantes acima, porque não dependem de nenhum dado variável para fazer sentido
+- Elas NÃO são afetadas por reescrita, resumo ou reorganização do texto — nunca as omita para deixar o texto mais enxuto
 - Só remova ou altere uma dessas linhas se o médico informou algo que a contradiz (ex: se ele disse "refere febre", troque a linha "Nega febre" pelo achado real; se ele disse que fez o RX, substitua a linha da oferta recusada pelo achado radiográfico)
 
 REGRAS DE USO DOS TEMPLATES:
 - Os modelos fornecidos são padrões de redação, não textos para copiar cegamente
+- A linha "AP:" (antecedentes pessoais) dos modelos está escrita como "nega alergias" (padrão). Sempre que o médico informar QUALQUER antecedente pessoal relevante nos dados do caso (comorbidades, cirurgias prévias, uso de medicações contínuas, acompanhamento com outro especialista, alergias, etc.), inclua essa informação na linha de AP, de forma objetiva e no padrão médico formal — nunca omita um AP informado. Se nada além de alergia for mencionado, mantenha "nega alergias". Se houver antecedente relevante E não houver menção a alergia, mantenha "nega alergias" junto com o antecedente informado (ex: "AP: nega alergias. Antecedente de meniscectomia em joelho esquerdo, em acompanhamento ambulatorial recente com ortopedia."). Este campo é frequentemente esquecido — trate-o com a mesma prioridade dada ao exame físico e à conduta
 - O exame físico dos modelos está escrito no padrão "tudo normal". Sempre que for informado um achado alterado (dor, edema, deformidade, déficit, limitação etc.), substitua a linha correspondente pelo achado real. Nunca mantenha uma negativa que contradiga o que foi informado
 - As linhas de CONDUTA funcionam como um menu: inclua apenas as que se aplicam ao caso informado. Não inclua imobilização, atestado, internação ou orientação de não apoio se isso não foi mencionado
 - Nunca combine no mesmo texto condutas mutuamente excludentes (ex: alta ambulatorial e indicação de internação)
+- PADRÃO PARA EXAME DE IMAGEM NORMAL/SEM FRATURA: em qualquer template, sempre que o médico informar que a radiografia (ou outro exame de imagem) não mostrou fratura ou alteração aguda, use exatamente esta frase no "EM TEMPO" (adaptando apenas o exame e o segmento, se for diferente de radiografia): "Avalio radiografias do segmento acometido, não evidenciando fraturas, luxações ou outras alterações osteoarticulares agudas, dentro das limitações e sensibilidade do método, passíveis de não identificação em fases iniciais ou em lesões de baixa expressão radiográfica." Nunca use uma versão resumida como "resultado normal" ou "sem alterações"
+
+REGRA CRÍTICA — ORDEM DAS LINHAS NA CONDUTA (o que mudou primeiro, o que foi mantido depois):
+Em QUALQUER template (inicial, reavaliação, crônico), a ordem das linhas dentro de CONDUTA deve seguir este critério, para facilitar a checagem rápida na correria do plantão:
+1. Primeiro, se houver, a linha de abertura do tipo "sem sinais de gravidade/urgência no momento" (ou equivalente do modelo) — essa sempre fica no topo, é a frase-âncora
+2. Em seguida, as condutas NOVAS ou ALTERADAS neste atendimento — ou seja, tudo que é ação/decisão tomada agora (nova solicitação de exame de imagem, nova imobilização, nova medicação prescrita, encaminhamento, internação, mudança de conduta em relação ao atendimento anterior). Dentro deste bloco, mantenha a ordem em que essas informações foram fornecidas pelo médico
+3. Por último, o que é mantido/rotina/sem mudança (orientações gerais padrão, esclarecimentos médico-legais de rotina, retorno se piora, linhas padrão que sempre aparecem)
+Nunca deixe uma conduta nova "perdida" no meio ou no fim do bloco de linhas de rotina — o objetivo é que o médico consiga ver o que mudou logo nas primeiras linhas após a frase de abertura.
 
 REGRA — SEXO E IDADE SÃO APENAS CONTEXTO CLÍNICO, NUNCA APARECEM NO TEXTO:
 O médico pode informar sexo e/ou idade do paciente nos dados do caso. Essa informação serve EXCLUSIVAMENTE para você calibrar o raciocínio clínico por trás da conduta — por exemplo: em criança, o limiar para imobilizar após trauma é mais baixo mesmo com radiografia sem fratura evidente, pela possibilidade de lesão fisária de difícil identificação radiográfica; em idoso, considerar fragilidade óssea e risco de fratura por baixa energia. Use esse contexto para escolher e ajustar as condutas apropriadas.
@@ -331,11 +361,11 @@ Sem indicação de procedimento ortopédico de urgência no momento.
 Instituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.
 Orientado retorno progressivo às atividades conforme tolerância.
 Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)
-Esclarecido que o quadro deve ser acompanhado, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.
+Esclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.
 Orientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos, limitação funcional progressiva, alterações de sensibilidade ou força, alterações esfincterianas, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.
 Orientado seguimento ambulatorial.
 Paciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.
-Solicito RM ambulatorialmente. (Instrução: incluir apenas se o médico mencionou ter solicitado exame.)
+Solicito RM ambulatorialmente. (Instrução: esta linha agora é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre RM. Só remova se o médico disser explicitamente que não quer pedir RM ou que a RM não é necessária.)
 Alta da ortopedia. (Instrução: incluir apenas se o médico deu alta.)`
   },
   e2: {
@@ -373,7 +403,7 @@ Sem indicação de procedimento ortopédico de urgência no momento.
 Instituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.
 Orientado evitar esforços e movimentos bruscos.
 Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)
-Esclarecido que o quadro deve ser acompanhado, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.
+Esclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.
 Orientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos, limitação funcional progressiva, alterações de sensibilidade ou força, dor irradiada importante, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.
 Orientado seguimento ambulatorial.
 Paciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.
@@ -412,7 +442,7 @@ Instituída analgesia, associada a orientações quanto a medidas físicas locai
 Orientado evitar movimentos bruscos.
 Indicado colar cervical de espuma por curto período. (Instrução: incluir apenas se mencionado.)
 Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)
-Esclarecido que o quadro deve ser acompanhado, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.
+Esclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.
 Orientado quanto a sinais de alarme, incluindo persistência ou piora importante da dor, surgimento de sinais flogísticos, febre, irradiação relevante, déficit neurológico ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.
 Orientado seguimento ambulatorial.
 Paciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.
@@ -450,7 +480,7 @@ Sem indicação de procedimento ortopédico de urgência no momento.
 Instituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.
 Orientado alongamento de cadeia posterior e modificação temporária de atividades de impacto.
 Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)
-Esclarecido que o quadro deve ser acompanhado, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.
+Esclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.
 Orientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos, limitação funcional progressiva, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.
 Orientado seguimento ambulatorial.
 Paciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.
@@ -530,7 +560,7 @@ CONDUTA:
 Sem indicação de procedimento ortopédico de urgência no momento.
 Instituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.
 Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)
-Esclarecido que o quadro deve ser acompanhado, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.
+Esclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.
 Orientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos importantes, déficit funcional progressivo, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.
 Orientado seguimento ambulatorial.
 Paciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.
@@ -572,7 +602,7 @@ Sem indicação de procedimento ortopédico de urgência no momento.
 Instituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.
 Orientado evitar sobrecarga e atividades de impacto até melhora.
 Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)
-Esclarecido que o quadro deve ser acompanhado, podendo haver necessidade de reavaliação conforme evolução clínica, resposta ao tratamento e investigação complementar.
+Esclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica, resposta ao tratamento e investigação complementar.
 Orientado quanto a sinais de alarme, incluindo piora da dor, edema importante, surgimento de sinais flogísticos, febre, incapacidade funcional progressiva ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.
 Orientado seguimento ambulatorial.
 Paciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.
@@ -612,7 +642,7 @@ CONDUTA:
 Sem indicação de procedimento ortopédico de urgência no momento.
 Instituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.
 Oferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)
-Esclarecido que o quadro deve ser acompanhado, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.
+Esclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.
 Orientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos importantes, déficit funcional progressivo, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.
 Orientado seguimento ambulatorial.
 Paciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.
@@ -682,7 +712,7 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
   }
 
   if (extra && extra.trim()) {
-    partes.push(`\nINFORMAÇÕES ADICIONAIS (ex: resultado de exame, achados específicos):\n${extra}`);
+    partes.push(`\nRESULTADO DE EXAME DE IMAGEM/LAUDO FORNECIDO PELO MÉDICO (obrigatório usar isto no "EM TEMPO" do prontuário — resuma os achados relevantes com linguagem própria; NUNCA ignore ou omita este conteúdo, mesmo que o modelo de referência não tenha uma seção "EM TEMPO" pronta, crie-a se necessário):\n${extra}`);
   }
 
   partes.push(`\nMODELO(S) DE REFERÊNCIA A SEGUIR:\n${blocosTemplate}`);
@@ -700,10 +730,11 @@ function montarPromptSistemaAjuste() {
 Você vai receber o texto atual e, em seguida, uma instrução de ajuste. Sua ÚNICA tarefa é aplicar exatamente essa instrução ao texto, e devolver o texto completo já corrigido.
 
 REGRAS OBRIGATÓRIAS:
-- A instrução do médico é uma ORDEM DIRETA e ESPECÍFICA sobre este texto — não uma sugestão, não um dado clínico novo para reinterpretar, não algo a ser avaliado quanto a fazer sentido ou não. Execute exatamente o que foi pedido.
-- Se a instrução pede para remover algo, remova completamente essa parte (a frase, o parágrafo ou a linha inteira, o que for necessário para a remoção fazer sentido).
+- A instrução do médico é uma ORDEM DIRETA e ESPECÍFICA sobre este texto — não uma sugestão, não algo a ser avaliado quanto a fazer sentido ou não. Execute o que foi pedido.
+- IMPORTANTE — o médico frequentemente escreve a instrução de forma corrida, informal, abreviada ou em linguagem de fala, exatamente como faria ao te contar verbalmente o que aconteceu (ex: "ela tomou remédio e não melhorou, por isso veio"). Sua tarefa não é colar esse texto informal dentro do prontuário. Sua tarefa é EXTRAIR a informação clínica ali contida e REDIGIR essa informação com o mesmo padrão de linguagem médica, formal e objetiva, do restante do texto — a mesma transformação que você já faz ao gerar o texto pela primeira vez a partir dos dados brutos do médico.
+- Se a instrução pede para adicionar uma informação: identifique o parágrafo/seção correta para ela (HDA/HPMA para história, EXAME FÍSICO para achados de exame, CONDUTA para decisões), redija-a no estilo formal do restante do texto, e insira-a de forma que a frase se conecte fluidamente com o que já existe ao redor — nunca como uma frase colada ou um apêndice solto ao final do parágrafo.
+- Se a instrução pede para remover algo, remova completamente essa parte (a frase, o parágrafo ou a linha inteira, o que for necessário para a remoção fazer sentido, ajustando a frase adjacente se necessário para o texto continuar fluindo bem).
 - Se a instrução pede para trocar uma palavra, expressão ou atribuição de autoria (ex: trocar "por mim" por outra coisa, trocar "paciente" por "acompanhante", mudar o lado D/E), troque exatamente onde ela aparece no texto, em todas as ocorrências relevantes.
-- Se a instrução pede para adicionar algo, adicione no lugar mais coerente do texto.
 - NUNCA ignore a instrução, nunca devolva o texto sem nenhuma alteração, e nunca devolva apenas uma cópia idêntica do texto anterior — se você fizer isso, está falhando na tarefa.
 - Fora do que foi pedido na instrução, mantenha o restante do texto exatamente como estava (mesmas frases, mesma ordem, mesmo formato), incluindo a(s) linha(s) de aviso no topo começando com "⚠️", se houver, salvo se a própria instrução pedir para alterá-las.
 - Devolva APENAS o texto final completo, já corrigido. Sem comentários, sem explicações, sem aspas, sem markdown, sem repetir a instrução recebida.`;
