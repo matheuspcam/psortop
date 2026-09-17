@@ -855,6 +855,28 @@ REGRAS DESTE MODELO:
 - OBS em linguagem concisa e colegial — o destinatário é um colega conhecido, então evite tom formal ou diretivo demais
 - Se houver múltiplos pacientes, gere uma ficha separada para cada um, separadas por uma linha em branco`
   },
+  retaguarda: {
+    nome: 'Para a retaguarda (caso no PS)',
+    texto: `Use EXATAMENTE este layout, sem saudações nem texto adicional. A primeira linha é fixa, escrita exatamente como abaixo; os valores dos campos vão em CAIXA ALTA:
+
+Chegou ao PS ORTOP o seguinte caso:
+
+NOME COMPLETO: [nome]
+IDADE: [idade]
+CONVÊNIO: [convênio]
+HT: [história do trauma]
+HD: [hipótese diagnóstica]
+OBS: [opcional, apenas quando clinicamente relevante]
+
+REGRAS DESTE MODELO:
+- IDADE: apenas o número seguido de "ANOS" (ex: "67 ANOS")
+- HT (história do trauma): uma frase curta e objetiva com mecanismo, segmento/lado e tempo do trauma, conforme informado (ex: "QUEDA DA PRÓPRIA ALTURA HÁ 2 HORAS COM TRAUMA EM QUADRIL DIREITO"). Não invente mecanismo, tempo ou energia do trauma
+- HD com precisão anatômica: inclua lateralidade (direito/esquerdo) e localização (ex: "fratura transtrocanteriana do fêmur direito"). Se o médico informou de forma imprecisa, proponha a terminologia padronizada e sinalize a sugestão no aviso do topo para ele confirmar. Não converta suspeita em diagnóstico confirmado
+- Campos ausentes (nome, idade, convênio, HT, HD) devem ser sinalizados na linha de aviso do topo. No corpo, deixe a linha com o rótulo mas sem o valor (ex: "CONVÊNIO: "), como uma ficha preenchida à mão com uma lacuna esquecida — nunca escreva "NÃO INFORMADO" nem invente um valor
+- A linha OBS só entra quando houver algo clinicamente relevante informado (ex: anticoagulante, comorbidade importante, exame já realizado, conduta já feita no PS); caso contrário, omita a linha inteira
+- OBS em linguagem concisa e colegial
+- Se houver múltiplos pacientes, gere uma mensagem separada para cada um, separadas por uma linha em branco e uma linha com "———"`
+  },
   internacao: {
     nome: 'Solicitação de internação (informativo)',
     texto: `Use EXATAMENTE este layout, preenchendo apenas os valores. Mantenha os asteriscos do título (formatação de negrito do WhatsApp) e os nomes dos campos sem alteração:

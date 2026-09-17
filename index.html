@@ -336,7 +336,7 @@
   }
 
   .msg-grid-3col {
-    grid-template-columns: 1fr 1fr 1fr !important;
+    grid-template-columns: 1fr 1fr !important;
   }
 
   .msg-grid-3col button {
@@ -540,6 +540,17 @@
 
   @media (max-width: 760px) {
     .ajuste-lateral { display: none; }
+  }
+
+  /* Telas largas: o card de resultado sai da coluna de 640px e usa a largura disponível,
+     para o texto do prontuário não ficar espremido. O formulário continua estreito. */
+  @media (min-width: 900px) {
+    .resultado.show {
+      width: min(1100px, calc(100vw - 64px));
+      margin-left: calc((100% - min(1100px, calc(100vw - 64px))) / 2);
+    }
+    .ajuste-lateral { width: 260px; }
+    .resultado-texto { font-size: 14.5px; padding: 18px 22px; }
   }
 
   .resultado-texto {
@@ -1236,7 +1247,7 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="cardModelo">
       <span class="label" id="labelModelo">Modelo de referência</span>
 
       <div class="tpl-grid" id="tplGridInicial">
@@ -1333,6 +1344,7 @@
         <button type="button" class="msg-btn" data-m="internacao">Solicitação de internação<br><small style="font-weight:400; opacity:0.75;">informativo</small></button>
         <button type="button" class="msg-btn active" data-m="chefe">Para o chefe<br><small style="font-weight:400; opacity:0.75;">ficha de encaminhamento</small></button>
         <button type="button" class="msg-btn" data-m="paciente">Para o paciente<br><small style="font-weight:400; opacity:0.75;">retorno via WhatsApp</small></button>
+        <button type="button" class="msg-btn" data-m="retaguarda">Para a retaguarda<br><small style="font-weight:400; opacity:0.75;">caso no PS</small></button>
       </div>
     </div>
 
@@ -1692,6 +1704,9 @@
     gridInicial.classList.add('oculto');
     gridReavaliacao.classList.add('oculto');
     blocoCompleto.classList.add('oculto');
+    // No 1º atendimento o modelo é único e automático: esconde o card inteiro (evita card vazio)
+    var cardModelo = document.getElementById('cardModelo');
+    if (cardModelo) cardModelo.classList.toggle('oculto', tipoAtendimento === 'inicial');
 
     if (tipoAtendimento === 'inicial') {
       labelModelo.classList.add('oculto');
@@ -2187,8 +2202,8 @@
           "texto": "USO TÓPICO\n- REALIZAR COMPRESSA FRIA (GELO) NO LOCAL INDICADO, 3 A 4 VEZES AO DIA, POR 15 A 20 MINUTOS EM CADA APLICAÇÃO, PROTEGENDO A PELE COM PANO OU TOALHA PARA EVITAR CONTATO DIRETO DO GELO COM A PELE."
         },
         {
-          "titulo": "Encaminhamento — Profilaxia de Tétano",
-          "texto": "ENCAMINHO PACIENTE À SALA DE VACINAÇÃO PARA AVALIAÇÃO DO ESTADO VACINAL E PROFILAXIA ANTITETÂNICA, CONFORME HISTÓRICO VACINAL E TIPO DE FERIMENTO (VACINA DUPLA ADULTO - dT E/OU IMUNOGLOBULINA/SORO ANTITETÂNICO, SE INDICADO).\nLEVAR CARTEIRA DE VACINAÇÃO, SE POSSÍVEL."
+          "titulo": "Carta à UBS — Checar Vacina Antitetânica",
+          "texto": "À UBS,\n\nSOLICITO AVALIAÇÃO E ATUALIZAÇÃO DO ESQUEMA VACINAL ANTITETÂNICO, CONFORME PROTOCOLO DO MINISTÉRIO DA SAÚDE, EM RAZÃO DE ATENDIMENTO NESTE PRONTO-SOCORRO DE ORTOPEDIA POR TRAUMA RECENTE.\n\nORIENTO A LEVAR A CARTEIRA DE VACINAÇÃO.\n\nAGRADEÇO A ATENÇÃO E PERMANEÇO À DISPOSIÇÃO."
         },
         {
           "titulo": "Insulina — Esquema",
@@ -2300,13 +2315,15 @@
   var MSG_HINTS = {
     chefe: 'Nome, matrícula, idade, HD, telefone. Anticoagulante/marcapasso só se for SIM.',
     internacao: 'Nome, matrícula, idade, diagnóstico, tempo de sala, hospital de origem e destino.',
-    paciente: 'Nome, conduta, data e horário do retorno. Padrão: tratamento conservador, PS do Hospital Madrid.'
+    paciente: 'Nome, conduta, data e horário do retorno. Padrão: tratamento conservador, PS do Hospital Madrid.',
+    retaguarda: 'Nome, idade, convênio, história do trauma e HD. OBS só se houver algo relevante.'
   };
 
   var MSG_PLACEHOLDERS = {
     chefe: 'Cole os dados do jeito que tiver: nome, matrícula, idade, diagnóstico, telefone...',
     internacao: 'Ex: Carlos Mendes, mat 059169-6, 84a, infeccao material sintese PO patela D 07/26, sala 2h, origem HSM Santiago, transferir Tailandia',
-    paciente: 'Ex: Maria Silva, retorno terça que vem às 14h, tratamento conservador'
+    paciente: 'Ex: Maria Silva, retorno terça que vem às 14h, tratamento conservador',
+    retaguarda: 'Ex: Jose Almeida, 78a, Bradesco, queda da propria altura hoje, dor e encurtamento MID, fx transtrocanteriana D, usa xarelto'
   };
 
   msgBtns.forEach(function(btn) {
@@ -2858,11 +2875,14 @@
 
     internacao: "Use EXATAMENTE este layout, preenchendo apenas os valores. Mantenha os asteriscos do título (formatação de negrito do WhatsApp) e os nomes dos campos sem alteração:\n\n*INFORMATIVO DE SOLICITAÇÃO DE INTERNAÇÃO*\n\nFluxo: [fluxo]\nPaciente: [iniciais do paciente]\nMatrícula: [matrícula]\nIdade: [idade] anos\nDiagnóstico: [diagnóstico]\nTempo de sala: [tempo de sala]\nCD: [conduta]\nHospital de origem: [hospital de origem]\nTransferência para Hospital: [hospital de destino]\nUso de anticoagulante/antiagregante: [Sim/Não]\nUso de marca-passo: [Sim/Não]\n\nREGRAS DESTE MODELO:\n- PACIENTE: use apenas as INICIAIS do nome, separadas por ponto e espaço (ex: \"João Carlos Mendes\" vira \"J. C. M.\"). Nunca escreva o nome completo neste modelo\n\nVALORES PADRÃO — esta é uma mensagem padronizada que o médico usa quase sempre da mesma forma. Use estes valores automaticamente, salvo indicação contrária explícita do médico nos dados enviados:\n- Fluxo = URGÊNCIA FLUXO COMUM\n- Tempo de sala = 2h\n- CD = Internação para Tratamento Cirúrgico\n- Transferência para Hospital = HSM Tailândia\n- Uso de anticoagulante/antiagregante = Não\n- Uso de marca-passo = Não\n\nHOSPITAL DE ORIGEM — só pode ser um destes dois: HSM Santiago ou HSM SBC. O médico precisa informar qual dos dois. Se ele não informar, NÃO escolha um sozinho: sinalize no aviso do topo (ex: \"⚠️ Hospital de origem não informado\") e deixe o campo \"Hospital de origem: \" sem valor no corpo da mensagem.\n\nCAMPOS QUE SEMPRE VARIAM E SÃO OBRIGATÓRIOS (Paciente, Matrícula, Idade, Diagnóstico): se o médico não informar algum destes, NÃO invente e NÃO escreva \"NÃO INFORMADO\" no corpo — deixe a linha com o campo e o rótulo, mas sem o valor (ex: \"Matrícula: \"), exatamente como ficaria se o médico tivesse esquecido de preencher à mão. Ao mesmo tempo, sinalize cada campo faltante em uma linha de aviso no topo, para o médico completar antes de enviar. O texto final deve parecer uma ficha preenchida manualmente com uma lacuna esquecida, não um formulário gerado por IA.\n\nDiagnóstico com precisão anatômica: inclua lateralidade (direita/esquerda) e, quando houver cirurgia prévia relacionada, cite entre parênteses o procedimento e a data no formato MM/AA (ex: \"infecção relacionada ao material de síntese (PO osteossíntese patela direita – 07/26)\").\n\nSe houver múltiplos pacientes, gere um informativo separado para cada um, separados por uma linha em branco e uma linha com \"———\".",
 
-    paciente: "Use EXATAMENTE este template, preenchendo apenas os campos variáveis e mantendo todo o restante do texto sem alteração:\n\nOlá, aqui é o Dr. Matheus, da Ortopedia do Hospital Madrid.\n\nEntramos em contato para informar que, após avaliação e discussão com a chefia do hospital, o(a) Sr.(a) [NOME COMPLETO] será tratado(a) de forma [CONDUTA].\n\nSolicitamos que compareça para retorno no dia [DD/MM/AAAA] ([dia da semana]), às [horário], no Pronto-Socorro do [HOSPITAL].\n\nEsclarecemos que a evolução clínica deverá ser acompanhada, podendo haver necessidade de reavaliação conforme a resposta ao tratamento e a evolução do quadro, inclusive com possibilidade de mudança de conduta.\n\nQualquer dúvida, estamos à disposição.\n\nREGRAS DESTE MODELO:\n- [NOME COMPLETO]: use o nome informado. Ajuste o tratamento e a concordância de gênero ao longo de todo o texto — \"o Sr. ... será tratado\" para homem, \"a Sra. ... será tratada\" para mulher. Não deixe as formas \"o(a)\", \"Sr.(a)\" ou \"tratado(a)\" no texto final: escolha a forma correta conforme o gênero. Se o gênero não for dedutível do nome, sinalize no aviso do topo e use a forma masculina\n- [CONDUTA]: padrão mais comum é \"conservadora a princípio (sem necessidade de cirurgia)\". Adapte conforme o caso informado — ex: se o médico disser que o tratamento será cirúrgico, use \"cirúrgica\"\n- [DD/MM/AAAA] ([dia da semana]): data numérica completa. SEMPRE confira e escreva o dia da semana correspondente à data (ex: \"15/03/2026 (domingo)\"). Use a data de hoje informada no contexto como referência para interpretar expressões como \"amanhã\", \"semana que vem\", \"próxima segunda\"\n- [horário]: no formato \"14h\" ou \"14h30\"\n- [HOSPITAL]: só pode ser um destes dois: \"HSM Santiago\" ou \"HSM SBC\". VALOR PADRÃO se o médico não especificar: HSM Santiago. Só use HSM SBC se o médico mencionar explicitamente\n- Se faltar nome, conduta, data ou horário, deixe o campo do template sem preencher (mantendo a frase ao redor coerente) e sinalize a ausência na linha de aviso do topo — nunca invente o valor nem escreva \"NÃO INFORMADO\"\n- Se houver múltiplos pacientes, gere uma mensagem separada para cada um, separadas por uma linha em branco e uma linha com \"———\""
+    paciente: "Use EXATAMENTE este template, preenchendo apenas os campos variáveis e mantendo todo o restante do texto sem alteração:\n\nOlá, aqui é o Dr. Matheus, da Ortopedia do Hospital Madrid.\n\nEntramos em contato para informar que, após avaliação e discussão com a chefia do hospital, o(a) Sr.(a) [NOME COMPLETO] será tratado(a) de forma [CONDUTA].\n\nSolicitamos que compareça para retorno no dia [DD/MM/AAAA] ([dia da semana]), às [horário], no Pronto-Socorro do [HOSPITAL].\n\nEsclarecemos que a evolução clínica deverá ser acompanhada, podendo haver necessidade de reavaliação conforme a resposta ao tratamento e a evolução do quadro, inclusive com possibilidade de mudança de conduta.\n\nQualquer dúvida, estamos à disposição.\n\nREGRAS DESTE MODELO:\n- [NOME COMPLETO]: use o nome informado. Ajuste o tratamento e a concordância de gênero ao longo de todo o texto — \"o Sr. ... será tratado\" para homem, \"a Sra. ... será tratada\" para mulher. Não deixe as formas \"o(a)\", \"Sr.(a)\" ou \"tratado(a)\" no texto final: escolha a forma correta conforme o gênero. Se o gênero não for dedutível do nome, sinalize no aviso do topo e use a forma masculina\n- [CONDUTA]: padrão mais comum é \"conservadora a princípio (sem necessidade de cirurgia)\". Adapte conforme o caso informado — ex: se o médico disser que o tratamento será cirúrgico, use \"cirúrgica\"\n- [DD/MM/AAAA] ([dia da semana]): data numérica completa. SEMPRE confira e escreva o dia da semana correspondente à data (ex: \"15/03/2026 (domingo)\"). Use a data de hoje informada no contexto como referência para interpretar expressões como \"amanhã\", \"semana que vem\", \"próxima segunda\"\n- [horário]: no formato \"14h\" ou \"14h30\"\n- [HOSPITAL]: só pode ser um destes dois: \"HSM Santiago\" ou \"HSM SBC\". VALOR PADRÃO se o médico não especificar: HSM Santiago. Só use HSM SBC se o médico mencionar explicitamente\n- Se faltar nome, conduta, data ou horário, deixe o campo do template sem preencher (mantendo a frase ao redor coerente) e sinalize a ausência na linha de aviso do topo — nunca invente o valor nem escreva \"NÃO INFORMADO\"\n- Se houver múltiplos pacientes, gere uma mensagem separada para cada um, separadas por uma linha em branco e uma linha com \"———\"",
+
+    retaguarda: "Use EXATAMENTE este layout, sem saudações nem texto adicional. A primeira linha é fixa, escrita exatamente como abaixo; os valores dos campos vão em CAIXA ALTA:\n\nChegou ao PS ORTOP o seguinte caso:\n\nNOME COMPLETO: [nome]\nIDADE: [idade]\nCONVÊNIO: [convênio]\nHT: [história do trauma]\nHD: [hipótese diagnóstica]\nOBS: [opcional, apenas quando clinicamente relevante]\n\nREGRAS DESTE MODELO:\n- IDADE: apenas o número seguido de \"ANOS\" (ex: \"67 ANOS\")\n- HT (história do trauma): uma frase curta e objetiva com mecanismo, segmento/lado e tempo do trauma, conforme informado (ex: \"QUEDA DA PRÓPRIA ALTURA HÁ 2 HORAS COM TRAUMA EM QUADRIL DIREITO\"). Não invente mecanismo, tempo ou energia do trauma\n- HD com precisão anatômica: inclua lateralidade (direito/esquerdo) e localização (ex: \"fratura transtrocanteriana do fêmur direito\"). Se o médico informou de forma imprecisa, proponha a terminologia padronizada e sinalize a sugestão no aviso do topo para ele confirmar. Não converta suspeita em diagnóstico confirmado\n- Campos ausentes (nome, idade, convênio, HT, HD) devem ser sinalizados na linha de aviso do topo. No corpo, deixe a linha com o rótulo mas sem o valor (ex: \"CONVÊNIO: \"), como uma ficha preenchida à mão com uma lacuna esquecida — nunca escreva \"NÃO INFORMADO\" nem invente um valor\n- A linha OBS só entra quando houver algo clinicamente relevante informado (ex: anticoagulante, comorbidade importante, exame já realizado, conduta já feita no PS); caso contrário, omita a linha inteira\n- OBS em linguagem concisa e colegial\n- Se houver múltiplos pacientes, gere uma mensagem separada para cada um, separadas por uma linha em branco e uma linha com \"———\""
   };
 
   var NOMES_MENSAGENS = {
     chefe: "Para o chefe (ficha de encaminhamento)",
+    retaguarda: "Para a retaguarda (caso no PS)",
     internacao: "Solicitação de internação (informativo)",
     paciente: "Para o paciente (retorno via WhatsApp)"
   };
@@ -2871,7 +2891,7 @@
     { categoria: 'Prontuário — Atendimento', chaves: ['a', 'b', 'bf'] },
     { categoria: 'Prontuário — Reavaliação', chaves: ['c', 'd', 'g', 'f'] },
     { categoria: 'Prontuário — Crônicos', chaves: ['e1','e2','e3','e4','e5','e6','e7','e8'] },
-    { categoria: 'Mensagens', chaves: ['chefe', 'internacao', 'paciente'], tipo: 'mensagem' }
+    { categoria: 'Mensagens', chaves: ['chefe', 'internacao', 'paciente', 'retaguarda'], tipo: 'mensagem' }
   ];
 
   var containerEditor = document.getElementById('containerTemplatesEditor');
