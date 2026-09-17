@@ -28,6 +28,33 @@ async function upstash(comando) {
   return data.result;
 }
 
+// Histórico da sessão (geração + cada ajuste) enviado junto com a sugestão.
+// Limitado em quantidade e tamanho para não estourar o limite de requisição do Upstash.
+const MAX_ETAPAS = 20;
+const MAX_CHARS = 12000;
+
+function cortar(v) {
+  const t = typeof v === 'string' ? v : (v == null ? '' : String(v));
+  return t.length > MAX_CHARS ? t.slice(0, MAX_CHARS) + '\n[...cortado]' : t;
+}
+
+function limparHistorico(historico) {
+  if (!Array.isArray(historico)) return [];
+  return historico.slice(-MAX_ETAPAS).map(function(e) {
+    const etapa = e || {};
+    const entrada = etapa.entrada && typeof etapa.entrada === 'object' ? etapa.entrada : {};
+    const entradaLimpa = {};
+    Object.keys(entrada).forEach(function(k) { entradaLimpa[k] = cortar(entrada[k]); });
+    return {
+      tipo: etapa.tipo === 'ajuste' ? 'ajuste' : 'geracao',
+      data: cortar(etapa.data),
+      entrada: entradaLimpa,
+      instrucao: cortar(etapa.instrucao),
+      saida: cortar(etapa.saida)
+    };
+  });
+}
+
 export default async function handler(req, res) {
   const { pin } = req.method === 'GET' ? req.query : (req.body || {});
 
@@ -37,7 +64,7 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'POST') {
-      const { aba, template, resultadoGerado, observacao } = req.body;
+      const { aba, template, resultadoGerado, observacao, historico } = req.body;
 
       if (!observacao || !observacao.trim()) {
         return res.status(400).json({ erro: 'Escreva a observação antes de salvar.' });
@@ -48,7 +75,8 @@ export default async function handler(req, res) {
         aba: aba || '',
         template: template || '',
         resultadoGerado: resultadoGerado || '',
-        observacao: observacao.trim()
+        observacao: observacao.trim(),
+        historico: limparHistorico(historico)
       };
 
       await upstash(['RPUSH', CHAVE_LISTA, JSON.stringify(item)]);
@@ -64,6 +92,14 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
+      const { indice } = req.body || {};
+      // Apaga um item só (marca a posição e remove a marca), ou a lista inteira se não vier índice.
+      if (indice !== undefined && indice !== null && indice !== '') {
+        const marca = '__apagar__' + Date.now() + Math.random();
+        await upstash(['LSET', CHAVE_LISTA, String(parseInt(indice, 10)), marca]);
+        await upstash(['LREM', CHAVE_LISTA, '1', marca]);
+        return res.status(200).json({ ok: true });
+      }
       await upstash(['DEL', CHAVE_LISTA]);
       return res.status(200).json({ ok: true });
     }
