@@ -102,19 +102,14 @@ function textoQuaseIgual(a, b) {
   return diff < 5 && na.slice(0, 50) === nb.slice(0, 50);
 }
 
-// Ordem de preferência dos modelos. Cada modelo Flash tem cota grátis própria (~20/dia, 5/min),
-// então o site tenta do mais forte para o mais leve e cai para o próximo quando um estoura a cota,
-// não existe ou está fora do ar. O Flash-Lite (500/dia) fica por último como reserva garantida.
-// Pode ser sobrescrito sem mexer no código com a variável de ambiente GEMINI_MODELOS na Vercel
-// (lista separada por vírgula).
+// Ordem dos modelos. O Flash-Lite vem primeiro porque é o mais rápido e tem a maior cota grátis
+// (500/dia). Os Flash comuns ficaram lentos demais com os prompts longos do plantão, então só entram
+// como reserva se o Lite der erro ou estourar a cota.
+// Para testar outra ordem sem mexer no código, crie na Vercel a variável GEMINI_MODELOS
+// (lista separada por vírgula, ex: "gemini-3.6-flash,gemini-3.5-flash-lite").
 const MODELOS_PADRAO = [
-  'gemini-3.8-flash',
-  'gemini-3.7-flash',
-  'gemini-3.6-flash',
-  'gemini-3.5-flash',
-  'gemini-3-flash-preview',
-  'gemini-2.5-flash',
-  'gemini-3.5-flash-lite'
+  'gemini-3.5-flash-lite',
+  'gemini-3.6-flash'
 ];
 
 function listaModelos() {
