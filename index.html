@@ -1847,6 +1847,7 @@
   var ultimoTextoGerar = null;
   // Histórico da sessão atual (geração + cada ajuste), enviado junto com "Salvar sugestão"
   var historicoGerar = [];
+  var ultimoModeloIA = '';
 
   function agoraIso() { return new Date().toISOString(); }
 
@@ -1890,6 +1891,7 @@
           erroMsg.classList.add('show');
           return null;
         }
+        ultimoModeloIA = data.modelo || '';
         return data.texto || '';
       });
     });
@@ -1950,6 +1952,7 @@
             exames: extra,
             imagensAnexadas: String((payloadGerar.imagens || []).length)
           },
+          modelo: ultimoModeloIA,
           saida: texto
         }];
         renderizarResultado(texto);
@@ -1998,7 +2001,7 @@
 
     chamarApi(payloadAjuste).then(function(texto) {
       if (texto !== null && texto !== undefined) {
-        historicoGerar.push({ tipo: 'ajuste', data: agoraIso(), instrucao: instrucao, saida: texto });
+        historicoGerar.push({ tipo: 'ajuste', data: agoraIso(), instrucao: instrucao, modelo: ultimoModeloIA, saida: texto });
         renderizarResultado(texto);
         instrucaoAjuste.value = '';
         instrucaoAjusteLateral.value = '';
@@ -2376,6 +2379,7 @@
           erroMsgMensagem.classList.add('show');
           return null;
         }
+        ultimoModeloIA = data.modelo || '';
         return data.texto || '';
       });
     });
@@ -2420,6 +2424,7 @@
             dadosCaso: dados,
             imagensAnexadas: String((payloadMsg.imagens || []).length)
           },
+          modelo: ultimoModeloIA,
           saida: texto
         }];
         renderizarMensagem(texto);
@@ -2456,7 +2461,7 @@
 
     chamarApiMsg(payloadAjuste).then(function(texto) {
       if (texto !== null && texto !== undefined) {
-        historicoMsg.push({ tipo: 'ajuste', data: agoraIso(), instrucao: instrucao, saida: texto });
+        historicoMsg.push({ tipo: 'ajuste', data: agoraIso(), instrucao: instrucao, modelo: ultimoModeloIA, saida: texto });
         renderizarMensagem(texto);
         instrucaoAjusteMsg.value = '';
         instrucaoAjusteLateralMsg.value = '';
@@ -3018,6 +3023,7 @@
     var t = '';
     historico.forEach(function(etapa, i) {
       var quando = etapa.data ? ' (' + formatarDataHora(etapa.data) + ')' : '';
+      if (etapa.modelo) quando += ' [' + etapa.modelo + ']';
       if (etapa.tipo === 'ajuste') {
         t += '--- Etapa ' + (i + 1) + ': ajuste' + quando + ' ---\n';
         t += 'Instrução de ajuste:\n' + (etapa.instrucao || '') + '\n';

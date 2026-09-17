@@ -50,6 +50,7 @@ function limparHistorico(historico) {
       data: cortar(etapa.data),
       entrada: entradaLimpa,
       instrucao: cortar(etapa.instrucao),
+      modelo: cortar(etapa.modelo),
       saida: cortar(etapa.saida)
     };
   });

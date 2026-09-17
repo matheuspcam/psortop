@@ -68,7 +68,7 @@ export default async function handler(req, res) {
 
     if (!ehMensagem && !ehAvulso) texto = posProcessarProntuario(texto);
 
-    return res.status(200).json({ texto: texto });
+    return res.status(200).json({ texto: texto, modelo: (res.locals && res.locals.modeloUsado) || '' });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ erro: 'Falha ao gerar o texto. Tente novamente.' });
@@ -102,43 +102,100 @@ function textoQuaseIgual(a, b) {
   return diff < 5 && na.slice(0, 50) === nb.slice(0, 50);
 }
 
+// Ordem de preferência dos modelos. Cada modelo Flash tem cota grátis própria (~20/dia, 5/min),
+// então o site tenta do mais forte para o mais leve e cai para o próximo quando um estoura a cota,
+// não existe ou está fora do ar. O Flash-Lite (500/dia) fica por último como reserva garantida.
+// Pode ser sobrescrito sem mexer no código com a variável de ambiente GEMINI_MODELOS na Vercel
+// (lista separada por vírgula).
+const MODELOS_PADRAO = [
+  'gemini-3.8-flash',
+  'gemini-3.7-flash',
+  'gemini-3.6-flash',
+  'gemini-3.5-flash',
+  'gemini-3-flash-preview',
+  'gemini-2.5-flash',
+  'gemini-3.5-flash-lite'
+];
+
+function listaModelos() {
+  const env = (process.env.GEMINI_MODELOS || '').split(',').map(m => m.trim()).filter(Boolean);
+  return env.length ? env : MODELOS_PADRAO;
+}
+
+// Memória da instância (dura enquanto a função estiver "quente" na Vercel):
+// modelos inexistentes são pulados; modelos com cota estourada ficam em pausa por um tempo.
+const modelosIndisponiveis = new Set();
+const pausaAte = new Map();
+
+const STATUS_PULAR_MODELO = new Set([404, 429, 500, 503, 504]);
+
+function extrairTexto(data) {
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  return parts.filter(p => typeof p.text === 'string' && !p.thought).map(p => p.text).join('').trim();
+}
+
 async function chamarGemini(promptSistema, contents, temperature, apiKey, res, silencioso) {
-  const resposta = await fetch(
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey
-      },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: promptSistema }] },
-        contents: contents,
-        generationConfig: { temperature: temperature }
-      })
-    }
-  );
+  const agora = Date.now();
+  const modelos = listaModelos();
+  let ultimoErro = '';
 
-  const data = await resposta.json();
+  for (let i = 0; i < modelos.length; i++) {
+    const modelo = modelos[i];
+    const ehUltimo = i === modelos.length - 1;
+    if (!ehUltimo && (modelosIndisponiveis.has(modelo) || (pausaAte.get(modelo) || 0) > agora)) continue;
 
-  if (!resposta.ok) {
-    console.error('Erro da API Gemini:', JSON.stringify(data));
-    if (!silencioso) {
-      const detalhe = data?.error?.message ? ` (${data.error.message})` : '';
-      res.status(502).json({ erro: `Erro ao gerar o texto${detalhe}` });
+    let resposta, data;
+    try {
+      resposta = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: promptSistema }] },
+            contents: contents,
+            generationConfig: { temperature: temperature }
+          })
+        }
+      );
+      data = await resposta.json().catch(() => ({}));
+    } catch (e) {
+      ultimoErro = e.message || 'falha de rede';
+      console.error(`Gemini ${modelo}: falha de rede`, e);
+      continue;
     }
-    return null;
+
+    if (!resposta.ok) {
+      const msg = data?.error?.message || `HTTP ${resposta.status}`;
+      ultimoErro = msg;
+      console.error(`Gemini ${modelo} (${resposta.status}):`, msg);
+
+      if (resposta.status === 404) { modelosIndisponiveis.add(modelo); continue; }
+      if (resposta.status === 429) {
+        // cota diária: pausa longa; cota por minuto: pausa curta
+        const diaria = /per.?day|daily|PerDay/i.test(JSON.stringify(data));
+        pausaAte.set(modelo, Date.now() + (diaria ? 60 * 60 * 1000 : 60 * 1000));
+        continue;
+      }
+      if (STATUS_PULAR_MODELO.has(resposta.status)) continue;
+
+      // outros erros (ex: requisição inválida) não mudam trocando de modelo
+      break;
+    }
+
+    const texto = extrairTexto(data);
+    if (!texto) { ultimoErro = 'resposta vazia'; continue; }
+
+    res.locals = res.locals || {};
+    res.locals.modeloUsado = modelo;
+    return texto;
   }
 
-  const texto = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!texto) {
-    if (!silencioso) {
-      res.status(502).json({ erro: 'Resposta vazia do modelo. Tente novamente.' });
-    }
-    return null;
+  if (!silencioso) {
+    const detalhe = ultimoErro ? ` (${ultimoErro})` : '';
+    res.status(502).json({ erro: `Erro ao gerar o texto${detalhe}` });
   }
-
-  return texto;
+  return null;
 }
 
 function regrasDocumentacao() {
