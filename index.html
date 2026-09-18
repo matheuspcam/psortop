@@ -1168,8 +1168,11 @@
     gap: 10px;
     margin-bottom: 0;
   }
-  .seg.seg-3 { grid-template-columns: repeat(3, 1fr); }
-  #msgGrid { grid-template-columns: 1fr 1fr !important; }
+  .seg.seg-3 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .seg.seg-3 button { min-width: 0; }
+  .seg.seg-3 .rotulo-curto { display: none; }
+  #msgGrid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  #msgGrid button { min-width: 0; }
 
   .seg.seg-3 button, #msgGrid button {
     display: flex;
@@ -1237,8 +1240,11 @@
   @media (max-width: 480px) {
     .seg.seg-3 button { min-height: 68px; font-size: 12px; padding: 10px 4px; }
   }
-  @media (max-width: 600px) {
-    .seg.seg-3 { display: grid; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 480px) {
+    .seg.seg-3 { gap: 5px; }
+    .seg.seg-3 button { font-size: 11.5px; padding: 8px 2px; line-height: 1.2; }
+    .seg.seg-3 .rotulo-longo { display: none; }
+    .seg.seg-3 .rotulo-curto { display: inline; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1255,9 +1261,17 @@
   /* Toggles do paciente (relato / deambulação) */
   .toggles-paciente { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
   .toggles-paciente .toggle-acompanhante { justify-content: flex-start; padding: 8px 10px; }
-  .toggles-paciente .toggle-acompanhante span { font-size: 12.5px; color: var(--ink-dim); display: flex; flex-direction: column; line-height: 1.25; }
-  .toggles-paciente .toggle-acompanhante small { font-size: 11px; opacity: 0.8; }
-  @media (max-width: 600px) { .toggles-paciente { grid-template-columns: 1fr; } }
+  .toggles-paciente .toggle-acompanhante { gap: 7px; min-width: 0; }
+  .toggles-paciente .rotulo-curto { display: none; }
+  .toggles-paciente .toggle-acompanhante span { font-size: 12.5px; color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 480px) {
+    .toggles-paciente { gap: 5px; grid-template-columns: 0.85fr 1.1fr 1fr; }
+    .toggles-paciente .toggle-acompanhante { padding: 7px 6px; gap: 5px; }
+    .toggles-paciente .toggle-acompanhante span { font-size: 11.5px; }
+    .toggles-paciente .toggle-acompanhante input { width: 14px !important; height: 14px !important; }
+    .toggles-paciente .rotulo-longo { display: none; }
+    .toggles-paciente .rotulo-curto { display: inline; }
+  }
 
   /* Modelo de referência no mesmo estilo do Tipo de atendimento */
   #cardModelo .tpl-grid button { text-align: center; font-weight: 500; min-height: 46px; }
@@ -1271,8 +1285,8 @@
   .exame-casa-btn.active { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); font-weight: 700; }
 
   /* Mensagens: modelo ao lado da caixa de dados */
-  .msg-dados-linha { display: grid; grid-template-columns: minmax(170px, 0.8fr) 2fr; gap: 12px; align-items: stretch; }
-  .msg-esqueleto { background: #f7f9f7; border: 1px dashed var(--panel-border); border-radius: 8px; padding: 10px 12px; font-family: var(--mono); font-size: 11.5px; line-height: 1.55; color: var(--ink-dim); white-space: pre-wrap; user-select: none; }
+  .msg-dados-linha { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 12px; align-items: stretch; }
+  .msg-esqueleto { background: #f7f9f7; border: 1px dashed var(--panel-border); border-radius: 8px; padding: 10px 12px; font-family: var(--mono); font-size: 11.5px; line-height: 1.55; color: var(--ink-dim); white-space: pre; overflow-x: auto; user-select: none; }
   .msg-esqueleto b { display: block; font-family: var(--sans); font-size: 11px; color: var(--accent); margin-bottom: 4px; }
   @media (max-width: 600px) { .msg-dados-linha { grid-template-columns: 1fr; } }
 
@@ -1289,6 +1303,47 @@
   @media (max-width: 600px) { .receita-corpo { flex-direction: column; } .painel-receita { width: 100%; } }
   .chips-gerador { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
   .chips-gerador .btn-atalho-avulso.ativo { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); font-weight: 700; }
+
+  /* Rótulos longos/curtos (celular) */
+  .rotulo-curto { display: none; }
+  @media (max-width: 480px) {
+    .rotulo-longo { display: none; }
+    .rotulo-curto { display: inline; }
+    #msgGrid { gap: 5px; }
+    #msgGrid button { font-size: 11.5px; padding: 8px 2px; min-height: 64px; }
+  }
+
+  /* Desfechos em uma linha */
+  #cardModelo .tpl-grid.tpl-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  #cardModelo .tpl-grid.tpl-grid-4 button { min-width: 0; padding: 10px 6px; font-size: 12.5px; }
+  @media (max-width: 480px) {
+    #cardModelo .tpl-grid.tpl-grid-4 { gap: 5px; }
+    #cardModelo .tpl-grid.tpl-grid-4 button { padding: 8px 2px; font-size: 11px; min-height: 42px; }
+  }
+
+  /* "Outro" com fundo cinza-claro */
+  #cardModelo .tpl-grid button.tpl-outro:not(.active) { background: #eef1ee; color: var(--ink-dim); }
+
+  /* Retorno: um card por atendimento anterior */
+  .card-atendimento { border: 1px solid var(--panel-border); border-radius: 10px; padding: 10px; margin-bottom: 10px; background: var(--panel); }
+  .card-atendimento-topo { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .card-atendimento-topo .num { font-size: 11.5px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+  .card-atendimento-topo input { flex: 1; min-width: 0; padding: 7px 10px; font-size: 13px; }
+  .card-atendimento-topo .remover { border: none; background: transparent; color: var(--ink-dim); font-size: 18px; cursor: pointer; line-height: 1; padding: 2px 6px; }
+  .btn-add-atendimento { width: 100%; padding: 10px; border: 1px dashed var(--accent); border-radius: 8px; background: transparent; color: var(--accent); font-weight: 600; font-size: 13px; cursor: pointer; }
+
+  /* Etiqueta IA nos geradores */
+  .tag-ia { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; vertical-align: middle; }
+
+  /* Receita formatada */
+  .receita-view { font-family: var(--mono); font-size: 12.5px; line-height: 1.55; padding: 8px 4px; }
+  .receita-cabecalho { margin-bottom: 10px; white-space: pre-wrap; }
+  .receita-bloco { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 12px; }
+  .receita-bloco input { margin-top: 3px; width: 15px; height: 15px; accent-color: var(--accent); flex-shrink: 0; }
+  .receita-bloco .corpo { flex: 1; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .receita-bloco.desmarcado .corpo { opacity: 0.4; text-decoration: line-through; }
+  .receita-principio { display: block; font-family: var(--sans); font-style: italic; color: var(--ink-dim); font-size: 11.5px; user-select: none; -webkit-user-select: none; }
+  .btn-editar-item { margin-right: 6px; }
 
   /* Destaque do que difere do modelo padrão (só na tela; nunca vai na cópia) */
   .resultado-texto mark.dif {
@@ -1424,24 +1479,24 @@
     <div class="card">
       <span class="label">Tipo de atendimento</span>
       <div class="seg seg-3">
-        <button type="button" class="tipo-btn active" data-tipo="inicial"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Atendimento inicial</span></button>
-        <button type="button" class="tipo-btn" data-tipo="reavaliacao"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg><span>Reavaliação</span></button>
-        <button type="button" class="tipo-btn" data-tipo="completo"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg><span>Atendimento completo</span></button>
-        <button type="button" class="tipo-btn" data-tipo="retorno"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><span>Retorno ambulatorial</span></button>
+        <button type="button" class="tipo-btn active" data-tipo="inicial"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="rotulo-longo">Atendimento inicial</span><span class="rotulo-curto">Inicial</span></button>
+        <button type="button" class="tipo-btn" data-tipo="reavaliacao"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg><span class="rotulo-longo">Reavaliação</span><span class="rotulo-curto">Reavaliação</span></button>
+        <button type="button" class="tipo-btn" data-tipo="completo"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg><span class="rotulo-longo">Atendimento completo</span><span class="rotulo-curto">Completo</span></button>
+        <button type="button" class="tipo-btn" data-tipo="retorno"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><span class="rotulo-longo">Retorno ambulatorial</span><span class="rotulo-curto">Retorno</span></button>
       </div>
 
       <div class="toggles-paciente">
         <label class="toggle-acompanhante">
           <input type="checkbox" id="toggleRelatoCrianca" style="width:16px; height:16px; accent-color: var(--accent);">
-          <span>Relato dos pais / responsável<small>criança</small></span>
+          <span><span class="rotulo-longo">Relato dos pais</span><span class="rotulo-curto">Pais</span></span>
         </label>
         <label class="toggle-acompanhante">
           <input type="checkbox" id="toggleRelatoIdoso" style="width:16px; height:16px; accent-color: var(--accent);">
-          <span>Relato de familiar / cuidador<small>idoso</small></span>
+          <span><span class="rotulo-longo">Relato do cuidador</span><span class="rotulo-curto">Cuidador</span></span>
         </label>
         <label class="toggle-acompanhante">
           <input type="checkbox" id="toggleNaoDeambula" style="width:16px; height:16px; accent-color: var(--accent);">
-          <span>Não deambula<small>cadeira de rodas / acamado</small></span>
+          <span><span class="rotulo-longo">Não deambula</span><span class="rotulo-curto">Não anda</span></span>
         </label>
       </div>
     </div>
@@ -1453,18 +1508,18 @@
         <button type="button" data-t="a" data-grupo="inicial">1º Atendimento</button>
       </div>
 
-      <div class="tpl-grid" id="tplGridReavaliacao">
-        <button type="button" data-t="c" data-grupo="reavaliacao">Sem lesão — RX limpo</button>
-        <button type="button" data-t="d" data-grupo="reavaliacao">Conservador — fratura</button>
-        <button type="button" data-t="g" data-grupo="reavaliacao">Borderline — discutir</button>
-        <button type="button" data-t="f" data-grupo="reavaliacao">Internação</button>
+      <div class="tpl-grid tpl-grid-4" id="tplGridReavaliacao">
+        <button type="button" data-t="c" data-grupo="reavaliacao"><span class="rotulo-longo">Sem lesão — RX limpo</span><span class="rotulo-curto">Sem lesão</span></button>
+        <button type="button" data-t="d" data-grupo="reavaliacao"><span class="rotulo-longo">Conservador — fratura</span><span class="rotulo-curto">Conservador</span></button>
+        <button type="button" data-t="g" data-grupo="reavaliacao"><span class="rotulo-longo">Borderline — discutir</span><span class="rotulo-curto">Borderline</span></button>
+        <button type="button" data-t="f" data-grupo="reavaliacao"><span class="rotulo-longo">Internação</span><span class="rotulo-curto">Internação</span></button>
       </div>
 
-      <div class="tpl-grid oculto" id="tplGridRetorno">
-        <button type="button" data-t="r1" data-grupo="retorno">Mantém conservador</button>
-        <button type="button" data-t="r2" data-grupo="retorno">Consolidado — liberação progressiva</button>
-        <button type="button" data-t="r3" data-grupo="retorno">Borderline — discutir</button>
-        <button type="button" data-t="r4" data-grupo="retorno">Internação</button>
+      <div class="tpl-grid tpl-grid-4 oculto" id="tplGridRetorno">
+        <button type="button" data-t="r1" data-grupo="retorno"><span class="rotulo-longo">Mantém conservador</span><span class="rotulo-curto">Conservador</span></button>
+        <button type="button" data-t="r2" data-grupo="retorno"><span class="rotulo-longo">Consolidado — liberação progressiva</span><span class="rotulo-curto">Consolidado</span></button>
+        <button type="button" data-t="r3" data-grupo="retorno"><span class="rotulo-longo">Borderline — discutir</span><span class="rotulo-curto">Borderline</span></button>
+        <button type="button" data-t="r4" data-grupo="retorno"><span class="rotulo-longo">Internação</span><span class="rotulo-curto">Internação</span></button>
       </div>
 
       <div id="blocoCompleto">
@@ -1474,11 +1529,11 @@
           <button type="button" class="completo-sub-btn" data-sub="relato">Relato / burocracia</button>
         </div>
 
-        <div class="tpl-grid" id="tplGridTrauma" style="margin-top:8px;">
-          <button type="button" data-t="b" data-grupo="completo">Sem lesão — RX limpo</button>
-          <button type="button" data-t="bd" data-grupo="completo">Conservador — fratura</button>
-          <button type="button" data-t="bg" data-grupo="completo">Borderline — discutir</button>
-          <button type="button" data-t="bf" data-grupo="completo">Internação</button>
+        <div class="tpl-grid tpl-grid-4" id="tplGridTrauma" style="margin-top:8px;">
+          <button type="button" data-t="b" data-grupo="completo"><span class="rotulo-longo">Sem lesão — RX limpo</span><span class="rotulo-curto">Sem lesão</span></button>
+          <button type="button" data-t="bd" data-grupo="completo"><span class="rotulo-longo">Conservador — fratura</span><span class="rotulo-curto">Conservador</span></button>
+          <button type="button" data-t="bg" data-grupo="completo"><span class="rotulo-longo">Borderline — discutir</span><span class="rotulo-curto">Borderline</span></button>
+          <button type="button" data-t="bf" data-grupo="completo"><span class="rotulo-longo">Internação</span><span class="rotulo-curto">Internação</span></button>
         </div>
 
         <div class="tpl-grid oculto" id="tplGridCronico" style="margin-top:8px;">
@@ -1498,7 +1553,7 @@
           <button type="button" class="exame-casa-btn" data-exame="USG">USG</button>
         </div>
 
-        <div class="tpl-grid oculto" id="tplGridRelato" style="margin-top:8px;">
+        <div class="tpl-grid oculto" id="tplGridRelato" style="display:none !important;">
           <button type="button" data-t="h" data-grupo="completo" class="tpl-outro">&#9998; Relato corrido (triagem errada, parecer, prescrição de colega, carta externa...)</button>
         </div>
       </div>
@@ -1511,6 +1566,13 @@
         <span class="label" id="labelInicial">Atendimento inicial (resumo)</span>
         <textarea id="atendimentoInicial" placeholder="Cole o registro inicial. Inclua data, horário e autor, se disponíveis. Tempos como “há 40 minutos” serão vinculados àquela avaliação..."></textarea>
       </div>
+    </div>
+
+    <div class="card oculto" id="blocoRetorno">
+      <span class="label">Atendimentos anteriores</span>
+      <div class="hint" style="margin-top:0; margin-bottom:10px;">Um card por dia (ex: dia do trauma, último retorno). Pode anexar foto/PDF ou colar print (Ctrl+V) em cada um.</div>
+      <div id="listaAtendimentos"></div>
+      <button type="button" class="btn-add-atendimento" id="btnAddAtendimento">+ Adicionar atendimento</button>
     </div>
 
     <div class="card">
@@ -1580,7 +1642,7 @@
 
   <div id="abaProntos" class="oculto">
     <div class="hint" style="margin-bottom:12px;">
-      Textos fixos, prontos para copiar e colar direto — não passam pela IA. Clique numa categoria para abrir.
+      Textos fixos para copiar direto. Os geradores marcados com <span class="tag-ia">IA</span> passam pela IA; o resto não.
     </div>
     <div id="containerProntos"></div>
 
@@ -1597,10 +1659,10 @@
     <div class="card">
       <span class="label">Tipo de mensagem</span>
       <div class="tpl-grid msg-grid-3col" id="msgGrid">
-        <button type="button" class="msg-btn" data-m="internacao"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18V7"/><path d="M3 14h18v4"/><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="2"/></svg><span class="opc-texto">Internação (Prevent)</span></button>
-        <button type="button" class="msg-btn active" data-m="chefe"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span class="opc-texto">Chefe (Prevent)</span></button>
-        <button type="button" class="msg-btn" data-m="paciente"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/></svg><span class="opc-texto">WhatsApp do paciente (Prevent)</span></button>
-        <button type="button" class="msg-btn" data-m="retaguarda"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V6l-8-3z"/></svg><span class="opc-texto">Retaguarda</span></button>
+        <button type="button" class="msg-btn" data-m="internacao"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18V7"/><path d="M3 14h18v4"/><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="2"/></svg><span class="opc-texto"><span class="rotulo-longo">Internação (Prevent)</span><span class="rotulo-curto">Internação</span></span></button>
+        <button type="button" class="msg-btn active" data-m="chefe"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span class="opc-texto"><span class="rotulo-longo">Chefe (Prevent)</span><span class="rotulo-curto">Chefe</span></span></button>
+        <button type="button" class="msg-btn" data-m="paciente"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/></svg><span class="opc-texto"><span class="rotulo-longo">WhatsApp do paciente (Prevent)</span><span class="rotulo-curto">WhatsApp</span></span></button>
+        <button type="button" class="msg-btn" data-m="retaguarda"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V6l-8-3z"/></svg><span class="opc-texto"><span class="rotulo-longo">Retaguarda</span><span class="rotulo-curto">Retaguarda</span></span></button>
       </div>
     </div>
 
@@ -2405,10 +2467,10 @@
 
   // --- Upload de imagens (compartilhado entre prontuario e mensagens) ---
   function criarGerenciadorImagens(idZona, idInput, idLista, idAviso) {
-    var zona = document.getElementById(idZona);
-    var input = document.getElementById(idInput);
-    var lista = document.getElementById(idLista);
-    var aviso = document.getElementById(idAviso);
+    var zona = typeof idZona === 'string' ? document.getElementById(idZona) : idZona;
+    var input = typeof idInput === 'string' ? document.getElementById(idInput) : idInput;
+    var lista = typeof idLista === 'string' ? document.getElementById(idLista) : idLista;
+    var aviso = typeof idAviso === 'string' ? document.getElementById(idAviso) : idAviso;
     var imagens = [];
 
     function renderizar() {
@@ -2487,6 +2549,23 @@
       if (e.dataTransfer && e.dataTransfer.files) adicionarArquivos(e.dataTransfer.files);
     });
 
+    // Colar print (Ctrl+V) na caixa de texto ou na área de anexo
+    var areaColar = zona.closest('.campo-com-upload') || zona;
+    areaColar.addEventListener('paste', function(e) {
+      var itens = (e.clipboardData && e.clipboardData.items) || [];
+      var arquivos = [];
+      for (var i = 0; i < itens.length; i++) {
+        if (itens[i].kind === 'file') {
+          var f = itens[i].getAsFile();
+          if (f && (f.type.indexOf('image/') === 0 || f.type === 'application/pdf')) arquivos.push(f);
+        }
+      }
+      if (arquivos.length) {
+        e.preventDefault();
+        adicionarArquivos(arquivos);
+      }
+    });
+
     return {
       obter: function() { return imagens.map(function(i) { return { base64: i.base64, mimeType: i.mimeType }; }); },
       limpar: function() { imagens = []; renderizar(); }
@@ -2495,6 +2574,94 @@
 
   var imagensExame = criarGerenciadorImagens('zonaUploadExame', 'inputFileExame', 'listaImagensExame', 'avisoImagemExame');
   var imagensMsg = criarGerenciadorImagens('zonaUploadMsg', 'inputFileMsg', 'listaImagensMsg', 'avisoImagemMsg');
+
+  // ===== Retorno: um card por atendimento anterior =====
+  var listaAtendimentos = document.getElementById('listaAtendimentos');
+  var cardsAtendimento = [];
+  var contadorCards = 0;
+
+  function numerarCards() {
+    cardsAtendimento.forEach(function(c, i) { c.num.textContent = (i + 1) + 'º'; });
+  }
+
+  function adicionarCardAtendimento() {
+    contadorCards++;
+    var id = 'atd' + contadorCards;
+    var card = document.createElement('div');
+    card.className = 'card-atendimento';
+    card.innerHTML =
+      '<div class="card-atendimento-topo">' +
+        '<span class="num"></span>' +
+        '<input type="text" placeholder="Data (ex: 02/09)" autocomplete="off">' +
+        '<button type="button" class="remover" aria-label="Remover atendimento">&times;</button>' +
+      '</div>' +
+      '<div class="campo-com-upload">' +
+        '<textarea placeholder="O que foi feito nesse dia (diagnóstico, imobilização, conduta, exames...)"></textarea>' +
+        '<div class="zona-upload" id="zona_' + id + '">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>' +
+          'Anexar foto ou PDF' +
+          '<input type="file" accept="image/*,application/pdf" multiple style="display:none">' +
+        '</div>' +
+      '</div>' +
+      '<div class="lista-imagens"></div>';
+    listaAtendimentos.appendChild(card);
+    var dados = {
+      el: card,
+      num: card.querySelector('.num'),
+      data: card.querySelector('.card-atendimento-topo input'),
+      texto: card.querySelector('textarea'),
+      arquivos: criarGerenciadorImagens(card.querySelector('.zona-upload'), card.querySelector('.zona-upload input'), card.querySelector('.lista-imagens'), null)
+    };
+    card.querySelector('.remover').addEventListener('click', function() {
+      if (cardsAtendimento.length === 1) {
+        dados.data.value = '';
+        dados.texto.value = '';
+        dados.arquivos.limpar();
+        return;
+      }
+      cardsAtendimento.splice(cardsAtendimento.indexOf(dados), 1);
+      card.remove();
+      numerarCards();
+    });
+    cardsAtendimento.push(dados);
+    numerarCards();
+    return dados;
+  }
+
+  function limparCardsAtendimento() {
+    cardsAtendimento.forEach(function(c) { c.el.remove(); });
+    cardsAtendimento = [];
+    adicionarCardAtendimento();
+  }
+
+  function textoAtendimentosAnteriores() {
+    return cardsAtendimento.map(function(c, i) {
+      var t = c.texto.value.trim();
+      var n = c.arquivos.obter().length;
+      if (!t && !n) return '';
+      var data = c.data.value.trim();
+      return 'ATENDIMENTO ' + (i + 1) + (data ? ' — ' + data : ' — data não informada') + ':\n' + (t || '(ver arquivo anexado)') +
+        (n ? '\n[' + n + ' arquivo(s) anexado(s) a este atendimento]' : '');
+    }).filter(Boolean).join('\n\n');
+  }
+
+  function arquivosAtendimentosAnteriores() {
+    var todos = [];
+    cardsAtendimento.forEach(function(c, i) {
+      var data = c.data.value.trim();
+      c.arquivos.obter().forEach(function(a) {
+        a.rotulo = 'Arquivo do atendimento ' + (i + 1) + (data ? ' (' + data + ')' : '') + ':';
+        todos.push(a);
+      });
+    });
+    return todos;
+  }
+
+  document.getElementById('btnAddAtendimento').addEventListener('click', function() {
+    var novo = adicionarCardAtendimento();
+    novo.data.focus();
+  });
+  adicionarCardAtendimento();
 
   var tipoAtendimento = 'inicial';
   var templatesSelecionados = [];
@@ -2602,7 +2769,7 @@
       var relato = gridRelato.querySelector('button');
       relato.classList.add('active');
       templatesSelecionados = [relato.dataset.t];
-      tplHint.textContent = 'Texto corrido, sem AP/exame/conduta. Descreva nos dados o que aconteceu.';
+      tplHint.textContent = 'Texto corrido. Descreva nos dados o que aconteceu (triagem errada, parecer, prescrição de colega, carta externa...).';
     } else {
       tplHint.textContent = 'Modelos prontos geram sozinhos, sem exame para casa. ✎ Outro: descreva nos dados.';
     }
@@ -2620,6 +2787,7 @@
       tipoBtns.forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
       tipoAtendimento = btn.dataset.tipo;
+      document.getElementById('blocoRetorno').classList.toggle('oculto', tipoAtendimento !== 'retorno');
 
       if (tipoAtendimento === 'reavaliacao') {
         blocoInicial.classList.remove('oculto');
@@ -2627,9 +2795,7 @@
         textareaInicial.placeholder = PLACEHOLDER_INICIAL;
         labelDados.textContent = 'Dados da reavaliação';
       } else if (tipoAtendimento === 'retorno') {
-        blocoInicial.classList.remove('oculto');
-        labelInicial.textContent = 'Atendimentos anteriores';
-        textareaInicial.placeholder = 'Cole os atendimentos anteriores com as datas (pode ser mais de um: 1º atendimento, retornos...). Ex: 02/09 PS fratura rádio distal E, tala; 12/09 retorno, mantida tala.';
+        blocoInicial.classList.add('oculto');
         labelDados.textContent = 'Dados do retorno de hoje';
       } else {
         blocoInicial.classList.add('oculto');
@@ -2802,7 +2968,9 @@
 
   btnGerar.addEventListener('click', function() {
     var dadosCaso = document.getElementById('dadosCaso').value.trim();
-    var atendimentoInicial = document.getElementById('atendimentoInicial').value.trim();
+    var atendimentoInicial = tipoAtendimento === 'retorno'
+      ? textoAtendimentosAnteriores()
+      : document.getElementById('atendimentoInicial').value.trim();
     var extra = document.getElementById('extra').value.trim();
 
     erroMsg.classList.remove('show');
@@ -2833,7 +3001,9 @@
       acompanhante: valorAcompanhante(),
       naoDeambula: toggleNaoDeambula.checked,
       exameAmbulatorial: (tipoAtendimento === 'completo' && subCompleto === 'cronico') ? exameCasaSel : '',
-      imagens: imagensExame.obter()
+      imagens: (tipoAtendimento === 'retorno' ? arquivosAtendimentosAnteriores() : []).concat(
+        imagensExame.obter().map(function(a) { if (tipoAtendimento === 'retorno') a.rotulo = 'Exame/laudo atual (retorno de hoje):'; return a; })
+      )
     };
     ultimoPayloadGerar = payloadGerar;
 
@@ -2981,6 +3151,8 @@
     toggleNaoDeambula.checked = false;
     limparExameCasa();
     imagensExame.limpar();
+    limparCardsAtendimento();
+    document.getElementById('blocoRetorno').classList.add('oculto');
     resultadoCard.classList.remove('show');
     avisoCard.classList.remove('show');
     erroMsg.classList.remove('show');
@@ -3145,7 +3317,7 @@
       ]
     },
     {
-      "categoria": "Uso Ortopédico",
+      "categoria": "Imobilizações",
       "itens": [
         {
           "titulo": "Muletas",
@@ -3174,7 +3346,7 @@
       ]
     },
     {
-      "categoria": "Fisio / Acupuntura",
+      "categoria": "Fisioterapia e Acupuntura",
       "itens": [
         {
           "titulo": "Fisioterapia — Lombalgia",
@@ -3262,7 +3434,7 @@
   // Esqueleto de cada mensagem, mostrado ao lado da caixa de dados para lembrar o que enviar.
   var MSG_ESQUELETOS = {
     chefe: 'NOME COMPLETO:\nMATRÍCULA:\nIDADE:\nHD:\nANTICOAGULANTE: NÃO\nMARCAPASSO: NÃO\nTELEFONE:\nHOSPITAL DE ORIGEM:',
-    internacao: 'Fluxo: URGÊNCIA FLUXO COMUM\nPaciente: (iniciais)\nMatrícula:\nIdade:\nDiagnóstico:\nTempo de sala: 2h\nCD: Internação p/ tto cirúrgico\nHospital de origem: Santiago/SBC\nTransferência: HSM Tailândia\nAnticoagulante: Não\nMarca-passo: Não',
+    internacao: 'Fluxo: urgência comum\nPaciente: (iniciais)\nMatrícula:\nIdade:\nDiagnóstico:\nTempo de sala: 2h\nCD: tto cirúrgico\nOrigem: Santiago/SBC\nDestino: HSM Tailândia\nAnticoagulante: Não\nMarca-passo: Não',
     paciente: 'Nome completo:\nConduta: conservadora\nData do retorno:\nHorário:\nHospital: HSM Santiago',
     retaguarda: 'NOME COMPLETO:\nIDADE:\nCONVÊNIO:\nHT (história do trauma):\nHD:\nOBS (se relevante):'
   };
@@ -3527,7 +3699,7 @@
     var body = document.createElement('div');
     body.className = 'cat-body';
 
-    var CATEGORIAS_SO_GERADOR = ['Exames', 'Fisio / Acupuntura', 'Atestados'];
+    var CATEGORIAS_SO_GERADOR = ['Exames', 'Fisioterapia e Acupuntura', 'Atestados'];
     var ehSoGerador = CATEGORIAS_SO_GERADOR.indexOf(cat.categoria) !== -1;
 
     if (!ehSoGerador) {
@@ -3563,8 +3735,27 @@
         ta.id = 'pronto_' + catIdx + '_' + itemIdx;
         ta.style.display = 'none';
 
-        // Receitas: lista para escolher o que copiar + princípio ativo (fora do texto, nunca copiado)
+        // Receitas: visual formatado com caixa de seleção e princípio ativo (fora do texto, nunca copiado)
         var painelReceita = criarPainelReceita(item.texto);
+        var editando = false;
+        var btnEditar = null;
+        if (painelReceita) {
+          ta.style.display = 'none';
+          btnEditar = document.createElement('button');
+          btnEditar.type = 'button';
+          btnEditar.className = 'btn-copiar-item btn-editar-item';
+          btnEditar.textContent = 'Editar';
+          btnEditar.style.display = 'none';
+          btnEditar.addEventListener('click', function(e) {
+            e.stopPropagation();
+            editando = !editando;
+            if (!editando) painelReceita.renderizar(ta.value);
+            ta.style.display = editando ? 'block' : 'none';
+            painelReceita.el.style.display = editando ? 'none' : 'block';
+            btnEditar.textContent = editando ? 'Pronto' : 'Editar';
+            if (editando) ajustarAltura();
+          });
+        }
 
         function ajustarAltura() {
           ta.style.height = 'auto';
@@ -3573,12 +3764,20 @@
         ta.addEventListener('input', ajustarAltura);
 
         topo.addEventListener('click', function(e) {
-          if (e.target === btnCopiar) return;
-          var abrindo = ta.style.display === 'none';
-          ta.style.display = abrindo ? 'block' : 'none';
-          if (painelReceita) painelReceita.el.style.display = abrindo ? 'block' : 'none';
+          if (e.target === btnCopiar || e.target === btnEditar) return;
+          var abrindo = itemDiv.classList.contains('item-pronto-fechado');
+          if (painelReceita) {
+            editando = false;
+            btnEditar.textContent = 'Editar';
+            btnEditar.style.display = abrindo ? 'inline-block' : 'none';
+            painelReceita.renderizar(ta.value);
+            painelReceita.el.style.display = abrindo ? 'block' : 'none';
+            ta.style.display = 'none';
+          } else {
+            ta.style.display = abrindo ? 'block' : 'none';
+          }
           itemDiv.classList.toggle('item-pronto-fechado', !abrindo);
-          if (abrindo) ajustarAltura();
+          if (abrindo && !painelReceita) ajustarAltura();
         });
 
         btnCopiar.addEventListener('click', function(e) {
@@ -3595,22 +3794,19 @@
         });
 
         topo.appendChild(tituloWrap);
-        topo.appendChild(btnCopiar);
+        var botoesTopo = document.createElement('span');
+        botoesTopo.style.cssText = 'display:flex; align-items:center;';
+        if (btnEditar) botoesTopo.appendChild(btnEditar);
+        botoesTopo.appendChild(btnCopiar);
+        topo.appendChild(botoesTopo);
         itemDiv.appendChild(topo);
-        if (painelReceita) {
-          var corpoReceita = document.createElement('div');
-          corpoReceita.className = 'receita-corpo';
-          corpoReceita.appendChild(ta);
-          corpoReceita.appendChild(painelReceita.el);
-          itemDiv.appendChild(corpoReceita);
-        } else {
-          itemDiv.appendChild(ta);
-        }
+        if (painelReceita) itemDiv.appendChild(painelReceita.el);
+        itemDiv.appendChild(ta);
         body.appendChild(itemDiv);
       });
     }
 
-    var CATEGORIAS_COM_GERADOR = ['Exames', 'Fisio / Acupuntura', 'Atestados'];
+    var CATEGORIAS_COM_GERADOR = ['Exames', 'Fisioterapia e Acupuntura', 'Atestados'];
     if (CATEGORIAS_COM_GERADOR.indexOf(cat.categoria) !== -1) {
       body.appendChild(criarGeradorAvulso(cat));
     }
@@ -3669,52 +3865,81 @@
   }
 
   function criarPainelReceita(textoOriginal) {
-    var partes = dividirBlocosReceita(textoOriginal);
-    if (partes.itens.length === 0) return null;
+    var inicial = dividirBlocosReceita(textoOriginal);
+    if (inicial.itens.length === 0) return null;
+    var temPrincipio = inicial.itens.some(function(bloco) { return !!principioAtivo(bloco.split('\n')[0]); });
+    // Sem remédio de marca e com um item só (ex: imobilizações): fica o texto simples de sempre.
+    if (inicial.itens.length < 2 && !temPrincipio) return null;
 
     var el = document.createElement('div');
-    el.className = 'painel-receita';
+    el.className = 'receita-view';
     el.style.display = 'none';
-    var titulo = document.createElement('div');
-    titulo.className = 'painel-receita-titulo';
-    titulo.textContent = partes.itens.length > 1 ? 'Copiar só os marcados' : 'Princípio ativo';
-    el.appendChild(titulo);
+    var marcados = [];
 
-    var checks = [];
-    partes.itens.forEach(function(bloco) {
-      var primeira = bloco.split('\n')[0].replace(/^\s*(-|\d+[.)])\s*/, '');
-      var nome = primeira.split('_')[0].trim();
-      var linha = document.createElement('label');
-      linha.className = 'painel-receita-item';
-      var cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.checked = true;
-      if (partes.itens.length === 1) cb.style.display = 'none';
-      checks.push(cb);
-      var info = document.createElement('span');
-      var nomeEl = document.createElement('span');
-      nomeEl.textContent = nome;
-      info.appendChild(nomeEl);
-      var pa = principioAtivo(nome);
-      if (pa) {
-        var paEl = document.createElement('small');
-        paEl.textContent = pa;
-        info.appendChild(paEl);
-      }
-      linha.appendChild(cb);
-      linha.appendChild(info);
-      el.appendChild(linha);
+    // Seleção manual do texto: copia só o texto da receita, sem princípio ativo.
+    el.addEventListener('copy', function(e) {
+      var sel = window.getSelection ? window.getSelection() : null;
+      if (!sel || !e.clipboardData) return;
+      var frag = sel.getRangeAt(0).cloneContents();
+      var tmp = document.createElement('div');
+      tmp.appendChild(frag);
+      tmp.querySelectorAll('.receita-principio, input').forEach(function(x) { x.remove(); });
+      e.preventDefault();
+      e.clipboardData.setData('text/plain', textoParaColar(tmp.innerText || tmp.textContent));
     });
+
+    function renderizar(texto) {
+      var partes = dividirBlocosReceita(texto);
+      el.innerHTML = '';
+      if (partes.cabecalho.length) {
+        var cab = document.createElement('div');
+        cab.className = 'receita-cabecalho';
+        cab.textContent = partes.cabecalho.join('\n\n');
+        el.appendChild(cab);
+      }
+      var multiplos = partes.itens.length > 1;
+      partes.itens.forEach(function(bloco, i) {
+        if (marcados[i] === undefined) marcados[i] = true;
+        var linhas = bloco.split('\n');
+        var linha = document.createElement('div');
+        linha.className = 'receita-bloco' + (marcados[i] ? '' : ' desmarcado');
+        if (multiplos) {
+          var cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.checked = marcados[i];
+          cb.addEventListener('change', function() {
+            marcados[i] = cb.checked;
+            linha.classList.toggle('desmarcado', !cb.checked);
+          });
+          linha.appendChild(cb);
+        }
+        var corpo = document.createElement('div');
+        corpo.className = 'corpo';
+        corpo.appendChild(document.createTextNode(linhas[0]));
+        var pa = principioAtivo(linhas[0]);
+        if (pa) {
+          var paEl = document.createElement('span');
+          paEl.className = 'receita-principio';
+          paEl.textContent = pa;
+          corpo.appendChild(paEl);
+        } else if (linhas.length > 1) {
+          corpo.appendChild(document.createTextNode('\n'));
+        }
+        if (linhas.length > 1) corpo.appendChild(document.createTextNode(linhas.slice(1).join('\n')));
+        linha.appendChild(corpo);
+        el.appendChild(linha);
+      });
+    }
 
     function filtrar(textoAtual) {
       var atual = dividirBlocosReceita(textoAtual);
-      if (atual.itens.length !== checks.length) return textoAtual;
-      if (checks.every(function(c) { return c.checked; })) return textoAtual;
-      var escolhidos = atual.itens.filter(function(_, i) { return checks[i].checked; });
+      var escolhidos = atual.itens.filter(function(_, i) { return marcados[i] !== false; });
+      if (escolhidos.length === atual.itens.length) return textoAtual;
       return atual.cabecalho.concat(escolhidos).join('\n\n');
     }
 
-    return { el: el, filtrar: filtrar };
+    renderizar(textoOriginal);
+    return { el: el, filtrar: filtrar, renderizar: renderizar };
   }
 
   // Retorno: texto montado na hora, sem IA, com o prazo digitado.
@@ -3822,6 +4047,10 @@
     var titulo = document.createElement('span');
     titulo.className = 'gerador-avulso-titulo';
     titulo.textContent = 'Não achou o que precisa? Gere na hora';
+    var tagIa = document.createElement('span');
+    tagIa.className = 'tag-ia';
+    tagIa.textContent = 'IA';
+    titulo.appendChild(tagIa);
 
     var hint = document.createElement('div');
     hint.className = 'gerador-avulso-hint';
@@ -3831,7 +4060,7 @@
     wrap.appendChild(hint);
 
     var ehAtestado = cat.categoria === 'Atestados';
-    var CATEGORIAS_SO_GERADOR = ['Exames', 'Fisio / Acupuntura'];
+    var CATEGORIAS_SO_GERADOR = ['Exames', 'Fisioterapia e Acupuntura'];
     var temAtalhos = CATEGORIAS_SO_GERADOR.indexOf(cat.categoria) !== -1 && cat.itens.length > 0;
     var selectTipo, inputDias, textareaDiagnostico, textareaPedido, labelDiagnostico;
     var chipsExame, chipsLado, chipsFisio, inputSessoes;
@@ -3897,7 +4126,7 @@
       textareaPedido = document.createElement('textarea');
       textareaPedido.placeholder = 'Hipótese diagnóstica (ex: lesão do manguito rotador) — a IA acha o segmento e o CID';
       wrap.appendChild(textareaPedido);
-    } else if (cat.categoria === 'Fisio / Acupuntura') {
+    } else if (cat.categoria === 'Fisioterapia e Acupuntura') {
       chipsFisio = criarChips([['fisioterapia', 'Fisioterapia'], ['acupuntura', 'Acupuntura']], true, ['fisioterapia']);
       wrap.appendChild(chipsFisio.el);
       inputSessoes = document.createElement('input');
@@ -3994,7 +4223,7 @@
       } else {
         var pedido = textareaPedido.value.trim();
         if (!pedido) {
-          erro.textContent = cat.categoria === 'Exames' || cat.categoria === 'Fisio / Acupuntura' ? 'Escreva a hipótese diagnóstica.' : 'Escreva o pedido.';
+          erro.textContent = cat.categoria === 'Exames' || cat.categoria === 'Fisioterapia e Acupuntura' ? 'Escreva a hipótese diagnóstica.' : 'Escreva o pedido.';
           erro.classList.add('show');
           return;
         }
@@ -4003,7 +4232,7 @@
           var lado = chipsLado.valores()[0];
           var textoLado = lado === 'bilateral' ? ', bilateral (esquerdo e direito)' : (lado ? ', lado ' + lado : ', sem lado definido');
           pedido = tipoExame + textoLado + '. Hipótese diagnóstica: ' + pedido + '. Deduza o segmento anatômico a partir da hipótese.';
-        } else if (cat.categoria === 'Fisio / Acupuntura') {
+        } else if (cat.categoria === 'Fisioterapia e Acupuntura') {
           var tipos = chipsFisio.valores();
           if (!tipos.length) {
             erro.textContent = 'Marque fisioterapia e/ou acupuntura.';

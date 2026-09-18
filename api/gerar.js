@@ -1243,7 +1243,7 @@ function montarPromptAvulso({ categoria, exemplos, pedido, tipoAtestado, diasAfa
 
 // Monta o array de "parts" para a API do Gemini, incluindo imagens quando houver.
 // Limita a quantidade e o tamanho para não estourar a requisição.
-const MAX_IMAGENS = 6;
+const MAX_IMAGENS = 10;
 
 function montarParts(promptUsuario, imagens) {
   const parts = [];
@@ -1251,6 +1251,8 @@ function montarParts(promptUsuario, imagens) {
   if (Array.isArray(imagens) && imagens.length) {
     imagens.slice(0, MAX_IMAGENS).forEach(img => {
       if (img && img.base64 && img.mimeType) {
+        // Rótulo diz a que atendimento o arquivo pertence (retorno com vários atendimentos anteriores)
+        if (img.rotulo) parts.push({ text: String(img.rotulo).slice(0, 200) });
         parts.push({
           inline_data: {
             mime_type: img.mimeType,
