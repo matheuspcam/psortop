@@ -883,10 +883,74 @@ TEMPLATES.bf = {
   texto: TEMPLATES.b.texto.split('\n\nEM TEMPO:')[0] + '\n\n' + TEMPLATES.f.texto
 };
 
+// Mesmos desfechos no trauma completo: sem lesão (b), conservador com fratura (bd), borderline/discussão (bg), internação (bf).
+const ANAMNESE_TRAUMA = TEMPLATES.b.texto.split('\n\nEM TEMPO:')[0];
+TEMPLATES.bd = {
+  nome: 'Trauma — conservador (fratura)',
+  texto: ANAMNESE_TRAUMA + '\n\n' + TEMPLATES.d.texto.slice(TEMPLATES.d.texto.indexOf('EM TEMPO:'))
+};
+TEMPLATES.bg = {
+  nome: 'Trauma — borderline / discussão',
+  texto: ANAMNESE_TRAUMA + '\n\nEM TEMPO:\n(Instrução: descrever os exames informados, com a lesão que motivou a discussão.)\n\n' + TEMPLATES.g.texto
+};
+
+// Retorno ambulatorial: paciente em seguimento, com um ou mais atendimentos prévios (dias/semanas antes).
+// Na ortopedia não existe alta do seguimento: todo desfecho de retorno termina com novo retorno.
+const ANAMNESE_RETORNO = `AP: nega alergias. (Instrução: incluir antecedentes informados.)
+
+HDA:
+Paciente em seguimento ortopédico por (instrução: lesão/fratura informada, com lado e data do trauma ou do diagnóstico), em (instrução: tratamento em curso informado — conservador com imobilização X, pós-operatório de Y em DD/MM, etc.).
+(Instrução: resumir em ordem cronológica cada atendimento prévio informado, com a data e o que foi feito em cada um — ex: "Em 02/09, avaliado no PS, realizada imobilização com tala gessada. Em 12/09, retorno com manutenção da conduta." Não inventar atendimentos nem datas.)
+Retorna hoje para reavaliação ambulatorial (instrução: acrescente "com resultado de exame" se trouxe exame). (Instrução: queixas atuais informadas; se sem queixas, "Refere melhora da dor, sem queixas no momento".)
+Nega novos traumas. Nega febre ou outros sinais flogísticos. Nega demais queixas associadas.
+
+EXAME FÍSICO:
+Paciente em bom estado geral, lúcido e orientado, deambulando.
+(Instrução: descrever os achados atuais informados — condição da imobilização/ferida operatória, dor no foco, mobilidade, exame neurovascular — cada achado em uma linha. Sem achado informado, use exame neurovascular preservado e ausência de sinais flogísticos.)
+
+EM TEMPO:
+(Instrução: descrever os exames atuais comparando com os anteriores informados — alinhamento, desvio, sinais de consolidação, calo ósseo, posição do material de síntese. Omitir se não houver exame.)`;
+
+TEMPLATES.r1 = {
+  nome: 'Retorno — mantém conservador',
+  texto: ANAMNESE_RETORNO + `
+
+CONDUTA:
+Sem indicação de procedimento ortopédico cirúrgico no momento.
+Mantido tratamento conservador (instrução: citar a imobilização/órtese mantida ou trocada, se informado).
+Orientado retorno ambulatorial em (instrução: prazo informado; se não informado, sinalize no topo) para reavaliação clínica e radiográfica.
+Esclarecido que a evolução clínica deve ser acompanhada, podendo haver necessidade de mudança de conduta conforme evolução.
+Orientado quanto a sinais de alarme e necessidade de retorno imediato em caso de piora da dor, aumento importante do edema, alteração de sensibilidade ou força, alteração de coloração do membro, problemas com a imobilização ou outras intercorrências.
+Paciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.`
+};
+TEMPLATES.r2 = {
+  nome: 'Retorno — consolidado / liberação progressiva',
+  texto: ANAMNESE_RETORNO + `
+
+CONDUTA:
+Sem indicação de procedimento ortopédico cirúrgico no momento.
+Evidenciada evolução favorável, com sinais de consolidação ao exame de imagem. (Instrução: use apenas se o médico informou consolidação/evolução favorável.)
+Liberada retirada da imobilização, com retorno progressivo às atividades e à carga conforme tolerância. (Instrução: adaptar ao que foi liberado.)
+Encaminhado para fisioterapia para reabilitação. (Instrução: incluir apenas se mencionado.)
+Orientado retorno ambulatorial em (instrução: prazo informado; se não informado, sinalize no topo) para reavaliação da evolução funcional. (Instrução: OBRIGATÓRIO — na ortopedia não existe alta do seguimento; nunca escrever "alta", "alta do seguimento" ou "alta ambulatorial".)
+Esclarecido que a recuperação funcional é gradual, podendo haver dor residual e limitação transitória durante a reabilitação.
+Orientado quanto a sinais de alarme e necessidade de retorno imediato em caso de piora da dor, novo trauma, deformidade, alteração de sensibilidade ou força ou outras intercorrências.
+Paciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.`
+};
+TEMPLATES.r3 = {
+  nome: 'Retorno — borderline / discussão',
+  texto: ANAMNESE_RETORNO + '\n\n' + TEMPLATES.g.texto
+};
+TEMPLATES.r4 = {
+  nome: 'Retorno — internação',
+  texto: ANAMNESE_RETORNO + '\n\n' + TEMPLATES.f.texto.slice(TEMPLATES.f.texto.indexOf('CONDUTA:'))
+};
+
 const NOMES_TIPO = {
   inicial: 'Atendimento inicial (paciente será reavaliado depois, ainda sem desfecho)',
   reavaliacao: 'Reavaliação (de atendimento anterior, já com desfecho a definir)',
-  completo: 'Atendimento completo (avaliado e resolvido nesta mesma consulta)'
+  completo: 'Atendimento completo (avaliado e resolvido nesta mesma consulta)',
+  retorno: 'Retorno ambulatorial (paciente em seguimento, com um ou mais atendimentos prévios em outros dias; não é a reavaliação de hoje)'
 };
 
 function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial }) {
@@ -929,6 +993,13 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
     }
   }
 
+  if (tipoAtendimento === 'retorno' && atendimentoInicial) {
+    partes.push(`\nATENDIMENTOS PRÉVIOS (um ou mais, em datas anteriores, possivelmente de outros profissionais; resumir em ordem cronológica com as datas, sem apresentar como avaliação de hoje):\n${atendimentoInicial}`);
+  }
+  if (tipoAtendimento === 'retorno') {
+    partes.push(`\nRETORNO AMBULATORIAL: na ortopedia não existe alta do seguimento. Todo retorno termina com novo retorno ambulatorial com prazo (o informado pelo médico; se não informado, sinalize no topo). Nunca escreva "alta", "alta do seguimento" ou "alta ambulatorial".`);
+  }
+
   if (tipoAtendimento === 'reavaliacao' && atendimentoInicial) {
     partes.push(`\nREGISTRO DO ATENDIMENTO INICIAL (anterior à avaliação atual, possivelmente de outro profissional; intervalos relativos pertencem a este registro, não ao momento atual):\n${atendimentoInicial}`);
   }
@@ -945,7 +1016,8 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
 
   partes.push(`\nMODELO(S) DE REFERÊNCIA A SEGUIR:\n${blocosTemplate}`);
 
-  if (!ehRelato && !templatesEscolhidos.includes('f') && !templatesEscolhidos.includes('bf')) {
+  const temInternacao = ['f', 'bf', 'r4'].some(t => templatesEscolhidos.includes(t));
+  if (!ehRelato && !temInternacao) {
     partes.push(`\nREFERÊNCIA CONDICIONAL — INTERNAÇÃO (usar SOMENTE se o médico definiu internação na avaliação atual; a presença deste bloco não indica internação):\n${TEMPLATES.f.texto}`);
   }
   if (templatesEscolhidos.includes('bf') || (tipoAtendimento === 'completo' && templatesEscolhidos.includes('f'))) {

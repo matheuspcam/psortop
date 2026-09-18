@@ -1237,6 +1237,9 @@
   @media (max-width: 480px) {
     .seg.seg-3 button { min-height: 68px; font-size: 12px; padding: 10px 4px; }
   }
+  @media (max-width: 600px) {
+    .seg.seg-3 { display: grid; grid-template-columns: 1fr 1fr; }
+  }
 
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
@@ -1424,6 +1427,7 @@
         <button type="button" class="tipo-btn active" data-tipo="inicial"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Atendimento inicial</span></button>
         <button type="button" class="tipo-btn" data-tipo="reavaliacao"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg><span>Reavaliação</span></button>
         <button type="button" class="tipo-btn" data-tipo="completo"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg><span>Atendimento completo</span></button>
+        <button type="button" class="tipo-btn" data-tipo="retorno"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><span>Retorno ambulatorial</span></button>
       </div>
 
       <div class="toggles-paciente">
@@ -1450,10 +1454,17 @@
       </div>
 
       <div class="tpl-grid" id="tplGridReavaliacao">
-        <button type="button" data-t="c" data-grupo="reavaliacao">Liberação — RX Limpo</button>
-        <button type="button" data-t="d" data-grupo="reavaliacao">Liberação — Fratura</button>
-        <button type="button" data-t="g" data-grupo="reavaliacao">Discussão</button>
-        <button type="button" data-t="f" data-grupo="reavaliacao">Canetada Internar</button>
+        <button type="button" data-t="c" data-grupo="reavaliacao">Sem lesão — RX limpo</button>
+        <button type="button" data-t="d" data-grupo="reavaliacao">Conservador — fratura</button>
+        <button type="button" data-t="g" data-grupo="reavaliacao">Borderline — discutir</button>
+        <button type="button" data-t="f" data-grupo="reavaliacao">Internação</button>
+      </div>
+
+      <div class="tpl-grid oculto" id="tplGridRetorno">
+        <button type="button" data-t="r1" data-grupo="retorno">Mantém conservador</button>
+        <button type="button" data-t="r2" data-grupo="retorno">Consolidado — liberação progressiva</button>
+        <button type="button" data-t="r3" data-grupo="retorno">Borderline — discutir</button>
+        <button type="button" data-t="r4" data-grupo="retorno">Internação</button>
       </div>
 
       <div id="blocoCompleto">
@@ -1464,8 +1475,10 @@
         </div>
 
         <div class="tpl-grid" id="tplGridTrauma" style="margin-top:8px;">
-          <button type="button" data-t="b" data-grupo="completo">Trauma — alta / conservador</button>
-          <button type="button" data-t="bf" data-grupo="completo">Trauma — internação</button>
+          <button type="button" data-t="b" data-grupo="completo">Sem lesão — RX limpo</button>
+          <button type="button" data-t="bd" data-grupo="completo">Conservador — fratura</button>
+          <button type="button" data-t="bg" data-grupo="completo">Borderline — discutir</button>
+          <button type="button" data-t="bf" data-grupo="completo">Internação</button>
         </div>
 
         <div class="tpl-grid oculto" id="tplGridCronico" style="margin-top:8px;">
@@ -1495,7 +1508,7 @@
 
     <div class="card oculto" id="blocoInicial">
       <div class="field">
-        <span class="label">Atendimento inicial (resumo)</span>
+        <span class="label" id="labelInicial">Atendimento inicial (resumo)</span>
         <textarea id="atendimentoInicial" placeholder="Cole o registro inicial. Inclua data, horário e autor, se disponíveis. Tempos como “há 40 minutos” serão vinculados àquela avaliação..."></textarea>
       </div>
     </div>
@@ -2499,12 +2512,16 @@
   var gridTrauma = document.getElementById('tplGridTrauma');
   var gridCronico = document.getElementById('tplGridCronico');
   var gridRelato = document.getElementById('tplGridRelato');
+  var gridRetorno = document.getElementById('tplGridRetorno');
+  var labelInicial = document.getElementById('labelInicial');
+  var textareaInicial = document.getElementById('atendimentoInicial');
+  var PLACEHOLDER_INICIAL = textareaInicial.placeholder;
   var exameCasa = document.getElementById('exameCasa');
   var exameCasaSel = '';
   var subBtns = document.querySelectorAll('.completo-sub-btn');
 
   function todosOsBotoesTemplate() {
-    return document.querySelectorAll('#tplGridInicial button, #tplGridReavaliacao button, #tplGridTrauma button, #tplGridCronico button, #tplGridRelato button');
+    return document.querySelectorAll('#tplGridInicial button, #tplGridReavaliacao button, #tplGridRetorno button, #tplGridTrauma button, #tplGridCronico button, #tplGridRelato button');
   }
 
   // Exame ambulatorial marcado (RM/USG). Sem marcar e sem escrever nos dados = sem exame para casa.
@@ -2536,6 +2553,7 @@
 
     gridInicial.classList.add('oculto');
     gridReavaliacao.classList.add('oculto');
+    gridRetorno.classList.add('oculto');
     blocoCompleto.classList.add('oculto');
     // No 1º atendimento o modelo é único e automático: esconde o card inteiro (evita card vazio)
     var cardModelo = document.getElementById('cardModelo');
@@ -2552,6 +2570,10 @@
       labelModelo.classList.remove('oculto');
       gridReavaliacao.classList.remove('oculto');
       tplHint.textContent = 'Escolha o desfecho desta reavaliação.';
+    } else if (tipoAtendimento === 'retorno') {
+      labelModelo.classList.remove('oculto');
+      gridRetorno.classList.remove('oculto');
+      tplHint.textContent = 'Escolha o desfecho do retorno. Sempre termina com novo retorno (não existe alta do seguimento).';
     } else if (tipoAtendimento === 'completo') {
       labelModelo.classList.remove('oculto');
       blocoCompleto.classList.remove('oculto');
@@ -2575,7 +2597,7 @@
       var unico = gridTrauma.querySelector('button');
       unico.classList.add('active');
       templatesSelecionados = [unico.dataset.t];
-      tplHint.textContent = 'Escolha alta/conservador ou internação.';
+      tplHint.textContent = 'Escolha o desfecho: sem lesão, conservador, borderline ou internação.';
     } else if (subCompleto === 'relato') {
       var relato = gridRelato.querySelector('button');
       relato.classList.add('active');
@@ -2601,7 +2623,14 @@
 
       if (tipoAtendimento === 'reavaliacao') {
         blocoInicial.classList.remove('oculto');
+        labelInicial.textContent = 'Atendimento inicial (resumo)';
+        textareaInicial.placeholder = PLACEHOLDER_INICIAL;
         labelDados.textContent = 'Dados da reavaliação';
+      } else if (tipoAtendimento === 'retorno') {
+        blocoInicial.classList.remove('oculto');
+        labelInicial.textContent = 'Atendimentos anteriores';
+        textareaInicial.placeholder = 'Cole os atendimentos anteriores com as datas (pode ser mais de um: 1º atendimento, retornos...). Ex: 02/09 PS fratura rádio distal E, tala; 12/09 retorno, mantida tala.';
+        labelDados.textContent = 'Dados do retorno de hoje';
       } else {
         blocoInicial.classList.add('oculto');
         labelDados.textContent = 'Dados do caso';
@@ -2618,9 +2647,9 @@
 
       if (tipoAtendimento === 'inicial') return; // fixo, não alterna
 
-      if (tipoAtendimento === 'completo' || tipoAtendimento === 'reavaliacao') {
-        // um desfecho por vez: no completo (trauma OU 1 crônico OU relato) e na reavaliação
-        var gridAtivo = tipoAtendimento === 'reavaliacao' ? gridReavaliacao
+      if (tipoAtendimento === 'completo' || tipoAtendimento === 'reavaliacao' || tipoAtendimento === 'retorno') {
+        // um desfecho por vez: no completo (trauma OU 1 crônico OU relato), na reavaliação e no retorno
+        var gridAtivo = tipoAtendimento === 'reavaliacao' ? gridReavaliacao : tipoAtendimento === 'retorno' ? gridRetorno
           : (subCompleto === 'trauma' ? gridTrauma : (subCompleto === 'relato' ? gridRelato : gridCronico));
         gridAtivo.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
         templatesSelecionados = [t];
@@ -2978,6 +3007,18 @@
   }
 
   var TEMPLATES_ATUAIS = {
+    bd: "AP: nega alergias.\n\nHDA: (Instrução: quando o relato vier de acompanhante, identifique-o aqui, antes da história; nunca no exame físico.) paciente refere trauma em (instrução: cite o mecanismo e o segmento informados — ex: \"trauma torcional em tornozelo\", \"trauma direto em joelho\", \"queda com apoio de mão\") (instrução: lado D/E se informado) há (instrução: tempo informado), evoluindo com dor local (instrução: acrescente edema, dificuldade para deambular/mobilizar, ou outros sintomas associados se informados) desde então.\nNega outros traumas associados. Nega outras queixas relevantes no momento.\n\nEXAME FÍSICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando. (Instrução: substituir conforme o estado geral e nível de consciência informados; a origem do relato pertence exclusivamente à HDA.)\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles. (Instrução: se houver edema informado, substitua esta linha citando a topografia — ex: \"Edema em topografia de tornozelo lateral\".)\nDor à palpação (instrução: cite a estrutura/região específica informada — ex: \"ligamento talofibular anterior\", \"interlinha articular do joelho\", \"tabaqueira anatômica\", \"olécrano\"; se não informado, use \"no segmento acometido\"), sem pontos de dor focal adicionais.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais clínicos de síndrome compartimental.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\n(Instrução: se o segmento for coluna — pela queixa, pelo texto ou pela imagem anexada —, adaptar o exame físico para coluna conforme a regra EXAME FÍSICO DE COLUNA, citando a dor à palpação no nível acometido e incluindo déficits neurológicos segmentares, mielopatia/cauda equina e reflexos patológicos.)\n(Instrução: se o caso envolver ombro com suspeita de lesão de manguito, adicione testes específicos apenas se mencionados pelo médico — ex: \"Jobe negativo\", \"Neer negativo\", \"Patte negativo\", \"Gerber negativo\". Se envolver luxação glenoumeral reduzida, ajuste a frase de perfusão para \"Após redução, reavaliado mantendo perfusão distal preservada e sem déficits neurovasculares evidentes.\")\n\nEM TEMPO:\nAvalio radiografias do segmento acometido, evidenciando fratura, sem sinais de desvio significativo ou instabilidade evidente ao método, passível de tratamento incruento conforme padrão atual. (Instrução: se o médico informou qual segmento/osso, cite-o aqui; se não informou, mantenha a frase genérica \"do segmento acometido\")\n\nCONDUTA:\nSem indicação de procedimento ortopédico cirúrgico de urgência no momento.\nPrescrita analgesia para controle álgico, associada a orientações gerais e crioterapia, se possível.\nOrientado seguimento ambulatorial com ortopedia, com reavaliação clínica e radiográfica em 10 dias para acompanhamento evolutivo e reavaliação da conduta instituída.\nExplicado ao paciente o quadro atual e a conduta proposta nesta avaliação.\nEsclarecido que a evolução clínica deve ser acompanhada, podendo haver necessidade de reavaliação conforme resposta ao tratamento e evolução do quadro, inclusive com possibilidade de mudança de conduta conforme evolução.\nEsclarecido que a avaliação inicial, inclusive por métodos de imagem, pode não evidenciar todas as lesões em fases precoces ou de baixa expressão, não afastando completamente a possibilidade de lesões associadas, sendo fundamental o acompanhamento evolutivo, com reavaliação clínica e eventual complementação propedêutica conforme evolução do quadro.\nOrientado quanto a sinais de alarme e necessidade de retorno imediato em caso de piora da dor, aumento importante do edema, piora da limitação funcional, alteração de sensibilidade, alteração de força, mudança de coloração do membro, dor desproporcional ou outras intercorrências.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.\nForneço atestado médico\nRealizada imobilização do segmento acometido (instrução: use o tipo de imobilização informado pelo médico; se não informado, use \"com dispositivo de imobilização adequado ao segmento\"), em posição funcional, sem intercorrências imediatas.\nOrientado repouso, com elevação do membro acometido e não apoio (NPP), com auxílio de dispositivo de marcha.",
+
+    bg: "AP: nega alergias.\n\nHDA: (Instrução: quando o relato vier de acompanhante, identifique-o aqui, antes da história; nunca no exame físico.) paciente refere trauma em (instrução: cite o mecanismo e o segmento informados — ex: \"trauma torcional em tornozelo\", \"trauma direto em joelho\", \"queda com apoio de mão\") (instrução: lado D/E se informado) há (instrução: tempo informado), evoluindo com dor local (instrução: acrescente edema, dificuldade para deambular/mobilizar, ou outros sintomas associados se informados) desde então.\nNega outros traumas associados. Nega outras queixas relevantes no momento.\n\nEXAME FÍSICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando. (Instrução: substituir conforme o estado geral e nível de consciência informados; a origem do relato pertence exclusivamente à HDA.)\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles. (Instrução: se houver edema informado, substitua esta linha citando a topografia — ex: \"Edema em topografia de tornozelo lateral\".)\nDor à palpação (instrução: cite a estrutura/região específica informada — ex: \"ligamento talofibular anterior\", \"interlinha articular do joelho\", \"tabaqueira anatômica\", \"olécrano\"; se não informado, use \"no segmento acometido\"), sem pontos de dor focal adicionais.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais clínicos de síndrome compartimental.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\n(Instrução: se o segmento for coluna — pela queixa, pelo texto ou pela imagem anexada —, adaptar o exame físico para coluna conforme a regra EXAME FÍSICO DE COLUNA, citando a dor à palpação no nível acometido e incluindo déficits neurológicos segmentares, mielopatia/cauda equina e reflexos patológicos.)\n(Instrução: se o caso envolver ombro com suspeita de lesão de manguito, adicione testes específicos apenas se mencionados pelo médico — ex: \"Jobe negativo\", \"Neer negativo\", \"Patte negativo\", \"Gerber negativo\". Se envolver luxação glenoumeral reduzida, ajuste a frase de perfusão para \"Após redução, reavaliado mantendo perfusão distal preservada e sem déficits neurovasculares evidentes.\")\n\nEM TEMPO:\n(Instrução: descrever os exames informados, com a lesão que motivou a discussão.)\n\nCONDUTA:\nExplico ao paciente e ao familiar as possíveis modalidades de tratamento, tanto cirúrgico quanto conservador, bem como os riscos e benefícios envolvidos em cada uma delas.\nOriento sobre a gravidade da fratura e suas possíveis complicações, incluindo limitação do arco de movimento, déficit funcional, dor crônica e/ou deformidade residual.\nApós esclarecimentos, opta-se, neste momento, pelo tratamento conservador.\nInformo ao paciente e ao familiar que o caso será encaminhado para discussão e reavaliação pela equipe do Trauma Ortopédico, que realizará contato para agendamento de uma avaliação complementar ambulatorial em breve, com o objetivo de reavaliar a lesão e definir a conduta definitiva em conjunto com o paciente e seus familiares.",
+
+    r1: "AP: nega alergias. (Instrução: incluir antecedentes informados.)\n\nHDA:\nPaciente em seguimento ortopédico por (instrução: lesão/fratura informada, com lado e data do trauma ou do diagnóstico), em (instrução: tratamento em curso informado — conservador com imobilização X, pós-operatório de Y em DD/MM, etc.).\n(Instrução: resumir em ordem cronológica cada atendimento prévio informado, com a data e o que foi feito em cada um — ex: \"Em 02/09, avaliado no PS, realizada imobilização com tala gessada. Em 12/09, retorno com manutenção da conduta.\" Não inventar atendimentos nem datas.)\nRetorna hoje para reavaliação ambulatorial (instrução: acrescente \"com resultado de exame\" se trouxe exame). (Instrução: queixas atuais informadas; se sem queixas, \"Refere melhora da dor, sem queixas no momento\".)\nNega novos traumas. Nega febre ou outros sinais flogísticos. Nega demais queixas associadas.\n\nEXAME FÍSICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando.\n(Instrução: descrever os achados atuais informados — condição da imobilização/ferida operatória, dor no foco, mobilidade, exame neurovascular — cada achado em uma linha. Sem achado informado, use exame neurovascular preservado e ausência de sinais flogísticos.)\n\nEM TEMPO:\n(Instrução: descrever os exames atuais comparando com os anteriores informados — alinhamento, desvio, sinais de consolidação, calo ósseo, posição do material de síntese. Omitir se não houver exame.)\n\nCONDUTA:\nSem indicação de procedimento ortopédico cirúrgico no momento.\nMantido tratamento conservador (instrução: citar a imobilização/órtese mantida ou trocada, se informado).\nOrientado retorno ambulatorial em (instrução: prazo informado; se não informado, sinalize no topo) para reavaliação clínica e radiográfica.\nEsclarecido que a evolução clínica deve ser acompanhada, podendo haver necessidade de mudança de conduta conforme evolução.\nOrientado quanto a sinais de alarme e necessidade de retorno imediato em caso de piora da dor, aumento importante do edema, alteração de sensibilidade ou força, alteração de coloração do membro, problemas com a imobilização ou outras intercorrências.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.",
+
+    r2: "AP: nega alergias. (Instrução: incluir antecedentes informados.)\n\nHDA:\nPaciente em seguimento ortopédico por (instrução: lesão/fratura informada, com lado e data do trauma ou do diagnóstico), em (instrução: tratamento em curso informado — conservador com imobilização X, pós-operatório de Y em DD/MM, etc.).\n(Instrução: resumir em ordem cronológica cada atendimento prévio informado, com a data e o que foi feito em cada um — ex: \"Em 02/09, avaliado no PS, realizada imobilização com tala gessada. Em 12/09, retorno com manutenção da conduta.\" Não inventar atendimentos nem datas.)\nRetorna hoje para reavaliação ambulatorial (instrução: acrescente \"com resultado de exame\" se trouxe exame). (Instrução: queixas atuais informadas; se sem queixas, \"Refere melhora da dor, sem queixas no momento\".)\nNega novos traumas. Nega febre ou outros sinais flogísticos. Nega demais queixas associadas.\n\nEXAME FÍSICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando.\n(Instrução: descrever os achados atuais informados — condição da imobilização/ferida operatória, dor no foco, mobilidade, exame neurovascular — cada achado em uma linha. Sem achado informado, use exame neurovascular preservado e ausência de sinais flogísticos.)\n\nEM TEMPO:\n(Instrução: descrever os exames atuais comparando com os anteriores informados — alinhamento, desvio, sinais de consolidação, calo ósseo, posição do material de síntese. Omitir se não houver exame.)\n\nCONDUTA:\nSem indicação de procedimento ortopédico cirúrgico no momento.\nEvidenciada evolução favorável, com sinais de consolidação ao exame de imagem. (Instrução: use apenas se o médico informou consolidação/evolução favorável.)\nLiberada retirada da imobilização, com retorno progressivo às atividades e à carga conforme tolerância. (Instrução: adaptar ao que foi liberado.)\nEncaminhado para fisioterapia para reabilitação. (Instrução: incluir apenas se mencionado.)\nOrientado retorno ambulatorial em (instrução: prazo informado; se não informado, sinalize no topo) para reavaliação da evolução funcional. (Instrução: OBRIGATÓRIO — na ortopedia não existe alta do seguimento; nunca escrever \"alta\", \"alta do seguimento\" ou \"alta ambulatorial\".)\nEsclarecido que a recuperação funcional é gradual, podendo haver dor residual e limitação transitória durante a reabilitação.\nOrientado quanto a sinais de alarme e necessidade de retorno imediato em caso de piora da dor, novo trauma, deformidade, alteração de sensibilidade ou força ou outras intercorrências.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.",
+
+    r3: "AP: nega alergias. (Instrução: incluir antecedentes informados.)\n\nHDA:\nPaciente em seguimento ortopédico por (instrução: lesão/fratura informada, com lado e data do trauma ou do diagnóstico), em (instrução: tratamento em curso informado — conservador com imobilização X, pós-operatório de Y em DD/MM, etc.).\n(Instrução: resumir em ordem cronológica cada atendimento prévio informado, com a data e o que foi feito em cada um — ex: \"Em 02/09, avaliado no PS, realizada imobilização com tala gessada. Em 12/09, retorno com manutenção da conduta.\" Não inventar atendimentos nem datas.)\nRetorna hoje para reavaliação ambulatorial (instrução: acrescente \"com resultado de exame\" se trouxe exame). (Instrução: queixas atuais informadas; se sem queixas, \"Refere melhora da dor, sem queixas no momento\".)\nNega novos traumas. Nega febre ou outros sinais flogísticos. Nega demais queixas associadas.\n\nEXAME FÍSICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando.\n(Instrução: descrever os achados atuais informados — condição da imobilização/ferida operatória, dor no foco, mobilidade, exame neurovascular — cada achado em uma linha. Sem achado informado, use exame neurovascular preservado e ausência de sinais flogísticos.)\n\nEM TEMPO:\n(Instrução: descrever os exames atuais comparando com os anteriores informados — alinhamento, desvio, sinais de consolidação, calo ósseo, posição do material de síntese. Omitir se não houver exame.)\n\nCONDUTA:\nExplico ao paciente e ao familiar as possíveis modalidades de tratamento, tanto cirúrgico quanto conservador, bem como os riscos e benefícios envolvidos em cada uma delas.\nOriento sobre a gravidade da fratura e suas possíveis complicações, incluindo limitação do arco de movimento, déficit funcional, dor crônica e/ou deformidade residual.\nApós esclarecimentos, opta-se, neste momento, pelo tratamento conservador.\nInformo ao paciente e ao familiar que o caso será encaminhado para discussão e reavaliação pela equipe do Trauma Ortopédico, que realizará contato para agendamento de uma avaliação complementar ambulatorial em breve, com o objetivo de reavaliar a lesão e definir a conduta definitiva em conjunto com o paciente e seus familiares.",
+
+    r4: "AP: nega alergias. (Instrução: incluir antecedentes informados.)\n\nHDA:\nPaciente em seguimento ortopédico por (instrução: lesão/fratura informada, com lado e data do trauma ou do diagnóstico), em (instrução: tratamento em curso informado — conservador com imobilização X, pós-operatório de Y em DD/MM, etc.).\n(Instrução: resumir em ordem cronológica cada atendimento prévio informado, com a data e o que foi feito em cada um — ex: \"Em 02/09, avaliado no PS, realizada imobilização com tala gessada. Em 12/09, retorno com manutenção da conduta.\" Não inventar atendimentos nem datas.)\nRetorna hoje para reavaliação ambulatorial (instrução: acrescente \"com resultado de exame\" se trouxe exame). (Instrução: queixas atuais informadas; se sem queixas, \"Refere melhora da dor, sem queixas no momento\".)\nNega novos traumas. Nega febre ou outros sinais flogísticos. Nega demais queixas associadas.\n\nEXAME FÍSICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando.\n(Instrução: descrever os achados atuais informados — condição da imobilização/ferida operatória, dor no foco, mobilidade, exame neurovascular — cada achado em uma linha. Sem achado informado, use exame neurovascular preservado e ausência de sinais flogísticos.)\n\nEM TEMPO:\n(Instrução: descrever os exames atuais comparando com os anteriores informados — alinhamento, desvio, sinais de consolidação, calo ósseo, posição do material de síntese. Omitir se não houver exame.)\n\nCONDUTA:\n(Instrução: começar pelas decisões e informações novas, na ordem fornecida. Manter as etapas aplicáveis abaixo, com redação elaborada, sem reduzir a internação a uma única frase e sem copiar instruções. A indicação de internação não significa que já houve admissão, transferência ou aceite de vaga.)\nIndicada internação hospitalar para prosseguimento do tratamento. (Instrução: especificar o motivo e a finalidade informados — tratamento cirúrgico apenas quando explicitamente indicado; caso contrário, cuidado clínico, controle álgico, investigação ou acompanhamento especializado conforme o caso. Acrescentar hospital, especialidade e leito somente se fornecidos.)\n(Instrução: descrever analgesia, imobilização, monitorização e demais medidas no PS somente se informadas; não inventar doses, procedimentos ou intercorrências.)\nCaso discutido com a equipe de retaguarda. (Instrução: incluir apenas se houve discussão relatada, preservando nome, especialidade, CRM, recomendação e destino informados. Se apenas houve encaminhamento, escrever encaminhamento sem inventar discussão ou concordância.)\nPaciente informado acerca do quadro clínico, da indicação de internação e da proposta terapêutica. (Instrução: incluir conforme os esclarecimentos efetivamente prestados; ajustar o destinatário para acompanhante/responsável quando informado. Não atribuir compreensão ou consentimento a paciente sem condições de recebê-los.)\nPrestados esclarecimentos quanto aos riscos e benefícios do tratamento proposto. (Instrução: detalhar apenas os esclarecimentos informados e pertinentes ao tratamento; riscos cirúrgicos como hemorragia, deiscência, infecção, pseudoartrose e consolidação viciosa só se aplicam quando houver proposta cirúrgica e orientação relatadas. Não copiar riscos de cirurgia em internação clínica.)\nEsclarecido que a avaliação inicial, inclusive por métodos de imagem, pode não evidenciar todas as lesões em fases precoces ou de baixa expressão, não afastando completamente a possibilidade de lesões associadas, sendo fundamental o acompanhamento evolutivo, com reavaliação clínica e eventual complementação propedêutica conforme evolução do quadro.\nOrientado quanto a sinais de alarme e necessidade de comunicação imediata à equipe assistente em caso de piora da dor, alteração de sensibilidade, alteração de força ou outras intercorrências. (Instrução: adaptar às orientações fornecidas e ao interlocutor informado.)\nPaciente refere ter compreendido as informações prestadas, encontrando-se ciente e de acordo com a conduta proposta. (Instrução: incluir somente se compreensão e concordância foram informadas; ajustar para o responsável quando for o caso.)",
+
     h: "(Instrução: este modelo NÃO é um atendimento clínico estruturado. Redija um RELATO CORRIDO, em primeira pessoa, em um ou mais parágrafos curtos, SEM as seções AP, HDA/HPMA, EXAME FÍSICO, EM TEMPO ou CONDUTA e sem nenhum rótulo de seção. Registre em ordem cronológica, com linguagem formal, objetiva e neutra: o que ocorreu, quem acionou/encaminhou, horários (apenas se informados), o que foi verificado e a providência tomada. Situações típicas: paciente triado para a ortopedia cuja queixa é de outra especialidade/clínica médica; pedido de parecer direcionado à especialidade errada; enfermagem solicitando ajuste de prescrição feita por outro colega; paciente que chega com carta/encaminhamento de médico externo solicitando internação pelo PS; paciente que não comparece ao chamado. Nunca julgue, critique ou comente a conduta de colegas — descreva apenas os fatos. Não invente horários, nomes, CRM, setores, contatos ou encaminhamentos não informados. Não acrescente \"Sem indicação de procedimento...\", sinais de alarme, orientações de alta nem avisos de exame físico, salvo se informado.)\n\nExemplo de estilo (apenas referência de tom — adapte aos fatos informados):\nSou acionado pela equipe de enfermagem para avaliação de prescrição realizada por outro colega. Verifico a prescrição vigente e realizo o ajuste solicitado, conforme descrito em prescrição médica. Oriento a equipe quanto à alteração realizada.",
 
     bf: "AP: nega alergias.\n\nHDA: (Instrução: quando o relato vier de acompanhante, identifique-o aqui, antes da história; nunca no exame físico.) paciente refere trauma em (instrução: cite o mecanismo e o segmento informados — ex: \"trauma torcional em tornozelo\", \"trauma direto em joelho\", \"queda com apoio de mão\") (instrução: lado D/E se informado) há (instrução: tempo informado), evoluindo com dor local (instrução: acrescente edema, dificuldade para deambular/mobilizar, ou outros sintomas associados se informados) desde então.\nNega outros traumas associados. Nega outras queixas relevantes no momento.\n\nEXAME FÍSICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando. (Instrução: substituir conforme o estado geral e nível de consciência informados; a origem do relato pertence exclusivamente à HDA.)\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles. (Instrução: se houver edema informado, substitua esta linha citando a topografia — ex: \"Edema em topografia de tornozelo lateral\".)\nDor à palpação (instrução: cite a estrutura/região específica informada — ex: \"ligamento talofibular anterior\", \"interlinha articular do joelho\", \"tabaqueira anatômica\", \"olécrano\"; se não informado, use \"no segmento acometido\"), sem pontos de dor focal adicionais.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais clínicos de síndrome compartimental.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\n(Instrução: se o segmento for coluna — pela queixa, pelo texto ou pela imagem anexada —, adaptar o exame físico para coluna conforme a regra EXAME FÍSICO DE COLUNA, citando a dor à palpação no nível acometido e incluindo déficits neurológicos segmentares, mielopatia/cauda equina e reflexos patológicos.)\n(Instrução: se o caso envolver ombro com suspeita de lesão de manguito, adicione testes específicos apenas se mencionados pelo médico — ex: \"Jobe negativo\", \"Neer negativo\", \"Patte negativo\", \"Gerber negativo\". Se envolver luxação glenoumeral reduzida, ajuste a frase de perfusão para \"Após redução, reavaliado mantendo perfusão distal preservada e sem déficits neurovasculares evidentes.\")\n\nEM TEMPO:\n(Instrução: resumir os exames efetivamente fornecidos, com datas e comparação quando disponíveis. Não presumir radiografia, fratura, desvio nem indicação cirúrgica. Omitir esta seção se não houver exame informado.)\n\nCONDUTA:\n(Instrução: começar pelas decisões e informações novas, na ordem fornecida. Manter as etapas aplicáveis abaixo, com redação elaborada, sem reduzir a internação a uma única frase e sem copiar instruções. A indicação de internação não significa que já houve admissão, transferência ou aceite de vaga.)\nIndicada internação hospitalar para prosseguimento do tratamento. (Instrução: especificar o motivo e a finalidade informados — tratamento cirúrgico apenas quando explicitamente indicado; caso contrário, cuidado clínico, controle álgico, investigação ou acompanhamento especializado conforme o caso. Acrescentar hospital, especialidade e leito somente se fornecidos.)\n(Instrução: descrever analgesia, imobilização, monitorização e demais medidas no PS somente se informadas; não inventar doses, procedimentos ou intercorrências.)\nCaso discutido com a equipe de retaguarda. (Instrução: incluir apenas se houve discussão relatada, preservando nome, especialidade, CRM, recomendação e destino informados. Se apenas houve encaminhamento, escrever encaminhamento sem inventar discussão ou concordância.)\nPaciente informado acerca do quadro clínico, da indicação de internação e da proposta terapêutica. (Instrução: incluir conforme os esclarecimentos efetivamente prestados; ajustar o destinatário para acompanhante/responsável quando informado. Não atribuir compreensão ou consentimento a paciente sem condições de recebê-los.)\nPrestados esclarecimentos quanto aos riscos e benefícios do tratamento proposto. (Instrução: detalhar apenas os esclarecimentos informados e pertinentes ao tratamento; riscos cirúrgicos como hemorragia, deiscência, infecção, pseudoartrose e consolidação viciosa só se aplicam quando houver proposta cirúrgica e orientação relatadas. Não copiar riscos de cirurgia em internação clínica.)\nEsclarecido que a avaliação inicial, inclusive por métodos de imagem, pode não evidenciar todas as lesões em fases precoces ou de baixa expressão, não afastando completamente a possibilidade de lesões associadas, sendo fundamental o acompanhamento evolutivo, com reavaliação clínica e eventual complementação propedêutica conforme evolução do quadro.\nOrientado quanto a sinais de alarme e necessidade de comunicação imediata à equipe assistente em caso de piora da dor, alteração de sensibilidade, alteração de força ou outras intercorrências. (Instrução: adaptar às orientações fornecidas e ao interlocutor informado.)\nPaciente refere ter compreendido as informações prestadas, encontrando-se ciente e de acordo com a conduta proposta. (Instrução: incluir somente se compreensão e concordância foram informadas; ajustar para o responsável quando for o caso.)",
@@ -3027,7 +3068,13 @@
     e8: "Crônico — Outro / Genérico",
     f: "Canetada Internar",
     g: "Discussão",
-    h: "Relato / Burocracia"
+    h: "Relato / Burocracia",
+    bd: "Trauma — conservador (fratura)",
+    bg: "Trauma — borderline / discussão",
+    r1: "Retorno — mantém conservador",
+    r2: "Retorno — consolidado / liberação progressiva",
+    r3: "Retorno — borderline / discussão",
+    r4: "Retorno — internação"
   };
 
   var TEXTOS_PRONTOS = [
@@ -3102,27 +3149,27 @@
       "itens": [
         {
           "titulo": "Muletas",
-          "texto": "USO ORTOPÉDICO\n1) 01 PAR DE MULETAS__________________________\nUTILIZAR ATÉ REAVALIAÇÃO ORTOPÉDICA CONFORME RETORNO MÉDICO ENTREGUE"
+          "texto": "USO ORTOPÉDICO\n\n1) 01 PAR DE MULETAS__________________________\nUTILIZAR ATÉ REAVALIAÇÃO ORTOPÉDICA CONFORME RETORNO MÉDICO ENTREGUE"
         },
         {
           "titulo": "Brace de Joelho",
-          "texto": "USO ORTOPÉDICO\n1) BRACE DE JOELHO______________________\nUTILIZAR NO MEMBRO AFETADO ATÉ REAVALIAÇÃO ORTOPÉDICA CONFORME RETORNO MÉDICO ENTREGUE"
+          "texto": "USO ORTOPÉDICO\n\n1) BRACE DE JOELHO______________________\nUTILIZAR NO MEMBRO AFETADO ATÉ REAVALIAÇÃO ORTOPÉDICA CONFORME RETORNO MÉDICO ENTREGUE"
         },
         {
           "titulo": "Robofoot",
-          "texto": "USO ORTOPÉDICO\n1) ROBOFOOT_____________________\nUTILIZAR NO MEMBRO AFETADO ATÉ REAVALIAÇÃO ORTOPÉDICA CONFORME RETORNO MÉDICO ENTREGUE"
+          "texto": "USO ORTOPÉDICO\n\n1) ROBOFOOT_____________________\nUTILIZAR NO MEMBRO AFETADO ATÉ REAVALIAÇÃO ORTOPÉDICA CONFORME RETORNO MÉDICO ENTREGUE"
         },
         {
           "titulo": "Sandália Baruk",
-          "texto": "USO ORTOPÉDICO\n1) SANDALIA BARUK________________________\nUTILIZAR NO MEMBRO AFETADO ATÉ REAVALIAÇÃO ORTOPÉDICA CONFORME RETORNO MÉDICO ENTREGUE"
+          "texto": "USO ORTOPÉDICO\n\n1) SANDALIA BARUK________________________\nUTILIZAR NO MEMBRO AFETADO ATÉ REAVALIAÇÃO ORTOPÉDICA CONFORME RETORNO MÉDICO ENTREGUE"
         },
         {
           "titulo": "Órtese Antebraquiopalmar",
-          "texto": "USO ORTOPÉDICO\n1) ÓRTESE ANTEBRAQUEOPALMAR COM BLOQUEIO DE POLEGAR__________________\nUTILIZAR NO MEMBRO AFETADO ATÉ REAVALIAÇÃO ORTOPÉDICA CONFORME RETORNO MÉDICO ENTREGUE"
+          "texto": "USO ORTOPÉDICO\n\n1) ÓRTESE ANTEBRAQUEOPALMAR COM BLOQUEIO DE POLEGAR__________________\nUTILIZAR NO MEMBRO AFETADO ATÉ REAVALIAÇÃO ORTOPÉDICA CONFORME RETORNO MÉDICO ENTREGUE"
         },
         {
           "titulo": "Tipoia de Velpeau",
-          "texto": "USO ORTOPÉDICO\n1) TIPOIA DE VELPEAU________________________\nUTILIZAR NO MEMBRO AFETADO ATÉ REAVALIAÇÃO ORTOPÉDICA CONFORME RETORNO MÉDICO ENTREGUE"
+          "texto": "USO ORTOPÉDICO\n\n1) TIPOIA DE VELPEAU________________________\nUTILIZAR NO MEMBRO AFETADO ATÉ REAVALIAÇÃO ORTOPÉDICA CONFORME RETORNO MÉDICO ENTREGUE"
         }
       ]
     },
@@ -4033,7 +4080,8 @@
   };
 
   var GRUPOS_TEMPLATES = [
-    { categoria: 'Prontuário — Atendimento', chaves: ['a', 'b', 'bf'] },
+    { categoria: 'Prontuário — Atendimento', chaves: ['a', 'b', 'bd', 'bg', 'bf'] },
+    { categoria: 'Prontuário — Retorno', chaves: ['r1', 'r2', 'r3', 'r4'] },
     { categoria: 'Prontuário — Reavaliação', chaves: ['c', 'd', 'g', 'f'] },
     { categoria: 'Prontuário — Crônicos', chaves: ['e1','e2','e3','e4','e5','e6','e7','e8','h'] },
     { categoria: 'Mensagens', chaves: ['chefe', 'internacao', 'paciente', 'retaguarda'], tipo: 'mensagem' }
