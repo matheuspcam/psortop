@@ -1249,6 +1249,44 @@
     header .logo { width: 32px; height: 32px; }
   }
 
+  /* Toggles do paciente (relato / deambulação) */
+  .toggles-paciente { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+  .toggles-paciente .toggle-acompanhante { justify-content: flex-start; padding: 8px 10px; }
+  .toggles-paciente .toggle-acompanhante span { font-size: 12.5px; color: var(--ink-dim); display: flex; flex-direction: column; line-height: 1.25; }
+  .toggles-paciente .toggle-acompanhante small { font-size: 11px; opacity: 0.8; }
+  @media (max-width: 600px) { .toggles-paciente { grid-template-columns: 1fr; } }
+
+  /* Modelo de referência no mesmo estilo do Tipo de atendimento */
+  #cardModelo .tpl-grid button { text-align: center; font-weight: 500; min-height: 46px; }
+  #cardModelo .tpl-grid button.active { box-shadow: inset 0 0 0 1px var(--accent), 0 3px 10px rgba(30, 122, 90, 0.14); font-weight: 700; }
+  #cardModelo .tpl-grid button.tpl-outro { border-style: dashed; }
+  .completo-sub-btn { font-weight: 600 !important; }
+  #blocoCompleto > .tpl-grid:first-child { grid-template-columns: repeat(3, 1fr); }
+
+  .exame-casa { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 11.5px; color: var(--ink-dim); }
+  .exame-casa-btn { padding: 3px 10px; font-size: 11.5px; border: 1px solid var(--panel-border); border-radius: 999px; background: transparent; color: var(--ink-dim); cursor: pointer; }
+  .exame-casa-btn.active { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); font-weight: 700; }
+
+  /* Mensagens: modelo ao lado da caixa de dados */
+  .msg-dados-linha { display: grid; grid-template-columns: minmax(170px, 0.8fr) 2fr; gap: 12px; align-items: stretch; }
+  .msg-esqueleto { background: #f7f9f7; border: 1px dashed var(--panel-border); border-radius: 8px; padding: 10px 12px; font-family: var(--mono); font-size: 11.5px; line-height: 1.55; color: var(--ink-dim); white-space: pre-wrap; user-select: none; }
+  .msg-esqueleto b { display: block; font-family: var(--sans); font-size: 11px; color: var(--accent); margin-bottom: 4px; }
+  @media (max-width: 600px) { .msg-dados-linha { grid-template-columns: 1fr; } }
+
+  .thumb-pdf { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-dim); }
+
+  /* Receitas: escolher o que copiar + princípio ativo */
+  .receita-corpo { display: flex; gap: 10px; align-items: flex-start; }
+  .receita-corpo textarea { flex: 1; min-width: 0; }
+  .painel-receita { width: 36%; min-width: 150px; font-size: 12px; user-select: none; -webkit-user-select: none; padding: 8px 10px; border: 1px dashed var(--panel-border); border-radius: 8px; }
+  .painel-receita-titulo { font-size: 11px; color: var(--accent); font-weight: 700; margin-bottom: 6px; }
+  .painel-receita-item { display: flex; gap: 6px; align-items: flex-start; margin-bottom: 6px; cursor: pointer; }
+  .painel-receita-item span { display: flex; flex-direction: column; }
+  .painel-receita-item small { color: var(--ink-dim); font-size: 11px; font-style: italic; }
+  @media (max-width: 600px) { .receita-corpo { flex-direction: column; } .painel-receita { width: 100%; } }
+  .chips-gerador { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .chips-gerador .btn-atalho-avulso.ativo { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); font-weight: 700; }
+
   /* Destaque do que difere do modelo padrão (só na tela; nunca vai na cópia) */
   .resultado-texto mark.dif {
     background: #fff1b8;
@@ -1271,6 +1309,7 @@
   #listaSugestoesPendentes .item-pronto-titulo { min-width: 0; }
 
   /* Botão fixo de voltar ao topo */
+  .btn-topo.direita { left: auto; right: 12px; }
   .btn-topo {
     position: fixed;
     left: 12px;
@@ -1350,9 +1389,9 @@
     </button>
 
     <div class="menu-ferramentas" id="menuFerramentas">
-      <button type="button" data-ir="templates">Ver templates</button>
-      <button type="button" data-ir="sugestoes">Sugestões pendentes</button>
       <button type="button" data-ir="cofre">Senhas e links</button>
+      <button type="button" data-ir="sugestoes">Sugestões pendentes</button>
+      <button type="button" data-ir="templates">Ver templates</button>
     </div>
   </header>
 
@@ -1387,12 +1426,71 @@
         <button type="button" class="tipo-btn" data-tipo="completo"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg><span>Atendimento completo</span></button>
       </div>
 
-      <div class="field" style="margin-top:14px;">
+      <div class="toggles-paciente">
         <label class="toggle-acompanhante">
-          <input type="checkbox" id="toggleAcompanhante" style="width:16px; height:16px; accent-color: var(--accent);">
-          <span style="font-size:13px; color: var(--ink-dim);">História relatada por acompanhante (ex: pais de criança, cuidador de idoso)</span>
+          <input type="checkbox" id="toggleRelatoCrianca" style="width:16px; height:16px; accent-color: var(--accent);">
+          <span>Relato dos pais / responsável<small>criança</small></span>
+        </label>
+        <label class="toggle-acompanhante">
+          <input type="checkbox" id="toggleRelatoIdoso" style="width:16px; height:16px; accent-color: var(--accent);">
+          <span>Relato de familiar / cuidador<small>idoso</small></span>
+        </label>
+        <label class="toggle-acompanhante">
+          <input type="checkbox" id="toggleNaoDeambula" style="width:16px; height:16px; accent-color: var(--accent);">
+          <span>Não deambula<small>cadeira de rodas / acamado</small></span>
         </label>
       </div>
+    </div>
+
+    <div class="card" id="cardModelo">
+      <span class="label" id="labelModelo">Modelo de referência</span>
+
+      <div class="tpl-grid" id="tplGridInicial">
+        <button type="button" data-t="a" data-grupo="inicial">1º Atendimento</button>
+      </div>
+
+      <div class="tpl-grid" id="tplGridReavaliacao">
+        <button type="button" data-t="c" data-grupo="reavaliacao">Liberação — RX Limpo</button>
+        <button type="button" data-t="d" data-grupo="reavaliacao">Liberação — Fratura</button>
+        <button type="button" data-t="g" data-grupo="reavaliacao">Discussão</button>
+        <button type="button" data-t="f" data-grupo="reavaliacao">Canetada Internar</button>
+      </div>
+
+      <div id="blocoCompleto">
+        <div class="tpl-grid">
+          <button type="button" class="completo-sub-btn active" data-sub="trauma">Trauma</button>
+          <button type="button" class="completo-sub-btn" data-sub="cronico">Crônico</button>
+          <button type="button" class="completo-sub-btn" data-sub="relato">Relato / burocracia</button>
+        </div>
+
+        <div class="tpl-grid" id="tplGridTrauma" style="margin-top:8px;">
+          <button type="button" data-t="b" data-grupo="completo">Trauma — alta / conservador</button>
+          <button type="button" data-t="bf" data-grupo="completo">Trauma — internação</button>
+        </div>
+
+        <div class="tpl-grid oculto" id="tplGridCronico" style="margin-top:8px;">
+          <button type="button" data-t="e1" data-grupo="completo">Lombalgia Mecânica</button>
+          <button type="button" data-t="e2" data-grupo="completo">Cervicalgia Mecânica</button>
+          <button type="button" data-t="e3" data-grupo="completo">Torcicolo Agudo</button>
+          <button type="button" data-t="e4" data-grupo="completo">Fascite Plantar</button>
+          <button type="button" data-t="e5" data-grupo="completo">Manguito Rotador / Ombralgia</button>
+          <button type="button" data-t="e6" data-grupo="completo">Tendinopatia (genérico)</button>
+          <button type="button" data-t="e7" data-grupo="completo">Gonalgia Não Traumática</button>
+          <button type="button" data-t="e8" data-grupo="completo" class="tpl-outro">&#9998; Outro (descrever nos dados)</button>
+        </div>
+
+        <div class="exame-casa" id="exameCasa">
+          <span>Exame para casa:</span>
+          <button type="button" class="exame-casa-btn" data-exame="RM">RM</button>
+          <button type="button" class="exame-casa-btn" data-exame="USG">USG</button>
+        </div>
+
+        <div class="tpl-grid oculto" id="tplGridRelato" style="margin-top:8px;">
+          <button type="button" data-t="h" data-grupo="completo" class="tpl-outro">&#9998; Relato corrido (triagem errada, parecer, prescrição de colega, carta externa...)</button>
+        </div>
+      </div>
+
+      <div class="hint" id="tplHint">Pode selecionar mais de um (ex: Fratura + Canetada Internar).</div>
     </div>
 
     <div class="card oculto" id="blocoInicial">
@@ -1416,8 +1514,8 @@
           <textarea id="extra" placeholder="Cole os laudos com as respectivas datas. Para comparação, inclua os achados de cada exame..."></textarea>
           <div class="zona-upload" id="zonaUploadExame">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Anexar foto
-            <input type="file" id="inputFileExame" accept="image/*" multiple style="display:none">
+            Anexar foto ou PDF
+            <input type="file" id="inputFileExame" accept="image/*,application/pdf" multiple style="display:none">
           </div>
         </div>
         <div class="lista-imagens" id="listaImagensExame"></div>
@@ -1425,45 +1523,6 @@
       </div>
     </div>
 
-    <div class="card" id="cardModelo">
-      <span class="label" id="labelModelo">Modelo de referência</span>
-
-      <div class="tpl-grid" id="tplGridInicial">
-        <button type="button" data-t="a" data-grupo="inicial"><span class="letra">a</span>1º Atendimento</button>
-      </div>
-
-      <div class="tpl-grid" id="tplGridReavaliacao">
-        <button type="button" data-t="c" data-grupo="reavaliacao"><span class="letra">c</span>Liberação — RX Limpo</button>
-        <button type="button" data-t="d" data-grupo="reavaliacao"><span class="letra">d</span>Liberação — Fratura</button>
-        <button type="button" data-t="g" data-grupo="reavaliacao"><span class="letra">g</span>Discussão</button>
-        <button type="button" data-t="f" data-grupo="reavaliacao"><span class="letra">f</span>Canetada Internar</button>
-      </div>
-
-      <div id="blocoCompleto">
-        <div class="tpl-grid">
-          <button type="button" class="completo-sub-btn active" data-sub="trauma">Trauma</button>
-          <button type="button" class="completo-sub-btn" data-sub="cronico">Crônico</button>
-        </div>
-
-        <div class="tpl-grid" id="tplGridTrauma" style="margin-top:8px;">
-          <button type="button" data-t="b" data-grupo="completo"><span class="letra">b</span>Trauma (Anamnese 1 Etapa)</button>
-          <button type="button" data-t="bf" data-grupo="completo"><span class="letra">bf</span>Atendimento completo + internação</button>
-        </div>
-
-        <div class="tpl-grid oculto" id="tplGridCronico" style="margin-top:8px;">
-          <button type="button" data-t="e1" data-grupo="completo"><span class="letra">e1</span>Lombalgia Mecânica</button>
-          <button type="button" data-t="e2" data-grupo="completo"><span class="letra">e2</span>Cervicalgia Mecânica</button>
-          <button type="button" data-t="e3" data-grupo="completo"><span class="letra">e3</span>Torcicolo Agudo</button>
-          <button type="button" data-t="e4" data-grupo="completo"><span class="letra">e4</span>Fascite Plantar</button>
-          <button type="button" data-t="e5" data-grupo="completo"><span class="letra">e5</span>Manguito Rotador / Ombralgia</button>
-          <button type="button" data-t="e6" data-grupo="completo"><span class="letra">e6</span>Tendinopatia (genérico)</button>
-          <button type="button" data-t="e7" data-grupo="completo"><span class="letra">e7</span>Gonalgia Não Traumática</button>
-          <button type="button" data-t="e8" data-grupo="completo"><span class="letra">e8</span>Outro / Genérico</button>
-        </div>
-      </div>
-
-      <div class="hint" id="tplHint">Pode selecionar mais de um (ex: Fratura + Canetada Internar).</div>
-    </div>
 
     <button class="btn-gerar" id="btnGerar">Gerar prontuário</button>
     <div class="spinner" id="spinner"><span class="dot"></span> Gerando...</div>
@@ -1525,22 +1584,25 @@
     <div class="card">
       <span class="label">Tipo de mensagem</span>
       <div class="tpl-grid msg-grid-3col" id="msgGrid">
-        <button type="button" class="msg-btn" data-m="internacao"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18V7"/><path d="M3 14h18v4"/><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="2"/></svg><span class="opc-texto">Solicitação de internação<small>informativo</small></span></button>
-        <button type="button" class="msg-btn active" data-m="chefe"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span class="opc-texto">Para o chefe<small>ficha de encaminhamento</small></span></button>
-        <button type="button" class="msg-btn" data-m="paciente"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/></svg><span class="opc-texto">Para o paciente<small>retorno via WhatsApp</small></span></button>
-        <button type="button" class="msg-btn" data-m="retaguarda"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V6l-8-3z"/></svg><span class="opc-texto">Para a retaguarda<small>caso no PS</small></span></button>
+        <button type="button" class="msg-btn" data-m="internacao"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18V7"/><path d="M3 14h18v4"/><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="2"/></svg><span class="opc-texto">Internação (Prevent)</span></button>
+        <button type="button" class="msg-btn active" data-m="chefe"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span class="opc-texto">Chefe (Prevent)</span></button>
+        <button type="button" class="msg-btn" data-m="paciente"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/></svg><span class="opc-texto">WhatsApp do paciente (Prevent)</span></button>
+        <button type="button" class="msg-btn" data-m="retaguarda"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V6l-8-3z"/></svg><span class="opc-texto">Retaguarda</span></button>
       </div>
     </div>
 
     <div class="card">
       <span class="label">Dados</span>
+      <div class="msg-dados-linha">
+      <div class="msg-esqueleto" id="msgEsqueleto"></div>
       <div class="campo-com-upload">
         <textarea id="msgDados" placeholder="Cole os dados do jeito que tiver: nome, matrícula, idade, diagnóstico, telefone, data e horário do retorno..."></textarea>
         <div class="zona-upload" id="zonaUploadMsg">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Anexar foto
-          <input type="file" id="inputFileMsg" accept="image/*" multiple style="display:none">
+          Anexar foto ou PDF
+          <input type="file" id="inputFileMsg" accept="image/*,application/pdf" multiple style="display:none">
         </div>
+      </div>
       </div>
       <div class="lista-imagens" id="listaImagensMsg"></div>
       <div class="aviso-imagem" id="avisoImagemMsg" style="display:none;">Evite incluir dados de outros pacientes na imagem.</div>
@@ -1673,6 +1735,7 @@
 </div>
 
 <button type="button" class="btn-topo" id="btnTopo" aria-label="Voltar ao topo">&#8593;</button>
+<button type="button" class="btn-topo direita" id="btnTopoDireita" aria-label="Voltar ao topo">&#8593;</button>
 
 <script>
 (function() {
@@ -2259,12 +2322,12 @@
   });
 
   // ================= BOTÃO VOLTAR AO TOPO =================
-  var btnTopo = document.getElementById('btnTopo');
+  var botoesTopo = [document.getElementById('btnTopo'), document.getElementById('btnTopoDireita')];
   window.addEventListener('scroll', function() {
-    btnTopo.classList.toggle('show', window.scrollY > 300);
+    botoesTopo.forEach(function(b) { b.classList.toggle('show', window.scrollY > 300); });
   }, { passive: true });
-  btnTopo.addEventListener('click', function() {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  botoesTopo.forEach(function(b) {
+    b.addEventListener('click', function() { window.scrollTo({ top: 0, behavior: 'smooth' }); });
   });
 
 
@@ -2340,8 +2403,16 @@
       imagens.forEach(function(img, idx) {
         var div = document.createElement('div');
         div.className = 'thumb-img';
-        var el = document.createElement('img');
-        el.src = img.dataUrl;
+        var el;
+        if (img.mimeType === 'application/pdf') {
+          el = document.createElement('div');
+          el.className = 'thumb-pdf';
+          el.textContent = 'PDF';
+          el.title = img.nome || 'PDF';
+        } else {
+          el = document.createElement('img');
+          el.src = img.dataUrl;
+        }
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.textContent = '\u00d7';
@@ -2359,12 +2430,17 @@
 
     function adicionarArquivos(files) {
       Array.prototype.forEach.call(files, function(file) {
-        if (!file.type || file.type.indexOf('image/') !== 0) return;
+        var ehPdf = file.type === 'application/pdf';
+        if (!file.type || (file.type.indexOf('image/') !== 0 && !ehPdf)) return;
+        if (ehPdf && file.size > 3 * 1024 * 1024) {
+          alert('PDF muito grande (máximo 3 MB). Tente enviar só as páginas do laudo ou uma foto.');
+          return;
+        }
         var reader = new FileReader();
         reader.onload = function(e) {
           var dataUrl = e.target.result;
           var base64 = String(dataUrl).split(',')[1];
-          imagens.push({ base64: base64, mimeType: file.type, dataUrl: dataUrl });
+          imagens.push({ base64: base64, mimeType: file.type, dataUrl: dataUrl, nome: file.name });
           renderizar();
         };
         reader.readAsDataURL(file);
@@ -2422,10 +2498,36 @@
   var blocoCompleto = document.getElementById('blocoCompleto');
   var gridTrauma = document.getElementById('tplGridTrauma');
   var gridCronico = document.getElementById('tplGridCronico');
+  var gridRelato = document.getElementById('tplGridRelato');
+  var exameCasa = document.getElementById('exameCasa');
+  var exameCasaSel = '';
   var subBtns = document.querySelectorAll('.completo-sub-btn');
 
   function todosOsBotoesTemplate() {
-    return document.querySelectorAll('#tplGridInicial button, #tplGridReavaliacao button, #tplGridTrauma button, #tplGridCronico button');
+    return document.querySelectorAll('#tplGridInicial button, #tplGridReavaliacao button, #tplGridTrauma button, #tplGridCronico button, #tplGridRelato button');
+  }
+
+  // Exame ambulatorial marcado (RM/USG). Sem marcar e sem escrever nos dados = sem exame para casa.
+  function limparExameCasa() {
+    exameCasaSel = '';
+    exameCasa.querySelectorAll('.exame-casa-btn').forEach(function(b) { b.classList.remove('active'); });
+  }
+  exameCasa.querySelectorAll('.exame-casa-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var ativo = btn.classList.contains('active');
+      limparExameCasa();
+      if (!ativo) { btn.classList.add('active'); exameCasaSel = btn.dataset.exame; }
+    });
+  });
+
+  // Relato: criança OU idoso (um exclui o outro).
+  var toggleRelatoCrianca = document.getElementById('toggleRelatoCrianca');
+  var toggleRelatoIdoso = document.getElementById('toggleRelatoIdoso');
+  var toggleNaoDeambula = document.getElementById('toggleNaoDeambula');
+  toggleRelatoCrianca.addEventListener('change', function() { if (toggleRelatoCrianca.checked) toggleRelatoIdoso.checked = false; });
+  toggleRelatoIdoso.addEventListener('change', function() { if (toggleRelatoIdoso.checked) toggleRelatoCrianca.checked = false; });
+  function valorAcompanhante() {
+    return toggleRelatoCrianca.checked ? 'crianca' : (toggleRelatoIdoso.checked ? 'idoso' : false);
   }
 
   function aplicarFiltroTemplates() {
@@ -2449,7 +2551,7 @@
     } else if (tipoAtendimento === 'reavaliacao') {
       labelModelo.classList.remove('oculto');
       gridReavaliacao.classList.remove('oculto');
-      tplHint.textContent = 'Pode selecionar mais de um (ex: Fratura + Canetada Internar).';
+      tplHint.textContent = 'Escolha o desfecho desta reavaliação.';
     } else if (tipoAtendimento === 'completo') {
       labelModelo.classList.remove('oculto');
       blocoCompleto.classList.remove('oculto');
@@ -2463,17 +2565,24 @@
 
     subBtns.forEach(function(b) { b.classList.toggle('active', b.dataset.sub === subCompleto); });
 
+    gridTrauma.classList.toggle('oculto', subCompleto !== 'trauma');
+    gridCronico.classList.toggle('oculto', subCompleto !== 'cronico');
+    gridRelato.classList.toggle('oculto', subCompleto !== 'relato');
+    exameCasa.classList.toggle('oculto', subCompleto !== 'cronico');
+    limparExameCasa();
+
     if (subCompleto === 'trauma') {
-      gridTrauma.classList.remove('oculto');
-      gridCronico.classList.add('oculto');
       var unico = gridTrauma.querySelector('button');
       unico.classList.add('active');
       templatesSelecionados = [unico.dataset.t];
-      tplHint.textContent = 'Escolha atendimento completo ou atendimento completo + internação.';
+      tplHint.textContent = 'Escolha alta/conservador ou internação.';
+    } else if (subCompleto === 'relato') {
+      var relato = gridRelato.querySelector('button');
+      relato.classList.add('active');
+      templatesSelecionados = [relato.dataset.t];
+      tplHint.textContent = 'Texto corrido, sem AP/exame/conduta. Descreva nos dados o que aconteceu.';
     } else {
-      gridTrauma.classList.add('oculto');
-      gridCronico.classList.remove('oculto');
-      tplHint.textContent = 'Escolha o quadro crônico que melhor descreve o caso.';
+      tplHint.textContent = 'Modelos prontos geram sozinhos, sem exame para casa. ✎ Outro: descreva nos dados.';
     }
   }
 
@@ -2509,9 +2618,10 @@
 
       if (tipoAtendimento === 'inicial') return; // fixo, não alterna
 
-      if (tipoAtendimento === 'completo') {
-        // dentro de completo, só um template pode estar ativo por vez (trauma OU 1 crônico)
-        var gridAtivo = subCompleto === 'trauma' ? gridTrauma : gridCronico;
+      if (tipoAtendimento === 'completo' || tipoAtendimento === 'reavaliacao') {
+        // um desfecho por vez: no completo (trauma OU 1 crônico OU relato) e na reavaliação
+        var gridAtivo = tipoAtendimento === 'reavaliacao' ? gridReavaliacao
+          : (subCompleto === 'trauma' ? gridTrauma : (subCompleto === 'relato' ? gridRelato : gridCronico));
         gridAtivo.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
         templatesSelecionados = [t];
         btn.classList.add('active');
@@ -2691,7 +2801,9 @@
       atendimentoInicial: atendimentoInicial,
       extra: extra,
       template: templatesSelecionados.join('+'),
-      acompanhante: document.getElementById('toggleAcompanhante').checked,
+      acompanhante: valorAcompanhante(),
+      naoDeambula: toggleNaoDeambula.checked,
+      exameAmbulatorial: (tipoAtendimento === 'completo' && subCompleto === 'cronico') ? exameCasaSel : '',
       imagens: imagensExame.obter()
     };
     ultimoPayloadGerar = payloadGerar;
@@ -2704,7 +2816,9 @@
           entrada: {
             tipoAtendimento: tipoAtendimento,
             template: payloadGerar.template,
-            acompanhante: payloadGerar.acompanhante ? 'sim' : 'não',
+            acompanhante: payloadGerar.acompanhante === 'crianca' ? 'pais/responsável (criança)' : (payloadGerar.acompanhante === 'idoso' ? 'familiar/cuidador (idoso)' : 'não'),
+            deambulacao: payloadGerar.naoDeambula ? 'não deambula' : 'deambulando',
+            exameParaCasa: payloadGerar.exameAmbulatorial || 'nenhum marcado',
             atendimentoInicial: atendimentoInicial,
             dadosCaso: dadosCaso,
             exames: extra,
@@ -2833,7 +2947,10 @@
     document.getElementById('dadosCaso').value = '';
     document.getElementById('atendimentoInicial').value = '';
     document.getElementById('extra').value = '';
-    document.getElementById('toggleAcompanhante').checked = false;
+    toggleRelatoCrianca.checked = false;
+    toggleRelatoIdoso.checked = false;
+    toggleNaoDeambula.checked = false;
+    limparExameCasa();
     imagensExame.limpar();
     resultadoCard.classList.remove('show');
     avisoCard.classList.remove('show');
@@ -2861,31 +2978,33 @@
   }
 
   var TEMPLATES_ATUAIS = {
-    bf: "AP: nega alergias.\n\nHDA: (Instrução: quando o relato vier de acompanhante, identifique-o aqui, antes da história; nunca no exame físico.) paciente refere trauma em (instrução: cite o mecanismo e o segmento informados — ex: \"trauma torcional em tornozelo\", \"trauma direto em joelho\", \"queda com apoio de mão\") (instrução: lado D/E se informado) há (instrução: tempo informado), evoluindo com dor local (instrução: acrescente edema, dificuldade para deambular/mobilizar, ou outros sintomas associados se informados) desde então.\nNega outros traumas associados. Nega outras queixas relevantes no momento.\n\nEXAME FÍSICO:\nPaciente em bom estado geral, lúcido e orientado. (Instrução: substituir conforme o estado geral e nível de consciência informados; a origem do relato pertence exclusivamente à HDA.)\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles. (Instrução: se houver edema informado, substitua esta linha citando a topografia — ex: \"Edema em topografia de tornozelo lateral\".)\nDor à palpação (instrução: cite a estrutura/região específica informada — ex: \"ligamento talofibular anterior\", \"interlinha articular do joelho\", \"tabaqueira anatômica\", \"olécrano\"; se não informado, use \"no segmento acometido\"), sem pontos de dor focal adicionais.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais clínicos de síndrome compartimental.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\n(Instrução: se o segmento for coluna — pela queixa, pelo texto ou pela imagem anexada —, adaptar o exame físico para coluna conforme a regra EXAME FÍSICO DE COLUNA, citando a dor à palpação no nível acometido e incluindo déficits neurológicos segmentares, mielopatia/cauda equina e reflexos patológicos.)\n(Instrução: se o caso envolver ombro com suspeita de lesão de manguito, adicione testes específicos apenas se mencionados pelo médico — ex: \"Jobe negativo\", \"Neer negativo\", \"Patte negativo\", \"Gerber negativo\". Se envolver luxação glenoumeral reduzida, ajuste a frase de perfusão para \"Após redução, reavaliado mantendo perfusão distal preservada e sem déficits neurovasculares evidentes.\")\n\nEM TEMPO:\n(Instrução: resumir os exames efetivamente fornecidos, com datas e comparação quando disponíveis. Não presumir radiografia, fratura, desvio nem indicação cirúrgica. Omitir esta seção se não houver exame informado.)\n\nCONDUTA:\n(Instrução: começar pelas decisões e informações novas, na ordem fornecida. Manter as etapas aplicáveis abaixo, com redação elaborada, sem reduzir a internação a uma única frase e sem copiar instruções. A indicação de internação não significa que já houve admissão, transferência ou aceite de vaga.)\nIndicada internação hospitalar para prosseguimento do tratamento. (Instrução: especificar o motivo e a finalidade informados — tratamento cirúrgico apenas quando explicitamente indicado; caso contrário, cuidado clínico, controle álgico, investigação ou acompanhamento especializado conforme o caso. Acrescentar hospital, especialidade e leito somente se fornecidos.)\n(Instrução: descrever analgesia, imobilização, monitorização e demais medidas no PS somente se informadas; não inventar doses, procedimentos ou intercorrências.)\nCaso discutido com a equipe de retaguarda. (Instrução: incluir apenas se houve discussão relatada, preservando nome, especialidade, CRM, recomendação e destino informados. Se apenas houve encaminhamento, escrever encaminhamento sem inventar discussão ou concordância.)\nPaciente informado acerca do quadro clínico, da indicação de internação e da proposta terapêutica. (Instrução: incluir conforme os esclarecimentos efetivamente prestados; ajustar o destinatário para acompanhante/responsável quando informado. Não atribuir compreensão ou consentimento a paciente sem condições de recebê-los.)\nPrestados esclarecimentos quanto aos riscos e benefícios do tratamento proposto. (Instrução: detalhar apenas os esclarecimentos informados e pertinentes ao tratamento; riscos cirúrgicos como hemorragia, deiscência, infecção, pseudoartrose e consolidação viciosa só se aplicam quando houver proposta cirúrgica e orientação relatadas. Não copiar riscos de cirurgia em internação clínica.)\nEsclarecido que a avaliação inicial, inclusive por métodos de imagem, pode não evidenciar todas as lesões em fases precoces ou de baixa expressão, não afastando completamente a possibilidade de lesões associadas, sendo fundamental o acompanhamento evolutivo, com reavaliação clínica e eventual complementação propedêutica conforme evolução do quadro.\nOrientado quanto a sinais de alarme e necessidade de comunicação imediata à equipe assistente em caso de piora da dor, alteração de sensibilidade, alteração de força ou outras intercorrências. (Instrução: adaptar às orientações fornecidas e ao interlocutor informado.)\nPaciente refere ter compreendido as informações prestadas, encontrando-se ciente e de acordo com a conduta proposta. (Instrução: incluir somente se compreensão e concordância foram informadas; ajustar para o responsável quando for o caso.)",
+    h: "(Instrução: este modelo NÃO é um atendimento clínico estruturado. Redija um RELATO CORRIDO, em primeira pessoa, em um ou mais parágrafos curtos, SEM as seções AP, HDA/HPMA, EXAME FÍSICO, EM TEMPO ou CONDUTA e sem nenhum rótulo de seção. Registre em ordem cronológica, com linguagem formal, objetiva e neutra: o que ocorreu, quem acionou/encaminhou, horários (apenas se informados), o que foi verificado e a providência tomada. Situações típicas: paciente triado para a ortopedia cuja queixa é de outra especialidade/clínica médica; pedido de parecer direcionado à especialidade errada; enfermagem solicitando ajuste de prescrição feita por outro colega; paciente que chega com carta/encaminhamento de médico externo solicitando internação pelo PS; paciente que não comparece ao chamado. Nunca julgue, critique ou comente a conduta de colegas — descreva apenas os fatos. Não invente horários, nomes, CRM, setores, contatos ou encaminhamentos não informados. Não acrescente \"Sem indicação de procedimento...\", sinais de alarme, orientações de alta nem avisos de exame físico, salvo se informado.)\n\nExemplo de estilo (apenas referência de tom — adapte aos fatos informados):\nSou acionado pela equipe de enfermagem para avaliação de prescrição realizada por outro colega. Verifico a prescrição vigente e realizo o ajuste solicitado, conforme descrito em prescrição médica. Oriento a equipe quanto à alteração realizada.",
 
-    a: "AP: nega alergias. (Instrução: incluir todo antecedente informado de forma completa — cirurgias prévias com o procedimento e o material de síntese quando informados, ex: \"Antecedente de fratura de maléolo lateral direito há 10 anos, submetida a osteossíntese com placa\"; comorbidades; medicações contínuas.)\n\nQD: (Instrução: iniciar com letra minúscula após os dois-pontos. Não resumir a queixa a uma frase telegráfica quando o médico informou mais dados: redigir uma história articulada, em uma ou mais linhas, com TODOS os dados fornecidos — mecanismo, tempo de evolução, sintomas, fatores de piora, evolução, tratamentos já tentados, relação com cirurgia/material prévio e motivo da procura atual —, conectando os fatos com nexo temporal e clínico. Exemplo: \"dor e edema em tornozelo direito há 2 semanas, sem trauma recente, em paciente com antecedente de osteossíntese com placa em maléolo lateral direito, sem melhora com analgesia oral\". Negativas sobre o evento — \"nega TCE\", \"nega perda de consciência\", \"nega dor em outras topografias\", \"nega demais queixas\" — entram aqui na QD, na mesma linha, ao final da história; nunca no AP.)\n\nEXAME FÍSICO:\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles.\nIndolor à palpação. (Instrução: linha padrão APENAS para quando não há queixa de dor. Se a QD for dor em um segmento, substituir obrigatoriamente por \"Dor à palpação em [região da queixa, com lado]\", salvo se o médico informar explicitamente que o exame foi indolor.)\nSem pontos de dor focal. (Instrução: remover esta linha quando houver dor à palpação informada ou decorrente da QD; não criar a frase \"Pontos de dor focal em...\".)\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais clínicos de síndrome compartimental.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\n(Instrução: se a queixa for em coluna cervical, torácica ou lombar, trocar a linha \"Sem deformidades, desalinhamentos ou encurtamentos do segmento.\" por \"Sem deformidades ou desalinhamentos evidentes da coluna.\", trocar \"Força motora e sensibilidade preservadas.\" por \"Força motora e sensibilidade preservadas em membros superiores e inferiores, sem déficits neurológicos evidentes ao exame segmentar.\" e acrescentar ao final \"Sem sinais clínicos de mielopatia ou síndrome da cauda equina.\" e \"Reflexos patológicos ausentes (Hoffman, Clônus, Babinski e Oppenheim).\" — salvo achado contrário informado.)\n\nCONDUTA:\nSolicito radiografias (Instrução: citar os exames que o médico SOLICITOU usando \"Solicito\"; nunca escrever \"Realizados exames\" quando o médico apenas pediu.)\nReavaliação após (o médico informa o prazo/momento — ex: resultado de exame, algumas horas, retorno ainda neste plantão; nunca assuma um número de dias)",
+    bf: "AP: nega alergias.\n\nHDA: (Instrução: quando o relato vier de acompanhante, identifique-o aqui, antes da história; nunca no exame físico.) paciente refere trauma em (instrução: cite o mecanismo e o segmento informados — ex: \"trauma torcional em tornozelo\", \"trauma direto em joelho\", \"queda com apoio de mão\") (instrução: lado D/E se informado) há (instrução: tempo informado), evoluindo com dor local (instrução: acrescente edema, dificuldade para deambular/mobilizar, ou outros sintomas associados se informados) desde então.\nNega outros traumas associados. Nega outras queixas relevantes no momento.\n\nEXAME FÍSICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando. (Instrução: substituir conforme o estado geral e nível de consciência informados; a origem do relato pertence exclusivamente à HDA.)\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles. (Instrução: se houver edema informado, substitua esta linha citando a topografia — ex: \"Edema em topografia de tornozelo lateral\".)\nDor à palpação (instrução: cite a estrutura/região específica informada — ex: \"ligamento talofibular anterior\", \"interlinha articular do joelho\", \"tabaqueira anatômica\", \"olécrano\"; se não informado, use \"no segmento acometido\"), sem pontos de dor focal adicionais.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais clínicos de síndrome compartimental.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\n(Instrução: se o segmento for coluna — pela queixa, pelo texto ou pela imagem anexada —, adaptar o exame físico para coluna conforme a regra EXAME FÍSICO DE COLUNA, citando a dor à palpação no nível acometido e incluindo déficits neurológicos segmentares, mielopatia/cauda equina e reflexos patológicos.)\n(Instrução: se o caso envolver ombro com suspeita de lesão de manguito, adicione testes específicos apenas se mencionados pelo médico — ex: \"Jobe negativo\", \"Neer negativo\", \"Patte negativo\", \"Gerber negativo\". Se envolver luxação glenoumeral reduzida, ajuste a frase de perfusão para \"Após redução, reavaliado mantendo perfusão distal preservada e sem déficits neurovasculares evidentes.\")\n\nEM TEMPO:\n(Instrução: resumir os exames efetivamente fornecidos, com datas e comparação quando disponíveis. Não presumir radiografia, fratura, desvio nem indicação cirúrgica. Omitir esta seção se não houver exame informado.)\n\nCONDUTA:\n(Instrução: começar pelas decisões e informações novas, na ordem fornecida. Manter as etapas aplicáveis abaixo, com redação elaborada, sem reduzir a internação a uma única frase e sem copiar instruções. A indicação de internação não significa que já houve admissão, transferência ou aceite de vaga.)\nIndicada internação hospitalar para prosseguimento do tratamento. (Instrução: especificar o motivo e a finalidade informados — tratamento cirúrgico apenas quando explicitamente indicado; caso contrário, cuidado clínico, controle álgico, investigação ou acompanhamento especializado conforme o caso. Acrescentar hospital, especialidade e leito somente se fornecidos.)\n(Instrução: descrever analgesia, imobilização, monitorização e demais medidas no PS somente se informadas; não inventar doses, procedimentos ou intercorrências.)\nCaso discutido com a equipe de retaguarda. (Instrução: incluir apenas se houve discussão relatada, preservando nome, especialidade, CRM, recomendação e destino informados. Se apenas houve encaminhamento, escrever encaminhamento sem inventar discussão ou concordância.)\nPaciente informado acerca do quadro clínico, da indicação de internação e da proposta terapêutica. (Instrução: incluir conforme os esclarecimentos efetivamente prestados; ajustar o destinatário para acompanhante/responsável quando informado. Não atribuir compreensão ou consentimento a paciente sem condições de recebê-los.)\nPrestados esclarecimentos quanto aos riscos e benefícios do tratamento proposto. (Instrução: detalhar apenas os esclarecimentos informados e pertinentes ao tratamento; riscos cirúrgicos como hemorragia, deiscência, infecção, pseudoartrose e consolidação viciosa só se aplicam quando houver proposta cirúrgica e orientação relatadas. Não copiar riscos de cirurgia em internação clínica.)\nEsclarecido que a avaliação inicial, inclusive por métodos de imagem, pode não evidenciar todas as lesões em fases precoces ou de baixa expressão, não afastando completamente a possibilidade de lesões associadas, sendo fundamental o acompanhamento evolutivo, com reavaliação clínica e eventual complementação propedêutica conforme evolução do quadro.\nOrientado quanto a sinais de alarme e necessidade de comunicação imediata à equipe assistente em caso de piora da dor, alteração de sensibilidade, alteração de força ou outras intercorrências. (Instrução: adaptar às orientações fornecidas e ao interlocutor informado.)\nPaciente refere ter compreendido as informações prestadas, encontrando-se ciente e de acordo com a conduta proposta. (Instrução: incluir somente se compreensão e concordância foram informadas; ajustar para o responsável quando for o caso.)",
 
-    b: "AP: nega alergias.\n\nHDA: (Instrução: quando o relato vier de acompanhante, identifique-o aqui, antes da história; nunca no exame físico.) paciente refere trauma em (instrução: cite o mecanismo e o segmento informados — ex: \"trauma torcional em tornozelo\", \"trauma direto em joelho\", \"queda com apoio de mão\") (instrução: lado D/E se informado) há (instrução: tempo informado), evoluindo com dor local (instrução: acrescente edema, dificuldade para deambular/mobilizar, ou outros sintomas associados se informados) desde então.\nNega outros traumas associados. Nega outras queixas relevantes no momento.\n\nEXAME FÍSICO:\nPaciente em bom estado geral, lúcido e orientado. (Instrução: substituir conforme o estado geral e nível de consciência informados; a origem do relato pertence exclusivamente à HDA.)\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles. (Instrução: se houver edema informado, substitua esta linha citando a topografia — ex: \"Edema em topografia de tornozelo lateral\".)\nDor à palpação (instrução: cite a estrutura/região específica informada — ex: \"ligamento talofibular anterior\", \"interlinha articular do joelho\", \"tabaqueira anatômica\", \"olécrano\"; se não informado, use \"no segmento acometido\"), sem pontos de dor focal adicionais.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais clínicos de síndrome compartimental.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\n(Instrução: se o segmento for coluna — pela queixa, pelo texto ou pela imagem anexada —, adaptar o exame físico para coluna conforme a regra EXAME FÍSICO DE COLUNA, citando a dor à palpação no nível acometido e incluindo déficits neurológicos segmentares, mielopatia/cauda equina e reflexos patológicos.)\n(Instrução: se o caso envolver ombro com suspeita de lesão de manguito, adicione testes específicos apenas se mencionados pelo médico — ex: \"Jobe negativo\", \"Neer negativo\", \"Patte negativo\", \"Gerber negativo\". Se envolver luxação glenoumeral reduzida, ajuste a frase de perfusão para \"Após redução, reavaliado mantendo perfusão distal preservada e sem déficits neurovasculares evidentes.\")\n\nEM TEMPO:\nAvalio radiografias do segmento acometido, não evidenciando fraturas, luxações ou outras alterações osteoarticulares agudas, dentro das limitações e sensibilidade do método, passíveis de não identificação em fases iniciais ou em lesões de baixa expressão radiográfica.\n\nCONDUTA:\nSem indicação de procedimento ortopédico cirúrgico de urgência no momento.\nPrescrita analgesia para controle álgico, associada a orientações gerais e crioterapia, se possível.\nOrientado seguimento ambulatorial com ortopedia, com reavaliação clínica e radiográfica em 10 dias para acompanhamento evolutivo e reavaliação da conduta instituída.\nExplicado ao (instrução: \"paciente\" normalmente; se o toggle de acompanhante estiver marcado, pode usar \"paciente e ao acompanhante\") o quadro atual e a conduta proposta nesta avaliação.\nEsclarecido que a evolução clínica deve ser acompanhada, podendo haver necessidade de reavaliação conforme resposta ao tratamento e evolução do quadro, inclusive com possibilidade de mudança de conduta conforme evolução.\nEsclarecido que a avaliação inicial, inclusive por métodos de imagem, pode não evidenciar todas as lesões em fases precoces ou de baixa expressão, não afastando completamente a possibilidade de lesões associadas, sendo fundamental o acompanhamento evolutivo, com reavaliação clínica e eventual complementação propedêutica conforme evolução do quadro.\nOrientado quanto a sinais de alarme e necessidade de retorno imediato em caso de piora da dor, aumento importante do edema, piora da limitação funcional, alteração de sensibilidade, alteração de força, mudança de coloração do membro, dor desproporcional ou outras intercorrências.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada. (Instrução: se o toggle de acompanhante estiver marcado, ajuste para \"Paciente e acompanhante referem compreensão das orientações, encontrando-se cientes da conduta adotada.\")\n\n(Instrução: as linhas abaixo são OPCIONAIS — inclua no texto final apenas as que se aplicam ao caso informado; nunca copie esta instrução nem os colchetes para o resultado)\nForneço atestado médico\nRealizada imobilização do segmento acometido com (instrução: use o tipo de imobilização informado — ex: \"tala gessada suropodálica\", \"órtese\", \"tornozeleira\", \"tipoia\" — se não informado, use \"dispositivo de imobilização adequado ao segmento\"), em posição funcional, sem intercorrências imediatas.\nOrientado repouso, com elevação do membro acometido e não apoio (NPP), com auxílio de dispositivo de marcha.\nRealizada redução incruenta com sucesso. (Instrução: use esta linha apenas em casos de luxação reduzida no PS.)\n(Instrução: se o médico definir internação neste atendimento, substituir a conduta de liberação pelo bloco completo do modelo f fornecido como referência condicional, mantendo AP, HDA, EXAME FÍSICO e EM TEMPO.)",
+    a: "AP: nega alergias. (Instrução: incluir todo antecedente informado de forma completa — cirurgias prévias com o procedimento e o material de síntese quando informados, ex: \"Antecedente de fratura de maléolo lateral direito há 10 anos, submetida a osteossíntese com placa\"; comorbidades; medicações contínuas.)\n\nQD: (Instrução: iniciar com letra minúscula após os dois-pontos. Não resumir a queixa a uma frase telegráfica quando o médico informou mais dados: redigir uma história articulada, em uma ou mais linhas, com TODOS os dados fornecidos — mecanismo, tempo de evolução, sintomas, fatores de piora, evolução, tratamentos já tentados, relação com cirurgia/material prévio e motivo da procura atual —, conectando os fatos com nexo temporal e clínico. Exemplo: \"dor e edema em tornozelo direito há 2 semanas, sem trauma recente, em paciente com antecedente de osteossíntese com placa em maléolo lateral direito, sem melhora com analgesia oral\". Negativas sobre o evento — \"nega TCE\", \"nega perda de consciência\", \"nega dor em outras topografias\", \"nega demais queixas\" — entram aqui na QD, na mesma linha, ao final da história; nunca no AP.)\n\nEXAME FÍSICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando.\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles.\nIndolor à palpação. (Instrução: linha padrão APENAS para quando não há queixa de dor. Se a QD for dor em um segmento, substituir obrigatoriamente por \"Dor à palpação em [região da queixa, com lado]\", salvo se o médico informar explicitamente que o exame foi indolor.)\nSem pontos de dor focal. (Instrução: remover esta linha quando houver dor à palpação informada ou decorrente da QD; não criar a frase \"Pontos de dor focal em...\".)\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais clínicos de síndrome compartimental.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\n(Instrução: se a queixa for em coluna cervical, torácica ou lombar, trocar a linha \"Sem deformidades, desalinhamentos ou encurtamentos do segmento.\" por \"Sem deformidades ou desalinhamentos evidentes da coluna.\", trocar \"Força motora e sensibilidade preservadas.\" por \"Força motora e sensibilidade preservadas em membros superiores e inferiores, sem déficits neurológicos evidentes ao exame segmentar.\" e acrescentar ao final \"Sem sinais clínicos de mielopatia ou síndrome da cauda equina.\" e \"Reflexos patológicos ausentes (Hoffman, Clônus, Babinski e Oppenheim).\" — salvo achado contrário informado.)\n\nCONDUTA:\nRealizada medicação analgésica no pronto-socorro. (Instrução: incluir sempre que o médico escrever MED, medicação, analgesia, sintomáticos ou citar o remédio feito no PS; se citar o fármaco ou a via, especifique — ex: \"Realizada analgesia endovenosa com dipirona\". Nunca omitir quando informado.)\nSolicito radiografias (Instrução: citar os exames que o médico SOLICITOU usando \"Solicito\"; nunca escrever \"Realizados exames\" quando o médico apenas pediu.)\nReavaliação após (o médico informa o prazo/momento — ex: resultado de exame, algumas horas, retorno ainda neste plantão; nunca assuma um número de dias)",
 
-    c: "PSO\n\nHDA:\n(Instrução: quando houver história/evolução, iniciar com \"Reavalio paciente com quadro de...\", separando o registro inicial da avaliação atual. Incluir AP informado em seção própria. Omitir a seção HDA se não houver dados, sem inventar sintomas.)\n\nEXAME FÍSICO:\n(Instrução: descrever de forma organizada os achados da avaliação atual, com cada achado em uma linha e detalhamento conforme fornecido. Não apresentar exame anterior como atual nem acrescentar manobras não informadas. Omitir a seção se não houver exame atual informado.)\n\nEM TEMPO:\nAvalio radiografias do segmento acometido, não evidenciando fraturas, luxações ou outras alterações osteoarticulares agudas, dentro das limitações e sensibilidade do método, passíveis de não identificação em fases iniciais ou em lesões de baixa expressão radiográfica.\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência no momento.\nPrescrita analgesia para controle álgico, associada a orientações gerais e crioterapia.\nOrientado repouso relativo, evitando esforços e impacto sobre o segmento acometido até reavaliação.\nOrientado seguimento ambulatorial com ortopedia, com reavaliação clínica em cerca de 10 dias para acompanhamento evolutivo e reavaliação da conduta instituída.\nExplicado ao paciente o quadro atual e a conduta proposta nesta avaliação.\nEsclarecido que a avaliação inicial, inclusive por métodos de imagem, pode não evidenciar todas as lesões em fases precoces, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento, com eventual complementação propedêutica.\nOrientado quanto a sinais de alarme e necessidade de retorno imediato em caso de piora da dor, edema progressivo, limitação funcional importante, alteração de sensibilidade ou força, alteração de coloração do membro, febre ou outras intercorrências.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.",
+    b: "AP: nega alergias.\n\nHDA: (Instrução: quando o relato vier de acompanhante, identifique-o aqui, antes da história; nunca no exame físico.) paciente refere trauma em (instrução: cite o mecanismo e o segmento informados — ex: \"trauma torcional em tornozelo\", \"trauma direto em joelho\", \"queda com apoio de mão\") (instrução: lado D/E se informado) há (instrução: tempo informado), evoluindo com dor local (instrução: acrescente edema, dificuldade para deambular/mobilizar, ou outros sintomas associados se informados) desde então.\nNega outros traumas associados. Nega outras queixas relevantes no momento.\n\nEXAME FÍSICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando. (Instrução: substituir conforme o estado geral e nível de consciência informados; a origem do relato pertence exclusivamente à HDA.)\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles. (Instrução: se houver edema informado, substitua esta linha citando a topografia — ex: \"Edema em topografia de tornozelo lateral\".)\nDor à palpação (instrução: cite a estrutura/região específica informada — ex: \"ligamento talofibular anterior\", \"interlinha articular do joelho\", \"tabaqueira anatômica\", \"olécrano\"; se não informado, use \"no segmento acometido\"), sem pontos de dor focal adicionais.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais clínicos de síndrome compartimental.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\n(Instrução: se o segmento for coluna — pela queixa, pelo texto ou pela imagem anexada —, adaptar o exame físico para coluna conforme a regra EXAME FÍSICO DE COLUNA, citando a dor à palpação no nível acometido e incluindo déficits neurológicos segmentares, mielopatia/cauda equina e reflexos patológicos.)\n(Instrução: se o caso envolver ombro com suspeita de lesão de manguito, adicione testes específicos apenas se mencionados pelo médico — ex: \"Jobe negativo\", \"Neer negativo\", \"Patte negativo\", \"Gerber negativo\". Se envolver luxação glenoumeral reduzida, ajuste a frase de perfusão para \"Após redução, reavaliado mantendo perfusão distal preservada e sem déficits neurovasculares evidentes.\")\n\nEM TEMPO:\nAvalio radiografias do segmento acometido, não evidenciando fraturas, luxações ou outras alterações osteoarticulares agudas, dentro das limitações e sensibilidade do método, passíveis de não identificação em fases iniciais ou em lesões de baixa expressão radiográfica.\n\nCONDUTA:\nSem indicação de procedimento ortopédico cirúrgico de urgência no momento.\nPrescrita analgesia para controle álgico, associada a orientações gerais e crioterapia, se possível.\nOrientado seguimento ambulatorial com ortopedia, com reavaliação clínica e radiográfica em 10 dias para acompanhamento evolutivo e reavaliação da conduta instituída.\nExplicado ao (instrução: \"paciente\" normalmente; se o toggle de acompanhante estiver marcado, pode usar \"paciente e ao acompanhante\") o quadro atual e a conduta proposta nesta avaliação.\nEsclarecido que a evolução clínica deve ser acompanhada, podendo haver necessidade de reavaliação conforme resposta ao tratamento e evolução do quadro, inclusive com possibilidade de mudança de conduta conforme evolução.\nEsclarecido que a avaliação inicial, inclusive por métodos de imagem, pode não evidenciar todas as lesões em fases precoces ou de baixa expressão, não afastando completamente a possibilidade de lesões associadas, sendo fundamental o acompanhamento evolutivo, com reavaliação clínica e eventual complementação propedêutica conforme evolução do quadro.\nOrientado quanto a sinais de alarme e necessidade de retorno imediato em caso de piora da dor, aumento importante do edema, piora da limitação funcional, alteração de sensibilidade, alteração de força, mudança de coloração do membro, dor desproporcional ou outras intercorrências.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada. (Instrução: se o toggle de acompanhante estiver marcado, ajuste para \"Paciente e acompanhante referem compreensão das orientações, encontrando-se cientes da conduta adotada.\")\n\n(Instrução: as linhas abaixo são OPCIONAIS — inclua no texto final apenas as que se aplicam ao caso informado; nunca copie esta instrução nem os colchetes para o resultado)\nForneço atestado médico\nRealizada imobilização do segmento acometido com (instrução: use o tipo de imobilização informado — ex: \"tala gessada suropodálica\", \"órtese\", \"tornozeleira\", \"tipoia\" — se não informado, use \"dispositivo de imobilização adequado ao segmento\"), em posição funcional, sem intercorrências imediatas.\nOrientado repouso, com elevação do membro acometido e não apoio (NPP), com auxílio de dispositivo de marcha.\nRealizada redução incruenta com sucesso. (Instrução: use esta linha apenas em casos de luxação reduzida no PS.)\n(Instrução: se o médico definir internação neste atendimento, substituir a conduta de liberação pelo bloco completo do modelo f fornecido como referência condicional, mantendo AP, HDA, EXAME FÍSICO e EM TEMPO.)",
 
-    d: "PSO\n\nHDA:\n(Instrução: quando houver história/evolução, iniciar com \"Reavalio paciente com quadro de...\", separando o registro inicial da avaliação atual. Incluir AP informado em seção própria. Omitir a seção HDA se não houver dados, sem inventar sintomas.)\n\nEXAME FÍSICO:\n(Instrução: descrever de forma organizada os achados da avaliação atual, com cada achado em uma linha e detalhamento conforme fornecido. Não apresentar exame anterior como atual nem acrescentar manobras não informadas. Omitir a seção se não houver exame atual informado.)\n\nEM TEMPO:\nAvalio radiografias do segmento acometido, evidenciando fratura, sem sinais de desvio significativo ou instabilidade evidente ao método, passível de tratamento incruento conforme padrão atual. (Instrução: se o médico informou qual segmento/osso, cite-o aqui; se não informou, mantenha a frase genérica \"do segmento acometido\")\n\nCONDUTA:\nSem indicação de procedimento ortopédico cirúrgico de urgência no momento.\nPrescrita analgesia para controle álgico, associada a orientações gerais e crioterapia, se possível.\nOrientado seguimento ambulatorial com ortopedia, com reavaliação clínica e radiográfica em 10 dias para acompanhamento evolutivo e reavaliação da conduta instituída.\nExplicado ao paciente o quadro atual e a conduta proposta nesta avaliação.\nEsclarecido que a evolução clínica deve ser acompanhada, podendo haver necessidade de reavaliação conforme resposta ao tratamento e evolução do quadro, inclusive com possibilidade de mudança de conduta conforme evolução.\nEsclarecido que a avaliação inicial, inclusive por métodos de imagem, pode não evidenciar todas as lesões em fases precoces ou de baixa expressão, não afastando completamente a possibilidade de lesões associadas, sendo fundamental o acompanhamento evolutivo, com reavaliação clínica e eventual complementação propedêutica conforme evolução do quadro.\nOrientado quanto a sinais de alarme e necessidade de retorno imediato em caso de piora da dor, aumento importante do edema, piora da limitação funcional, alteração de sensibilidade, alteração de força, mudança de coloração do membro, dor desproporcional ou outras intercorrências.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.\nForneço atestado médico\nRealizada imobilização do segmento acometido (instrução: use o tipo de imobilização informado pelo médico; se não informado, use \"com dispositivo de imobilização adequado ao segmento\"), em posição funcional, sem intercorrências imediatas.\nOrientado repouso, com elevação do membro acometido e não apoio (NPP), com auxílio de dispositivo de marcha.",
+    c: "PSO\n\nHDA:\n(Instrução: quando houver história/evolução, iniciar com \"Reavalio paciente com quadro de...\", separando o registro inicial da avaliação atual. Incluir AP informado em seção própria. Omitir a seção HDA se não houver dados, sem inventar sintomas.)\n\nEXAME FÍSICO:\n(Instrução: iniciar com \"Paciente em bom estado geral, lúcido e orientado, deambulando.\" (salvo informação contrária ou paciente marcado como não deambulante) e, em seguida, descrever de forma organizada os achados da avaliação atual, com cada achado em uma linha e detalhamento conforme fornecido. Não apresentar exame anterior como atual nem acrescentar manobras não informadas. Omitir a seção se não houver exame atual informado.)\n\nEM TEMPO:\nAvalio radiografias do segmento acometido, não evidenciando fraturas, luxações ou outras alterações osteoarticulares agudas, dentro das limitações e sensibilidade do método, passíveis de não identificação em fases iniciais ou em lesões de baixa expressão radiográfica.\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência no momento.\nPrescrita analgesia para controle álgico, associada a orientações gerais e crioterapia.\nOrientado repouso relativo, evitando esforços e impacto sobre o segmento acometido até reavaliação.\nOrientado seguimento ambulatorial com ortopedia, com reavaliação clínica em cerca de 10 dias para acompanhamento evolutivo e reavaliação da conduta instituída.\nExplicado ao paciente o quadro atual e a conduta proposta nesta avaliação.\nEsclarecido que a avaliação inicial, inclusive por métodos de imagem, pode não evidenciar todas as lesões em fases precoces, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento, com eventual complementação propedêutica.\nOrientado quanto a sinais de alarme e necessidade de retorno imediato em caso de piora da dor, edema progressivo, limitação funcional importante, alteração de sensibilidade ou força, alteração de coloração do membro, febre ou outras intercorrências.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.",
 
-    e1: "AP: nega alergias.\n\nHPMA: paciente refere lombalgia crônica, com agudização recente da dor (instrução: acrescente o tempo de agudização se informado; se não informado, não force referência temporal), motivo da procura ao pronto-socorro, com piora à mobilização (instrução: acrescente \"após esforço físico\" ou \"sem fator desencadeante definido\" apenas se informado).\nNega história de trauma. Nega febre ou outros sinais flogísticos. Nega perda ponderal. Nega alterações urinárias ou intestinais, retenção urinária, incontinência esfincteriana, anestesia em sela, déficit motor progressivo ou outros sinais de alarme no momento. Nega demais queixas associadas.\n\nEXAME FÍSICO ORTOPÉDICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando.\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles.\nDor à palpação da musculatura paravertebral lombar, sem pontos de dor focal.\nSem dor importante à palpação de proeminências ósseas.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas em membros superiores e inferiores, sem déficits neurológicos evidentes ao exame segmentar.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais clínicos de síndrome compartimental.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\nLasègue negativo. (Instrução: incluir apenas se o médico mencionou ter testado.)\nSem sinais clínicos de mielopatia ou síndrome da cauda equina.\nReflexos patológicos ausentes (Hoffman, Clônus, Babinski e Oppenheim).\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência no momento.\nSolicito ressonância magnética de coluna lombar ambulatorialmente. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre RM. Só remova se o médico disser explicitamente que não quer pedir RM ou que a RM não é necessária.)\nOrientado retorno ambulatorial após a realização do exame ou em até 1 semana, o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado. (Instrução: acompanha SEMPRE a linha da RM; se o médico informar outro prazo, use o prazo dele no lugar de 1 semana.)\nInstituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.\nOrientado retorno progressivo às atividades conforme tolerância.\nOferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)\nEsclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.\nOrientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos, limitação funcional progressiva, alterações de sensibilidade ou força, alterações esfincterianas, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.\nOrientado seguimento ambulatorial.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.\nAlta da ortopedia. (Instrução: incluir apenas se o médico deu alta.)",
+    d: "PSO\n\nHDA:\n(Instrução: quando houver história/evolução, iniciar com \"Reavalio paciente com quadro de...\", separando o registro inicial da avaliação atual. Incluir AP informado em seção própria. Omitir a seção HDA se não houver dados, sem inventar sintomas.)\n\nEXAME FÍSICO:\n(Instrução: iniciar com \"Paciente em bom estado geral, lúcido e orientado, deambulando.\" (salvo informação contrária ou paciente marcado como não deambulante) e, em seguida, descrever de forma organizada os achados da avaliação atual, com cada achado em uma linha e detalhamento conforme fornecido. Não apresentar exame anterior como atual nem acrescentar manobras não informadas. Omitir a seção se não houver exame atual informado.)\n\nEM TEMPO:\nAvalio radiografias do segmento acometido, evidenciando fratura, sem sinais de desvio significativo ou instabilidade evidente ao método, passível de tratamento incruento conforme padrão atual. (Instrução: se o médico informou qual segmento/osso, cite-o aqui; se não informou, mantenha a frase genérica \"do segmento acometido\")\n\nCONDUTA:\nSem indicação de procedimento ortopédico cirúrgico de urgência no momento.\nPrescrita analgesia para controle álgico, associada a orientações gerais e crioterapia, se possível.\nOrientado seguimento ambulatorial com ortopedia, com reavaliação clínica e radiográfica em 10 dias para acompanhamento evolutivo e reavaliação da conduta instituída.\nExplicado ao paciente o quadro atual e a conduta proposta nesta avaliação.\nEsclarecido que a evolução clínica deve ser acompanhada, podendo haver necessidade de reavaliação conforme resposta ao tratamento e evolução do quadro, inclusive com possibilidade de mudança de conduta conforme evolução.\nEsclarecido que a avaliação inicial, inclusive por métodos de imagem, pode não evidenciar todas as lesões em fases precoces ou de baixa expressão, não afastando completamente a possibilidade de lesões associadas, sendo fundamental o acompanhamento evolutivo, com reavaliação clínica e eventual complementação propedêutica conforme evolução do quadro.\nOrientado quanto a sinais de alarme e necessidade de retorno imediato em caso de piora da dor, aumento importante do edema, piora da limitação funcional, alteração de sensibilidade, alteração de força, mudança de coloração do membro, dor desproporcional ou outras intercorrências.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.\nForneço atestado médico\nRealizada imobilização do segmento acometido (instrução: use o tipo de imobilização informado pelo médico; se não informado, use \"com dispositivo de imobilização adequado ao segmento\"), em posição funcional, sem intercorrências imediatas.\nOrientado repouso, com elevação do membro acometido e não apoio (NPP), com auxílio de dispositivo de marcha.",
 
-    e2: "AP: nega alergias.\n\nHPMA: paciente refere cervicalgia crônica, com agudização recente da dor (instrução: acrescente o tempo de evolução/piora se informado; se não informado, não force referência temporal), motivo da procura ao pronto-socorro, com piora à mobilização (instrução: acrescente \"após esforço físico\" ou \"sem fator desencadeante definido\" apenas se informado).\nNega história de trauma. Nega febre ou outros sinais flogísticos. Nega perda ponderal. Nega parestesias, déficit motor, alteração esfincteriana ou outros sinais de alarme no momento. Nega demais queixas associadas.\n\nEXAME FÍSICO ORTOPÉDICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando.\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou abaulamentos evidentes da coluna cervical.\nSem edema, sem abaulamentos e sem tensão de partes moles.\nDor à palpação da musculatura paravertebral cervical e trapézio, sem pontos de dor focal.\nSem dor importante à palpação de proeminências ósseas.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas em membros superiores, sem déficits neurológicos evidentes ao exame segmentar.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais sugestivos de lesão vascular aguda.\nSpurling negativo. (Instrução: incluir apenas se testado.)\nTeste de distração negativo. (Instrução: incluir apenas se testado.)\nSem sinais clínicos de mielopatia.\nReflexos patológicos ausentes (Hoffman, Clônus, Babinski e Oppenheim).\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência no momento.\nSolicito ressonância magnética de coluna cervical (Instrução: ajuste o exame conforme informado) ambulatorialmente. (Instrução: incluir apenas se o médico solicitou exame ambulatorial.)\nOrientado retorno ambulatorial após a realização do exame ou em até 1 semana, o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado. (Instrução: acompanha SEMPRE a linha de solicitação de exame ambulatorial; se o médico informar outro prazo, use o prazo dele no lugar de 1 semana.)\nInstituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.\nOrientado evitar esforços e movimentos bruscos.\nOferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)\nEsclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.\nOrientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos, limitação funcional progressiva, alterações de sensibilidade ou força, dor irradiada importante, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.\nOrientado seguimento ambulatorial.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.\nAlta da ortopedia. (Instrução: incluir apenas se o médico deu alta.)",
+    e1: "AP: nega alergias.\n\nHPMA: paciente refere lombalgia crônica, com agudização recente da dor (instrução: acrescente o tempo de agudização se informado; se não informado, não force referência temporal), motivo da procura ao pronto-socorro, com piora à mobilização (instrução: acrescente \"após esforço físico\" ou \"sem fator desencadeante definido\" apenas se informado).\nNega história de trauma. Nega febre ou outros sinais flogísticos. Nega perda ponderal. Nega alterações urinárias ou intestinais, retenção urinária, incontinência esfincteriana, anestesia em sela, déficit motor progressivo ou outros sinais de alarme no momento. Nega demais queixas associadas.\n\nEXAME FÍSICO ORTOPÉDICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando.\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles.\nDor à palpação da musculatura paravertebral lombar, sem pontos de dor focal.\nSem dor importante à palpação de proeminências ósseas.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas em membros superiores e inferiores, sem déficits neurológicos evidentes ao exame segmentar.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais clínicos de síndrome compartimental.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\nLasègue negativo. (Instrução: incluir apenas se o médico mencionou ter testado.)\nSem sinais clínicos de mielopatia ou síndrome da cauda equina.\nReflexos patológicos ausentes (Hoffman, Clônus, Babinski e Oppenheim).\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência no momento.\nSolicito ressonância magnética de coluna lombar ambulatorialmente. (Instrução: incluir apenas se o médico marcou ou escreveu que pediu exame ambulatorial; ajuste o exame conforme informado.)\nOrientado retorno ambulatorial após a realização do exame ou em até 1 semana, o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado. (Instrução: acompanha SEMPRE a linha de solicitação de exame ambulatorial; se o médico informar outro prazo, use o prazo dele no lugar de 1 semana.)\nEncaminhado para fisioterapia. (Instrução: incluir apenas se mencionado.)\nEncaminhado para acupuntura. (Instrução: incluir apenas se mencionado.)\nInstituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.\nOrientado retorno progressivo às atividades conforme tolerância.\nOferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)\nEsclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.\nOrientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos, limitação funcional progressiva, alterações de sensibilidade ou força, alterações esfincterianas, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.\nOrientado seguimento ambulatorial.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.\nAlta da ortopedia. (Instrução: incluir apenas se o médico deu alta.)",
 
-    e3: "AP: nega alergias.\n\nHPMA: paciente refere dor cervical (instrução: acrescente o tempo de início se informado; se não informado, não force referência temporal), principalmente à rotação do pescoço.\nRefere início ao acordar / após movimento brusco / sem trauma definido. (Instrução: escolher apenas o que foi informado; se nada foi informado, omita esta linha.)\nNega história de trauma direto. Nega febre ou outros sinais flogísticos. Nega parestesias, déficit motor ou outras queixas associadas. Nega demais queixas associadas.\n\nEXAME FÍSICO ORTOPÉDICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando.\nMantém atitude antálgica cervical.\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou abaulamentos evidentes.\nSem sinais flogísticos locais.\nDor à palpação de musculatura esternocleidomastoidea, trapézio e paracervical, sem pontos de dor focal.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento cervical limitada por dor, principalmente à rotação.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas em membros superiores, sem déficits neurológicos evidentes ao exame segmentar.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nReflexos patológicos ausentes (Hoffman, Clônus, Babinski e Oppenheim).\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência no momento.\nInstituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.\nOrientado evitar movimentos bruscos.\nIndicado colar cervical de espuma por curto período. (Instrução: incluir apenas se mencionado.)\nOferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)\nEsclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.\nOrientado quanto a sinais de alarme, incluindo persistência ou piora importante da dor, surgimento de sinais flogísticos, febre, irradiação relevante, déficit neurológico ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.\nOrientado seguimento ambulatorial.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.\nAlta da ortopedia. (Instrução: incluir apenas se o médico deu alta.)",
+    e2: "AP: nega alergias.\n\nHPMA: paciente refere cervicalgia crônica, com agudização recente da dor (instrução: acrescente o tempo de evolução/piora se informado; se não informado, não force referência temporal), motivo da procura ao pronto-socorro, com piora à mobilização (instrução: acrescente \"após esforço físico\" ou \"sem fator desencadeante definido\" apenas se informado).\nNega história de trauma. Nega febre ou outros sinais flogísticos. Nega perda ponderal. Nega parestesias, déficit motor, alteração esfincteriana ou outros sinais de alarme no momento. Nega demais queixas associadas.\n\nEXAME FÍSICO ORTOPÉDICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando.\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou abaulamentos evidentes da coluna cervical.\nSem edema, sem abaulamentos e sem tensão de partes moles.\nDor à palpação da musculatura paravertebral cervical e trapézio, sem pontos de dor focal.\nSem dor importante à palpação de proeminências ósseas.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas em membros superiores, sem déficits neurológicos evidentes ao exame segmentar.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais sugestivos de lesão vascular aguda.\nSpurling negativo. (Instrução: incluir apenas se testado.)\nTeste de distração negativo. (Instrução: incluir apenas se testado.)\nSem sinais clínicos de mielopatia.\nReflexos patológicos ausentes (Hoffman, Clônus, Babinski e Oppenheim).\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência no momento.\nSolicito ressonância magnética de coluna cervical (Instrução: ajuste o exame conforme informado) ambulatorialmente. (Instrução: incluir apenas se o médico solicitou exame ambulatorial.)\nOrientado retorno ambulatorial após a realização do exame ou em até 1 semana, o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado. (Instrução: acompanha SEMPRE a linha de solicitação de exame ambulatorial; se o médico informar outro prazo, use o prazo dele no lugar de 1 semana.)\nEncaminhado para fisioterapia. (Instrução: incluir apenas se mencionado.)\nEncaminhado para acupuntura. (Instrução: incluir apenas se mencionado.)\nInstituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.\nOrientado evitar esforços e movimentos bruscos.\nOferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)\nEsclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.\nOrientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos, limitação funcional progressiva, alterações de sensibilidade ou força, dor irradiada importante, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.\nOrientado seguimento ambulatorial.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.\nAlta da ortopedia. (Instrução: incluir apenas se o médico deu alta.)",
 
-    e4: "AP: nega alergias.\n\nHPMA: paciente refere dor crônica em região plantar do pé (instrução: lado D/E se informado), com agudização recente, motivo da procura ao pronto-socorro, predominando em calcâneo e inserção da fáscia plantar, pior aos primeiros passos do dia e após períodos de repouso (instrução: acrescente o tempo de evolução se informado).\nNega história de trauma. Nega febre ou outros sinais flogísticos. Nega perda ponderal. Nega déficit sensitivo ou motor. Nega demais queixas associadas.\n\nEXAME FÍSICO ORTOPÉDICO:\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles.\nSem hiperemia ou sinais flogísticos importantes.\nDor à palpação da inserção da fáscia plantar no calcâneo e face plantar do retropé, sem pontos de dor focal adicionais.\nSem dor importante à palpação das demais estruturas do pé.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência no momento.\nSolicito ultrassonografia do pé (Instrução: ajuste o exame e o lado conforme informado) ambulatorialmente. (Instrução: incluir apenas se o médico solicitou exame ambulatorial.)\nOrientado retorno ambulatorial após a realização do exame ou em até 1 semana, o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado. (Instrução: acompanha SEMPRE a linha de solicitação de exame ambulatorial; se o médico informar outro prazo, use o prazo dele no lugar de 1 semana.)\nInstituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.\nOrientado alongamento de cadeia posterior e modificação temporária de atividades de impacto.\nOferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)\nEsclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.\nOrientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos, limitação funcional progressiva, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.\nOrientado seguimento ambulatorial.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.\nEncaminhado para fisioterapia. (Instrução: incluir apenas se mencionado.)\nAlta da ortopedia. (Instrução: incluir apenas se o médico deu alta.)",
+    e3: "AP: nega alergias.\n\nHPMA: paciente refere dor cervical (instrução: acrescente o tempo de início se informado; se não informado, não force referência temporal), principalmente à rotação do pescoço.\nRefere início ao acordar / após movimento brusco / sem trauma definido. (Instrução: escolher apenas o que foi informado; se nada foi informado, omita esta linha.)\nNega história de trauma direto. Nega febre ou outros sinais flogísticos. Nega parestesias, déficit motor ou outras queixas associadas. Nega demais queixas associadas.\n\nEXAME FÍSICO ORTOPÉDICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando.\nMantém atitude antálgica cervical.\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou abaulamentos evidentes.\nSem sinais flogísticos locais.\nDor à palpação de musculatura esternocleidomastoidea, trapézio e paracervical, sem pontos de dor focal.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento cervical limitada por dor, principalmente à rotação.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas em membros superiores, sem déficits neurológicos evidentes ao exame segmentar.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nReflexos patológicos ausentes (Hoffman, Clônus, Babinski e Oppenheim).\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência no momento.\nSolicito ressonância magnética de coluna cervical ambulatorialmente. (Instrução: incluir apenas se o médico marcou ou escreveu que pediu exame ambulatorial; ajuste o exame conforme informado.)\nOrientado retorno ambulatorial após a realização do exame ou em até 1 semana, o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado. (Instrução: acompanha SEMPRE a linha de solicitação de exame ambulatorial; se o médico informar outro prazo, use o prazo dele no lugar de 1 semana.)\nEncaminhado para fisioterapia. (Instrução: incluir apenas se mencionado.)\nEncaminhado para acupuntura. (Instrução: incluir apenas se mencionado.)\nInstituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.\nOrientado evitar movimentos bruscos.\nIndicado colar cervical de espuma por curto período. (Instrução: incluir apenas se mencionado.)\nOferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)\nEsclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.\nOrientado quanto a sinais de alarme, incluindo persistência ou piora importante da dor, surgimento de sinais flogísticos, febre, irradiação relevante, déficit neurológico ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.\nOrientado seguimento ambulatorial.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.\nAlta da ortopedia. (Instrução: incluir apenas se o médico deu alta.)",
 
-    e5: "AP: nega alergias.\n\nHPMA: paciente refere dor crônica em ombro (instrução: lado D/E se informado), com agudização recente (instrução: acrescente o tempo de evolução se informado; se não informado, não force referência temporal), motivo da procura ao pronto-socorro, com piora à elevação do membro e aos movimentos acima da linha do ombro.\nRefere dor noturna e dificuldade para deitar sobre o lado acometido. (Instrução: incluir apenas se mencionado.)\nNega história de trauma recente. Nega febre ou outros sinais flogísticos. Nega perda ponderal. Nega déficit sensitivo ou motor. Nega demais queixas associadas.\n\nEXAME FÍSICO ORTOPÉDICO:\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles.\nSem sinais flogísticos importantes.\nDor à palpação de região subacromial, tuberosidade maior e face lateral do ombro, sem pontos de dor focal adicionais.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça globalmente preservada, sem déficit motor grosseiro.\n(Instrução: incluir testes especiais — Jobe, Neer, Patte, Gerber — com resultado positivo/negativo, apenas os que o médico mencionou ter realizado.)\nSem déficits sensitivos ou motores no membro.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência no momento.\nSolicito ressonância magnética do ombro (Instrução: ajuste o exame e o lado conforme informado) ambulatorialmente. (Instrução: incluir apenas se o médico solicitou exame ambulatorial.)\nOrientado retorno ambulatorial após a realização do exame ou em até 1 semana, o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado. (Instrução: acompanha SEMPRE a linha de solicitação de exame ambulatorial; se o médico informar outro prazo, use o prazo dele no lugar de 1 semana.)\nInstituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.\nOrientado evitar atividades repetitivas e movimentos acima da linha do ombro.\nOferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)\nEsclarecido que a avaliação inicial pode não demonstrar integralmente a extensão das lesões de partes moles, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.\nOrientado quanto a sinais de alarme, incluindo piora da dor, perda progressiva de força, surgimento de sinais flogísticos, febre, limitação funcional importante ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.\nOrientado seguimento ambulatorial.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.\nEncaminhado para fisioterapia. (Instrução: incluir apenas se mencionado.)\nAlta da ortopedia. (Instrução: incluir apenas se o médico deu alta.)",
+    e4: "AP: nega alergias.\n\nHPMA: paciente refere dor crônica em região plantar do pé (instrução: lado D/E se informado), com agudização recente, motivo da procura ao pronto-socorro, predominando em calcâneo e inserção da fáscia plantar, pior aos primeiros passos do dia e após períodos de repouso (instrução: acrescente o tempo de evolução se informado).\nNega história de trauma. Nega febre ou outros sinais flogísticos. Nega perda ponderal. Nega déficit sensitivo ou motor. Nega demais queixas associadas.\n\nEXAME FÍSICO ORTOPÉDICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando.\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles.\nSem hiperemia ou sinais flogísticos importantes.\nDor à palpação da inserção da fáscia plantar no calcâneo e face plantar do retropé, sem pontos de dor focal adicionais.\nSem dor importante à palpação das demais estruturas do pé.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência no momento.\nSolicito ultrassonografia do pé (Instrução: ajuste o exame e o lado conforme informado) ambulatorialmente. (Instrução: incluir apenas se o médico solicitou exame ambulatorial.)\nOrientado retorno ambulatorial após a realização do exame ou em até 1 semana, o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado. (Instrução: acompanha SEMPRE a linha de solicitação de exame ambulatorial; se o médico informar outro prazo, use o prazo dele no lugar de 1 semana.)\nEncaminhado para fisioterapia. (Instrução: incluir apenas se mencionado.)\nEncaminhado para acupuntura. (Instrução: incluir apenas se mencionado.)\nInstituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.\nOrientado alongamento de cadeia posterior e modificação temporária de atividades de impacto.\nOferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)\nEsclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.\nOrientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos, limitação funcional progressiva, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.\nOrientado seguimento ambulatorial.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.\nAlta da ortopedia. (Instrução: incluir apenas se o médico deu alta.)",
 
-    e6: "AP: nega alergias.\n\nHPMA: paciente refere dor crônica em (instrução: local informado), com agudização recente (instrução: acrescente o tempo de evolução se informado; se não informado, não force referência temporal), motivo da procura ao pronto-socorro, de caráter progressivo, relacionada a esforço e movimentos repetitivos (instrução: escolher apenas o que foi informado).\nNega história de trauma agudo. Nega febre ou outros sinais flogísticos. Nega perda ponderal. Nega déficit sensitivo ou motor. Nega demais queixas associadas.\n\nEXAME FÍSICO ORTOPÉDICO:\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles.\nSem sinais flogísticos exuberantes.\nDor à palpação local, com piora à mobilização do segmento e à contração resistida da estrutura acometida.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência no momento.\nSolicito ressonância magnética (Instrução: exame e segmento informados — RM, USG, TC etc.) ambulatorialmente. (Instrução: incluir apenas se o médico solicitou exame ambulatorial.)\nOrientado retorno ambulatorial após a realização do exame ou em até 1 semana, o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado. (Instrução: acompanha SEMPRE a linha de solicitação de exame ambulatorial; se o médico informar outro prazo, use o prazo dele no lugar de 1 semana.)\nInstituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.\nOferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)\nEsclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.\nOrientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos importantes, déficit funcional progressivo, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.\nOrientado seguimento ambulatorial.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.\n(Instrução: as linhas abaixo são um MENU. Inclua apenas as que o médico mencionou.)\nEncaminhado para fisioterapia.\nAlta da ortopedia.",
+    e5: "AP: nega alergias.\n\nHPMA: paciente refere dor crônica em ombro (instrução: lado D/E se informado), com agudização recente (instrução: acrescente o tempo de evolução se informado; se não informado, não force referência temporal), motivo da procura ao pronto-socorro, com piora à elevação do membro e aos movimentos acima da linha do ombro.\nRefere dor noturna e dificuldade para deitar sobre o lado acometido. (Instrução: incluir apenas se mencionado.)\nNega história de trauma recente. Nega febre ou outros sinais flogísticos. Nega perda ponderal. Nega déficit sensitivo ou motor. Nega demais queixas associadas.\n\nEXAME FÍSICO ORTOPÉDICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando.\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles.\nSem sinais flogísticos importantes.\nDor à palpação de região subacromial, tuberosidade maior e face lateral do ombro, sem pontos de dor focal adicionais.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça globalmente preservada, sem déficit motor grosseiro.\n(Instrução: incluir testes especiais — Jobe, Neer, Patte, Gerber — com resultado positivo/negativo, apenas os que o médico mencionou ter realizado.)\nSem déficits sensitivos ou motores no membro.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência no momento.\nSolicito ressonância magnética do ombro (Instrução: ajuste o exame e o lado conforme informado) ambulatorialmente. (Instrução: incluir apenas se o médico solicitou exame ambulatorial.)\nOrientado retorno ambulatorial após a realização do exame ou em até 1 semana, o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado. (Instrução: acompanha SEMPRE a linha de solicitação de exame ambulatorial; se o médico informar outro prazo, use o prazo dele no lugar de 1 semana.)\nEncaminhado para fisioterapia. (Instrução: incluir apenas se mencionado.)\nEncaminhado para acupuntura. (Instrução: incluir apenas se mencionado.)\nInstituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.\nOrientado evitar atividades repetitivas e movimentos acima da linha do ombro.\nOferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)\nEsclarecido que a avaliação inicial pode não demonstrar integralmente a extensão das lesões de partes moles, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.\nOrientado quanto a sinais de alarme, incluindo piora da dor, perda progressiva de força, surgimento de sinais flogísticos, febre, limitação funcional importante ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.\nOrientado seguimento ambulatorial.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.\nAlta da ortopedia. (Instrução: incluir apenas se o médico deu alta.)",
 
-    e7: "AP: nega alergias.\n\nHPMA: paciente refere gonalgia crônica (instrução: lado D/E se informado), com agudização recente do quadro (instrução: acrescente o tempo se informado; se não informado, não force referência temporal), motivo da procura ao pronto-socorro, sem trauma recente.\nRefere piora à deambulação, flexão, subir e descer escadas e esforço. (Instrução: citar apenas as que forem informadas; se nenhuma informada, omita esta linha.)\nNega história de trauma. Nega febre ou outros sinais flogísticos. Nega perda ponderal. Nega sinais sistêmicos. Nega demais queixas associadas.\n\nEXAME FÍSICO ORTOPÉDICO:\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles.\nSem sinais flogísticos exuberantes.\nDor à palpação da (instrução: interlinha articular, compartimento medial, compartimento lateral ou região patelofemoral, conforme informado; se não informado, use \"articulação do joelho\"), sem pontos de dor focal adicionais.\nSem gaps palpáveis ou crepitações grosseiras.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência no momento.\nSolicito ressonância magnética do joelho (Instrução: ajuste o exame e o lado conforme informado) ambulatorialmente. (Instrução: incluir apenas se o médico solicitou exame ambulatorial.)\nOrientado retorno ambulatorial após a realização do exame ou em até 1 semana, o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado. (Instrução: acompanha SEMPRE a linha de solicitação de exame ambulatorial; se o médico informar outro prazo, use o prazo dele no lugar de 1 semana.)\nInstituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.\nOrientado evitar sobrecarga e atividades de impacto até melhora.\nOferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)\nEsclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica, resposta ao tratamento e investigação complementar.\nOrientado quanto a sinais de alarme, incluindo piora da dor, edema importante, surgimento de sinais flogísticos, febre, incapacidade funcional progressiva ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.\nOrientado seguimento ambulatorial.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.\nEncaminhado para fisioterapia. (Instrução: incluir apenas se mencionado.)\nAlta da ortopedia. (Instrução: incluir apenas se o médico deu alta.)",
+    e6: "AP: nega alergias.\n\nHPMA: paciente refere dor crônica em (instrução: local informado), com agudização recente (instrução: acrescente o tempo de evolução se informado; se não informado, não force referência temporal), motivo da procura ao pronto-socorro, de caráter progressivo, relacionada a esforço e movimentos repetitivos (instrução: escolher apenas o que foi informado).\nNega história de trauma agudo. Nega febre ou outros sinais flogísticos. Nega perda ponderal. Nega déficit sensitivo ou motor. Nega demais queixas associadas.\n\nEXAME FÍSICO ORTOPÉDICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando.\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles.\nSem sinais flogísticos exuberantes.\nDor à palpação local, com piora à mobilização do segmento e à contração resistida da estrutura acometida.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência no momento.\nSolicito ressonância magnética (Instrução: exame e segmento informados — RM, USG, TC etc.) ambulatorialmente. (Instrução: incluir apenas se o médico solicitou exame ambulatorial.)\nOrientado retorno ambulatorial após a realização do exame ou em até 1 semana, o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado. (Instrução: acompanha SEMPRE a linha de solicitação de exame ambulatorial; se o médico informar outro prazo, use o prazo dele no lugar de 1 semana.)\nEncaminhado para fisioterapia. (Instrução: incluir apenas se mencionado.)\nEncaminhado para acupuntura. (Instrução: incluir apenas se mencionado.)\nInstituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.\nOferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)\nEsclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.\nOrientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos importantes, déficit funcional progressivo, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.\nOrientado seguimento ambulatorial.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.\nAlta da ortopedia.",
 
-    e8: "AP: nega alergias.\n\nHPMA: paciente refere quadro de (instrução: use sintomas, topografia precisa e fatores de piora típicos do diagnóstico informado, sem citar o nome do diagnóstico — ex: \"dor na região plantar do antepé direito, com piora à deambulação\" para metatarsalgia; \"dor na região posterossuperior do calcâneo, próxima à inserção do tendão calcâneo, com piora ao uso de calçados fechados\" para Haglund) de caráter crônico, com agudização recente, motivo da procura ao pronto-socorro (instrução: acrescente o tempo de evolução/piora se informado; se não informado, não force referência temporal).\nNega história de trauma agudo relacionado à queixa atual. Nega febre ou outros sinais flogísticos. Nega perda ponderal. Nega déficit sensitivo ou motor. Nega demais queixas associadas.\n\nEXAME FÍSICO ORTOPÉDICO:\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles.\nSem sinais flogísticos exuberantes.\nDor à palpação (instrução: cite a região/estrutura específica informada ou a topografia típica do diagnóstico informado, sem citar o diagnóstico; se nada informado, use \"no segmento acometido\"), sem pontos de dor focal adicionais.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais clínicos de síndrome compartimental.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\n(Instrução: se o segmento for de coluna, acrescente \"Reflexos patológicos ausentes (Hoffman, Clônus, Babinski e Oppenheim).\"; omita essa linha para segmentos apendiculares.)\n(Instrução: em seguimento de fratura prévia, o exame deve documentar separadamente o foco da fratura e as demais estruturas — ex: \"Indolor à palpação do foco de fratura da falange proximal do 4º quirodáctilo esquerdo.\" e \"Dor à palpação articular em 4º quirodáctilo esquerdo.\" —, substituindo a linha genérica de dor à palpação. Nunca escrever \"sem pontos de dor focal adicionais no foco da fratura\". Limitação de mobilidade, rigidez ou deformidade só entram se informadas.)\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência no momento.\n(Instrução: quando o médico informar conduta própria — exame ambulatorial, órtese, manter fisioterapia, retorno com especialista, orientação sobre deformidade/cirurgia —, essas linhas vêm logo abaixo de \"Sem indicação de procedimento...\", redigidas de forma elaborada, e as linhas padrão abaixo que as contradigam ou dupliquem saem: não manter \"repouso relativo e modificação temporária das atividades\" se a conduta é seguir reabilitação/liberação, e não repetir \"Encaminhado para fisioterapia\" se já consta \"Mantida fisioterapia\".)\nSolicito ressonância magnética (Instrução: exame e segmento informados — RM, USG, TC etc.) ambulatorialmente. (Instrução: incluir apenas se o médico solicitou exame ambulatorial.)\nOrientado retorno ambulatorial após a realização do exame ou em até 1 semana, o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado. (Instrução: acompanha SEMPRE a linha de solicitação de exame ambulatorial; se o médico informar outro prazo, use o prazo dele no lugar de 1 semana.)\nInstituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.\nOferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)\nEsclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.\nOrientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos importantes, déficit funcional progressivo, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.\nOrientado seguimento ambulatorial.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.\n(Instrução: as linhas abaixo são um MENU. Inclua apenas as que o médico mencionou.)\nEncaminhado para fisioterapia.\nAlta da ortopedia.",
+    e7: "AP: nega alergias.\n\nHPMA: paciente refere gonalgia crônica (instrução: lado D/E se informado), com agudização recente do quadro (instrução: acrescente o tempo se informado; se não informado, não force referência temporal), motivo da procura ao pronto-socorro, sem trauma recente.\nRefere piora à deambulação, flexão, subir e descer escadas e esforço. (Instrução: citar apenas as que forem informadas; se nenhuma informada, omita esta linha.)\nNega história de trauma. Nega febre ou outros sinais flogísticos. Nega perda ponderal. Nega sinais sistêmicos. Nega demais queixas associadas.\n\nEXAME FÍSICO ORTOPÉDICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando.\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles.\nSem sinais flogísticos exuberantes.\nDor à palpação da (instrução: interlinha articular, compartimento medial, compartimento lateral ou região patelofemoral, conforme informado; se não informado, use \"articulação do joelho\"), sem pontos de dor focal adicionais.\nSem gaps palpáveis ou crepitações grosseiras.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência no momento.\nSolicito ressonância magnética do joelho (Instrução: ajuste o exame e o lado conforme informado) ambulatorialmente. (Instrução: incluir apenas se o médico solicitou exame ambulatorial.)\nOrientado retorno ambulatorial após a realização do exame ou em até 1 semana, o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado. (Instrução: acompanha SEMPRE a linha de solicitação de exame ambulatorial; se o médico informar outro prazo, use o prazo dele no lugar de 1 semana.)\nEncaminhado para fisioterapia. (Instrução: incluir apenas se mencionado.)\nEncaminhado para acupuntura. (Instrução: incluir apenas se mencionado.)\nInstituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.\nOrientado evitar sobrecarga e atividades de impacto até melhora.\nOferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)\nEsclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica, resposta ao tratamento e investigação complementar.\nOrientado quanto a sinais de alarme, incluindo piora da dor, edema importante, surgimento de sinais flogísticos, febre, incapacidade funcional progressiva ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.\nOrientado seguimento ambulatorial.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.\nAlta da ortopedia. (Instrução: incluir apenas se o médico deu alta.)",
+
+    e8: "AP: nega alergias.\n\nHPMA: paciente refere quadro de (instrução: use sintomas, topografia precisa e fatores de piora típicos do diagnóstico informado, sem citar o nome do diagnóstico — ex: \"dor na região plantar do antepé direito, com piora à deambulação\" para metatarsalgia; \"dor na região posterossuperior do calcâneo, próxima à inserção do tendão calcâneo, com piora ao uso de calçados fechados\" para Haglund) de caráter crônico, com agudização recente, motivo da procura ao pronto-socorro (instrução: acrescente o tempo de evolução/piora se informado; se não informado, não force referência temporal).\nNega história de trauma agudo relacionado à queixa atual. Nega febre ou outros sinais flogísticos. Nega perda ponderal. Nega déficit sensitivo ou motor. Nega demais queixas associadas.\n\nEXAME FÍSICO ORTOPÉDICO:\nPaciente em bom estado geral, lúcido e orientado, deambulando.\nSem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.\nSem deformidades, desalinhamentos ou encurtamentos do segmento.\nSem edema, sem abaulamentos e sem tensão de partes moles.\nSem sinais flogísticos exuberantes.\nDor à palpação (instrução: cite a região/estrutura específica informada ou a topografia típica do diagnóstico informado, sem citar o diagnóstico; se nada informado, use \"no segmento acometido\"), sem pontos de dor focal adicionais.\nSem gaps palpáveis ou crepitações.\nAmplitude de movimento preservada dentro dos limites da dor.\nSem bloqueios mecânicos ou instabilidade grosseira.\nForça motora e sensibilidade preservadas.\nPulsos distais palpáveis e simétricos.\nPerfusão periférica adequada, com tec < 3 segundos.\nSem sinais clínicos de síndrome compartimental.\nSem sinais sugestivos de lesão vascular aguda.\nSem sinais clínicos de trombose venosa profunda.\n(Instrução: se o segmento for de coluna, acrescente \"Reflexos patológicos ausentes (Hoffman, Clônus, Babinski e Oppenheim).\"; omita essa linha para segmentos apendiculares.)\n(Instrução: em seguimento de fratura prévia, o exame deve documentar separadamente o foco da fratura e as demais estruturas — ex: \"Indolor à palpação do foco de fratura da falange proximal do 4º quirodáctilo esquerdo.\" e \"Dor à palpação articular em 4º quirodáctilo esquerdo.\" —, substituindo a linha genérica de dor à palpação. Nunca escrever \"sem pontos de dor focal adicionais no foco da fratura\". Limitação de mobilidade, rigidez ou deformidade só entram se informadas.)\n\nCONDUTA:\nSem indicação de procedimento ortopédico de urgência no momento.\n(Instrução: quando o médico informar conduta própria — exame ambulatorial, órtese, manter fisioterapia, retorno com especialista, orientação sobre deformidade/cirurgia —, essas linhas vêm logo abaixo de \"Sem indicação de procedimento...\", redigidas de forma elaborada, e as linhas padrão abaixo que as contradigam ou dupliquem saem: não manter \"repouso relativo e modificação temporária das atividades\" se a conduta é seguir reabilitação/liberação, e não repetir \"Encaminhado para fisioterapia\" se já consta \"Mantida fisioterapia\".)\nSolicito ressonância magnética (Instrução: exame e segmento informados — RM, USG, TC etc.) ambulatorialmente. (Instrução: incluir apenas se o médico solicitou exame ambulatorial.)\nOrientado retorno ambulatorial após a realização do exame ou em até 1 semana, o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado. (Instrução: acompanha SEMPRE a linha de solicitação de exame ambulatorial; se o médico informar outro prazo, use o prazo dele no lugar de 1 semana.)\nEncaminhado para fisioterapia. (Instrução: incluir apenas se mencionado.)\nEncaminhado para acupuntura. (Instrução: incluir apenas se mencionado.)\nInstituída analgesia, associada a orientações quanto a medidas físicas locais, repouso relativo e modificação temporária das atividades habituais.\nOferecida realização de radiografia nesta avaliação; em decisão compartilhada, paciente opta por não realizar o exame no momento, ciente das limitações da avaliação sem exame complementar. (Instrução: esta linha é PADRÃO e deve SEMPRE entrar no texto, mesmo que o médico não mencione nada sobre radiografia. Só altere ou remova se o médico informar que o exame FOI realizado — nesse caso, substitua pelo achado radiográfico informado.)\nEsclarecido que a avaliação inicial pode não demonstrar integralmente a extensão do quadro, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento.\nOrientado quanto a sinais de alarme, incluindo piora da dor, surgimento de sinais flogísticos importantes, déficit funcional progressivo, febre ou outras intercorrências, com recomendação de retorno imediato ao pronto atendimento se necessário.\nOrientado seguimento ambulatorial.\nPaciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.\nAlta da ortopedia.",
 
     f: "EM TEMPO:\n(Instrução: resumir os exames efetivamente fornecidos, com datas e comparação quando disponíveis. Não presumir radiografia, fratura, desvio nem indicação cirúrgica. Omitir esta seção se não houver exame informado.)\n\nCONDUTA:\n(Instrução: começar pelas decisões e informações novas, na ordem fornecida. Manter as etapas aplicáveis abaixo, com redação elaborada, sem reduzir a internação a uma única frase e sem copiar instruções. A indicação de internação não significa que já houve admissão, transferência ou aceite de vaga.)\nIndicada internação hospitalar para prosseguimento do tratamento. (Instrução: especificar o motivo e a finalidade informados — tratamento cirúrgico apenas quando explicitamente indicado; caso contrário, cuidado clínico, controle álgico, investigação ou acompanhamento especializado conforme o caso. Acrescentar hospital, especialidade e leito somente se fornecidos.)\n(Instrução: descrever analgesia, imobilização, monitorização e demais medidas no PS somente se informadas; não inventar doses, procedimentos ou intercorrências.)\nCaso discutido com a equipe de retaguarda. (Instrução: incluir apenas se houve discussão relatada, preservando nome, especialidade, CRM, recomendação e destino informados. Se apenas houve encaminhamento, escrever encaminhamento sem inventar discussão ou concordância.)\nPaciente informado acerca do quadro clínico, da indicação de internação e da proposta terapêutica. (Instrução: incluir conforme os esclarecimentos efetivamente prestados; ajustar o destinatário para acompanhante/responsável quando informado. Não atribuir compreensão ou consentimento a paciente sem condições de recebê-los.)\nPrestados esclarecimentos quanto aos riscos e benefícios do tratamento proposto. (Instrução: detalhar apenas os esclarecimentos informados e pertinentes ao tratamento; riscos cirúrgicos como hemorragia, deiscência, infecção, pseudoartrose e consolidação viciosa só se aplicam quando houver proposta cirúrgica e orientação relatadas. Não copiar riscos de cirurgia em internação clínica.)\nEsclarecido que a avaliação inicial, inclusive por métodos de imagem, pode não evidenciar todas as lesões em fases precoces ou de baixa expressão, não afastando completamente a possibilidade de lesões associadas, sendo fundamental o acompanhamento evolutivo, com reavaliação clínica e eventual complementação propedêutica conforme evolução do quadro.\nOrientado quanto a sinais de alarme e necessidade de comunicação imediata à equipe assistente em caso de piora da dor, alteração de sensibilidade, alteração de força ou outras intercorrências. (Instrução: adaptar às orientações fornecidas e ao interlocutor informado.)\nPaciente refere ter compreendido as informações prestadas, encontrando-se ciente e de acordo com a conduta proposta. (Instrução: incluir somente se compreensão e concordância foram informadas; ajustar para o responsável quando for o caso.)",
 
@@ -2893,9 +3012,9 @@
   };
 
   var NOMES_TEMPLATES = {
-    bf: "Atendimento completo + internação",
+    bf: "Trauma — internação (completo + internação)",
     a: "1º Atendimento",
-    b: "Trauma (Anamnese 1 Etapa)",
+    b: "Trauma — alta / conservador",
     c: "Liberação — RX Limpo",
     d: "Liberação — Fratura",
     e1: "Crônico — Lombalgia Mecânica",
@@ -2907,7 +3026,8 @@
     e7: "Crônico — Gonalgia Não Traumática",
     e8: "Crônico — Outro / Genérico",
     f: "Canetada Internar",
-    g: "Discussão"
+    g: "Discussão",
+    h: "Relato / Burocracia"
   };
 
   var TEXTOS_PRONTOS = [
@@ -2916,23 +3036,23 @@
       "itens": [
         {
           "titulo": "RNM Coluna Lombar",
-          "texto": "SOLICITO:\nRNM de Coluna Lombar\nDiagnóstico: Lombalgia\nCID-10: M54.5"
+          "texto": "SOLICITO:\nRNM de Coluna Lombar\nHipótese diagnóstica: Lombalgia\nCID-10: M54.5"
         },
         {
           "titulo": "RNM Joelho",
-          "texto": "SOLICITO:\nRNM de Joelho\nDiagnóstico: Dor Articular / Contusão\nCID-10: M25.5 (Dor articular) ou S80.0 (Contusão)"
+          "texto": "SOLICITO:\nRNM de Joelho\nHipótese diagnóstica: Dor Articular / Contusão\nCID-10: M25.5 (Dor articular) ou S80.0 (Contusão)"
         },
         {
           "titulo": "RNM Ombro",
-          "texto": "SOLICITO:\nRNM de Ombro\nDiagnóstico: Suspeita de Lesão de Manguito Rotador\nCID-10: M75 (Lesões do ombro)"
+          "texto": "SOLICITO:\nRNM de Ombro\nHipótese diagnóstica: Suspeita de Lesão de Manguito Rotador\nCID-10: M75 (Lesões do ombro)"
         },
         {
           "titulo": "RNM Tornozelo e Pé",
-          "texto": "SOLICITO:\nRNM de Tornozelo e Pé\nDiagnóstico: Entorse de Tornozelo / Contusão\nCID-10: S93.4 (Entorse e distensão) ou S90.0 (Contusão)"
+          "texto": "SOLICITO:\nRNM de Tornozelo e Pé\nHipótese diagnóstica: Entorse de Tornozelo / Contusão\nCID-10: S93.4 (Entorse e distensão) ou S90.0 (Contusão)"
         },
         {
           "titulo": "USG Pé — Fascite Plantar",
-          "texto": "SOLICITO:\nUSG de Pé Esquerdo (Fascite Plantar)\nDiagnóstico: Suspeita de Fascite Plantar\nCID-10: M72.2 (Fibromatose fascial / Fascite plantar)"
+          "texto": "SOLICITO:\nUSG de Pé Esquerdo (Fascite Plantar)\nHipótese diagnóstica: Suspeita de Fascite Plantar\nCID-10: M72.2 (Fibromatose fascial / Fascite plantar)"
         }
       ]
     },
@@ -2941,44 +3061,44 @@
       "itens": [
         {
           "titulo": "Convênio — Uso Oral",
-          "texto": "USO ORAL:\n\n- NOVALGINA 1G\nTOMAR 01 COMPRIMIDO DE 6/6H SE DOR E POR, NO MÁXIMO, 7 DIAS\n\n- ALGINAC RETARD\nTOMAR 01 COMPRIMIDO AO DIA, SE DOR FORTE, POR ATÉ 5 DIAS\n\n- TRAMAL 50MG\nTOMAR 01 COMPRIMIDO DE 8/8H, SE DOR MUITO FORTE, POR ATÉ 5 DIAS\n\n- MIOSAN 10MG\nTOMAR 01 COMPRIMIDO 1X À NOITE POR 5 NOITES"
+          "texto": "USO ORAL\n\n- NOVALGINA 1G ______________________ 28 COMPRIMIDOS\nTOMAR 01 COMPRIMIDO VIA ORAL DE 6/6 HORAS SE DOR, POR NO MÁXIMO 7 DIAS.\n\n- ALGINAC RETARD ____________________ 5 COMPRIMIDOS\nTOMAR 01 COMPRIMIDO VIA ORAL AO DIA SE DOR FORTE, POR ATÉ 5 DIAS.\n\n- TRAMAL 50MG _______________________ 15 COMPRIMIDOS\nTOMAR 01 COMPRIMIDO VIA ORAL DE 8/8 HORAS SE DOR MUITO FORTE, POR ATÉ 5 DIAS.\n\n- MIOSAN 10MG _______________________ 5 COMPRIMIDOS\nTOMAR 01 COMPRIMIDO VIA ORAL À NOITE, POR 5 NOITES."
         },
         {
           "titulo": "SUS — Uso Oral",
-          "texto": "USO ORAL:\n\nDIPIRONA 500MG _____________________________________________\nTOMAR 02 COMPRIMIDOS DE 6/6 HORAS, SE APRESENTAR DOR\n\nCETOPROFENO 100MG __________________________________________\nTOMAR 01 COMPRIMIDO DE 12/12 HORAS, POR 05 DIAS\n\nCICLOBENZAPRINA 10MG _______________________________________\nTOMAR 01 COMPRIMIDO AO DIA, TOMAR A NOITE, POR 05 DIAS\n\nTRAMADOL 50MG ______________________________________________\nTOMAR 01 COMPRIMIDO DE 8/8 HORAS, SE APRESENTAR DOR INTENSA\n\nPARACETAMOL + CODEÍNA 500MG/30MG ___________________________\nTOMAR 01 COMPRIMIDO DE 8/8 HORAS, SE APRESENTAR DOR INTENSA"
+          "texto": "USO ORAL\n\n- DIPIRONA 500MG ____________________ 40 COMPRIMIDOS\nTOMAR 02 COMPRIMIDOS VIA ORAL DE 6/6 HORAS SE DOR.\n\n- CETOPROFENO 100MG _________________ 10 COMPRIMIDOS\nTOMAR 01 COMPRIMIDO VIA ORAL DE 12/12 HORAS, POR 05 DIAS.\n\n- CICLOBENZAPRINA 10MG ______________ 5 COMPRIMIDOS\nTOMAR 01 COMPRIMIDO VIA ORAL À NOITE, POR 05 DIAS.\n\n- TRAMADOL 50MG _____________________ 15 COMPRIMIDOS\nTOMAR 01 COMPRIMIDO VIA ORAL DE 8/8 HORAS SE DOR INTENSA.\n\n- PARACETAMOL + CODEÍNA 500MG/30MG ____ 15 COMPRIMIDOS\nTOMAR 01 COMPRIMIDO VIA ORAL DE 8/8 HORAS SE DOR INTENSA."
         },
         {
           "titulo": "Pediátrico — Gotas",
-          "texto": "USO ORAL\n\nDIPIRONA 500MG/ML _____________________________________________\nTOMAR 01 GOTA/KG (MÁXIMO DE 40 GOTAS) DE 6/6 HORAS, SE APRESENTAR DOR\n\nIBUPROFENO 100MG/ML __________________________________________\nTOMAR 01 GOTA/KG (MÁXIMO DE 40 GOTAS) DE 12/12 HORAS, SE APRESENTAR DOR, POR ATÉ 05 DIAS."
+          "texto": "USO ORAL\n\n- DIPIRONA 500MG/ML _________________ 1 FRASCO\nTOMAR 01 GOTA/KG (MÁXIMO DE 40 GOTAS) VIA ORAL DE 6/6 HORAS SE DOR.\n\n- IBUPROFENO 100MG/ML _______________ 1 FRASCO\nTOMAR 01 GOTA/KG (MÁXIMO DE 40 GOTAS) VIA ORAL DE 12/12 HORAS SE DOR, POR ATÉ 05 DIAS."
         },
         {
           "titulo": "Pediátrico — Marcas",
-          "texto": "USO ORAL\n\n1. ALIVIUM GC 200 MG/ML_________ 1 FRASCO\nTOMAR GOTAS VIA ORAL DE 8/8 HORAS SE DOR, POR ATÉ 05 DIAS.\n\n2. PRATIUM 140 MG/ML_____________ 1 FRASCO\nTOMAR GOTAS VIA ORAL DE 6/6 HORAS SE DOR.\n\n3. LISADOR DIP 500 MG/ML ____________ 1 FRASCO\nTOMAR GOTAS VIA ORAL DE 6/6 HORAS SE DOR.\n\n4. ONDIF 4MG ______________________ 10 FILMES\nTOMAR 1 FILME DISPERSÍVEL NA LÍNGUA DE 8/8H SE NÁUSEAS OU VÔMITOS."
+          "texto": "USO ORAL\n\n- ALIVIUM GC 200 MG/ML ______________ 1 FRASCO\nTOMAR GOTAS VIA ORAL DE 8/8 HORAS SE DOR, POR ATÉ 05 DIAS.\n\n- PRATIUM 140 MG/ML _________________ 1 FRASCO\nTOMAR GOTAS VIA ORAL DE 6/6 HORAS SE DOR.\n\n- LISADOR DIP 500 MG/ML _____________ 1 FRASCO\nTOMAR GOTAS VIA ORAL DE 6/6 HORAS SE DOR.\n\n- ONDIF 4MG _________________________ 10 FILMES\nDISSOLVER 01 FILME NA LÍNGUA DE 8/8 HORAS SE NÁUSEAS OU VÔMITOS."
         },
         {
           "titulo": "Antibiótico",
-          "texto": "USO ORAL\n\nCEFALEXINA 500MG ___________________________________________\nTOMAR 01 COMPRIMIDO DE 6/6 HORAS, POR 14 DIAS"
+          "texto": "USO ORAL\n\n- CEFALEXINA 500MG __________________ 56 COMPRIMIDOS\nTOMAR 01 COMPRIMIDO VIA ORAL DE 6/6 HORAS, POR 14 DIAS."
         },
         {
           "titulo": "Injetável — Dexa-Citoneurin",
-          "texto": "USO INJETÁVEL\n1) Dexa-Citoneurin NFF -------------------------------------------------------------------------- 3 AMPOLAS\nCianocobalamina 5.000mcg + Dexametasona 4mg + Piridoxina 100mg + Tiamina 100mg\n- Aplicar 1 ampola via intramuscular profunda a cada 3 dias (em um total de 3 aplicações)"
+          "texto": "USO INJETÁVEL\n\n- DEXA-CITONEURIN NFF _______________ 3 AMPOLAS\nAPLICAR 01 AMPOLA VIA INTRAMUSCULAR PROFUNDA A CADA 3 DIAS, EM UM TOTAL DE 3 APLICAÇÕES."
         },
         {
           "titulo": "Crioterapia",
           "texto": "USO TÓPICO\n- REALIZAR COMPRESSA FRIA (GELO) NO LOCAL INDICADO, 3 A 4 VEZES AO DIA, POR 15 A 20 MINUTOS EM CADA APLICAÇÃO, PROTEGENDO A PELE COM PANO OU TOALHA PARA EVITAR CONTATO DIRETO DO GELO COM A PELE."
         },
         {
-          "titulo": "Carta à UBS — Checar Vacina Antitetânica",
-          "texto": "À UBS,\n\nSOLICITO AVALIAÇÃO E ATUALIZAÇÃO DO ESQUEMA VACINAL ANTITETÂNICO, CONFORME PROTOCOLO DO MINISTÉRIO DA SAÚDE, EM RAZÃO DE ATENDIMENTO NESTE PRONTO-SOCORRO DE ORTOPEDIA POR TRAUMA RECENTE.\n\nORIENTO A LEVAR A CARTEIRA DE VACINAÇÃO.\n\nAGRADEÇO A ATENÇÃO E PERMANEÇO À DISPOSIÇÃO."
+          "titulo": "Tétano",
+          "texto": "À UBS,\n\nSolicito avaliação e atualização do esquema vacinal antitetânico, conforme protocolo do Ministério da Saúde, em razão de atendimento neste pronto-socorro de ortopedia por trauma recente.\n\nOriento levar a carteira de vacinação.\n\nAgradeço a atenção e permaneço à disposição."
         },
         {
-          "titulo": "Insulina — Esquema",
+          "titulo": "Esquema de Insulina",
           "texto": "APLICAR INSULINA REGULAR, SE DEXTRO:\n180-200: 2UI\n201-250: 4UI\n251-300: 6UI\n301-350: 8UI\n351-400: 10UI\n>400: 12 UI INFORMAR EQUIPE MÉDICA"
         }
       ]
     },
     {
-      "categoria": "Imobilizações",
+      "categoria": "Uso Ortopédico",
       "itens": [
         {
           "titulo": "Muletas",
@@ -3007,7 +3127,7 @@
       ]
     },
     {
-      "categoria": "Fisioterapia",
+      "categoria": "Fisio / Acupuntura",
       "itens": [
         {
           "titulo": "Fisioterapia — Lombalgia",
@@ -3045,7 +3165,7 @@
         },
         {
           "titulo": "Retorno Ambulatorial — Após Exame",
-          "texto": "Solicito agendamento de retorno ambulatorial com ortopedista especialista neste serviço, após a realização do exame solicitado nesta avaliação, para reavaliação clínica e definição de conduta."
+          "texto": "Solicito agendamento de retorno ambulatorial com ortopedista especialista neste serviço após a realização do exame solicitado nesta avaliação ou em até 7 dias, o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado, para reavaliação clínica e definição de conduta."
         }
       ]
     },
@@ -3053,12 +3173,12 @@
       "categoria": "Evasão",
       "itens": [
         {
-          "titulo": "Evasão — Primeiro Atendimento",
-          "texto": "PACIENTE CONVOCADO NOMINALMENTE PARA ATENDIMENTO POR MEIO DE SISTEMA SONORO E CHAMADA PRESENCIAL EM SALA DE ESPERA, SEM SUCESSO. REALIZADAS BUSCAS NAS DEPENDÊNCIAS DA UNIDADE, PORÉM O PACIENTE NÃO FOI LOCALIZADO PARA CONTINUIDADE DA ASSISTÊNCIA MÉDICA.\nDIANTE DA IMPOSSIBILIDADE DE PROSSEGUIR COM O EXAME FÍSICO, DIAGNÓSTICO OU CONDUTA TERAPÊUTICA DEVIDO À AUSÊNCIA DO PACIENTE, REGISTRO A EVASÃO DO MESMO DA UNIDADE DE SAÚDE. ENCERRO O ATENDIMENTO POR ABANDONO/EVASÃO ATÉ A PRESENTE HORA."
+          "titulo": "Evasão — Paciente chamado por mim (1º atendimento ou reavaliação)",
+          "texto": "Paciente chamado nominalmente para atendimento pelo sistema de chamada e presencialmente na sala de espera, por três vezes, em voz audível, sem resposta. Realizada busca nas dependências da unidade, sem localização do paciente.\nDiante da ausência do paciente, não é possível prosseguir com a avaliação, o exame físico ou a definição de conduta. Registro a evasão da unidade e encerro o atendimento neste horário."
         },
         {
-          "titulo": "Evasão — Reavaliação / Plantão Noturno",
-          "texto": "ASSUMO O PLANTÃO NOTURNO.\nCHECO LISTA DE PACIENTES AGUARDANDO REAVALIAÇÃO E VERIFICO A PRESENÇA DO MESMO NO SISTEMA.\nCHAMO NO SISTEMA, NOMINALMENTE NA SALA DE ESPERA POR TRÊS VEZES CONSECUTIVAS, EM VOZ AUDÍVEL, E PROCURO PRESENCIALMENTE NAS DEPENDÊNCIAS DA UNIDADE, SEM SUCESSO NA SUA LOCALIZAÇÃO.\nDIANTE DA AUSÊNCIA DO PACIENTE NO MOMENTO DA CHAMADA E DA IMPOSSIBILIDADE DE REALIZAR A REAVALIAÇÃO ORTOPÉDICA, REGISTRO A EVASÃO DELE DA UNIDADE HOSPITALAR."
+          "titulo": "Evasão — Ficha aberta de outro médico",
+          "texto": "Assumo o plantão e identifico ficha de atendimento em aberto, iniciada por outro profissional, sem registro de desfecho no sistema.\nPaciente chamado nominalmente pelo sistema de chamada e presencialmente na sala de espera, por três vezes, em voz audível, sem resposta. Realizada busca nas dependências da unidade, sem localização do paciente.\nDiante da ausência do paciente no momento da chamada, registro a evasão da unidade e encerro a ficha em aberto neste horário."
         }
       ]
     }
@@ -3092,6 +3212,23 @@
     retaguarda: 'Ex: Jose Almeida, 78a, Bradesco, queda da propria altura hoje, dor e encurtamento MID, fx transtrocanteriana D, usa xarelto'
   };
 
+  // Esqueleto de cada mensagem, mostrado ao lado da caixa de dados para lembrar o que enviar.
+  var MSG_ESQUELETOS = {
+    chefe: 'NOME COMPLETO:\nMATRÍCULA:\nIDADE:\nHD:\nANTICOAGULANTE: NÃO\nMARCAPASSO: NÃO\nTELEFONE:\nHOSPITAL DE ORIGEM:',
+    internacao: 'Fluxo: URGÊNCIA FLUXO COMUM\nPaciente: (iniciais)\nMatrícula:\nIdade:\nDiagnóstico:\nTempo de sala: 2h\nCD: Internação p/ tto cirúrgico\nHospital de origem: Santiago/SBC\nTransferência: HSM Tailândia\nAnticoagulante: Não\nMarca-passo: Não',
+    paciente: 'Nome completo:\nConduta: conservadora\nData do retorno:\nHorário:\nHospital: HSM Santiago',
+    retaguarda: 'NOME COMPLETO:\nIDADE:\nCONVÊNIO:\nHT (história do trauma):\nHD:\nOBS (se relevante):'
+  };
+  var msgEsqueleto = document.getElementById('msgEsqueleto');
+  function atualizarEsqueletoMsg() {
+    msgEsqueleto.innerHTML = '';
+    var titulo = document.createElement('b');
+    titulo.textContent = 'Não esqueça';
+    msgEsqueleto.appendChild(titulo);
+    msgEsqueleto.appendChild(document.createTextNode(MSG_ESQUELETOS[msgSelecionada] || ''));
+  }
+  atualizarEsqueletoMsg();
+
   msgBtns.forEach(function(btn) {
     btn.addEventListener('click', function() {
       msgBtns.forEach(function(b) { b.classList.remove('active'); });
@@ -3099,6 +3236,7 @@
       msgSelecionada = btn.dataset.m;
       msgHint.textContent = MSG_HINTS[msgSelecionada] || '';
       msgDados.placeholder = MSG_PLACEHOLDERS[msgSelecionada] || '';
+      atualizarEsqueletoMsg();
     });
   });
 
@@ -3342,7 +3480,7 @@
     var body = document.createElement('div');
     body.className = 'cat-body';
 
-    var CATEGORIAS_SO_GERADOR = ['Exames', 'Fisioterapia', 'Atestados'];
+    var CATEGORIAS_SO_GERADOR = ['Exames', 'Fisio / Acupuntura', 'Atestados'];
     var ehSoGerador = CATEGORIAS_SO_GERADOR.indexOf(cat.categoria) !== -1;
 
     if (!ehSoGerador) {
@@ -3378,6 +3516,9 @@
         ta.id = 'pronto_' + catIdx + '_' + itemIdx;
         ta.style.display = 'none';
 
+        // Receitas: lista para escolher o que copiar + princípio ativo (fora do texto, nunca copiado)
+        var painelReceita = criarPainelReceita(item.texto);
+
         function ajustarAltura() {
           ta.style.height = 'auto';
           ta.style.height = (ta.scrollHeight + 2) + 'px';
@@ -3388,13 +3529,15 @@
           if (e.target === btnCopiar) return;
           var abrindo = ta.style.display === 'none';
           ta.style.display = abrindo ? 'block' : 'none';
+          if (painelReceita) painelReceita.el.style.display = abrindo ? 'block' : 'none';
           itemDiv.classList.toggle('item-pronto-fechado', !abrindo);
           if (abrindo) ajustarAltura();
         });
 
         btnCopiar.addEventListener('click', function(e) {
           e.stopPropagation();
-          copiarTextoProntuario(ta.value).then(function() {
+          var textoCopiar = painelReceita ? painelReceita.filtrar(ta.value) : ta.value;
+          copiarTextoProntuario(textoCopiar).then(function() {
             btnCopiar.textContent = 'Copiado';
             btnCopiar.classList.add('copiado');
             setTimeout(function() {
@@ -3407,14 +3550,25 @@
         topo.appendChild(tituloWrap);
         topo.appendChild(btnCopiar);
         itemDiv.appendChild(topo);
-        itemDiv.appendChild(ta);
+        if (painelReceita) {
+          var corpoReceita = document.createElement('div');
+          corpoReceita.className = 'receita-corpo';
+          corpoReceita.appendChild(ta);
+          corpoReceita.appendChild(painelReceita.el);
+          itemDiv.appendChild(corpoReceita);
+        } else {
+          itemDiv.appendChild(ta);
+        }
         body.appendChild(itemDiv);
       });
     }
 
-    var CATEGORIAS_COM_GERADOR = ['Exames', 'Fisioterapia', 'Atestados'];
+    var CATEGORIAS_COM_GERADOR = ['Exames', 'Fisio / Acupuntura', 'Atestados'];
     if (CATEGORIAS_COM_GERADOR.indexOf(cat.categoria) !== -1) {
       body.appendChild(criarGeradorAvulso(cat));
+    }
+    if (cat.categoria === 'Retorno') {
+      body.appendChild(criarGeradorRetorno());
     }
 
     header.addEventListener('click', function() {
@@ -3434,6 +3588,186 @@
     containerProntos.appendChild(catDiv);
   });
 
+  // Princípio ativo das marcas usadas nas receitas: só aparece na tela, nunca entra na cópia.
+
+  function principioAtivo(nome) {
+    var PRINCIPIOS_ATIVOS = [
+      ['NOVALGINA', 'dipirona monoidratada'],
+      ['LISADOR DIP', 'dipirona monoidratada'],
+      ['ALGINAC', 'diclofenaco sódico + vitaminas B1, B6 e B12'],
+      ['TRAMAL', 'cloridrato de tramadol'],
+      ['MIOSAN', 'cloridrato de ciclobenzaprina'],
+      ['ALIVIUM', 'ibuprofeno'],
+      ['PRATIUM', 'paracetamol'],
+      ['ONDIF', 'cloridrato de ondansetrona'],
+      ['DEXA-CITONEURIN', 'dexametasona 4 mg + cianocobalamina 5.000 mcg + piridoxina 100 mg + tiamina 100 mg']
+    ];
+    var n = String(nome || '').toUpperCase();
+    for (var i = 0; i < PRINCIPIOS_ATIVOS.length; i++) {
+      if (n.indexOf(PRINCIPIOS_ATIVOS[i][0]) !== -1) return PRINCIPIOS_ATIVOS[i][1];
+    }
+    return '';
+  }
+
+  function dividirBlocosReceita(texto) {
+    var blocos = String(texto || '').split(/\n\s*\n/);
+    var cabecalho = [];
+    var itens = [];
+    blocos.forEach(function(b) {
+      if (/^\s*(-|\d+[.)])\s/.test(b)) itens.push(b);
+      else if (!itens.length) cabecalho.push(b);
+      else itens[itens.length - 1] += '\n\n' + b;
+    });
+    return { cabecalho: cabecalho, itens: itens };
+  }
+
+  function criarPainelReceita(textoOriginal) {
+    var partes = dividirBlocosReceita(textoOriginal);
+    if (partes.itens.length === 0) return null;
+
+    var el = document.createElement('div');
+    el.className = 'painel-receita';
+    el.style.display = 'none';
+    var titulo = document.createElement('div');
+    titulo.className = 'painel-receita-titulo';
+    titulo.textContent = partes.itens.length > 1 ? 'Copiar só os marcados' : 'Princípio ativo';
+    el.appendChild(titulo);
+
+    var checks = [];
+    partes.itens.forEach(function(bloco) {
+      var primeira = bloco.split('\n')[0].replace(/^\s*(-|\d+[.)])\s*/, '');
+      var nome = primeira.split('_')[0].trim();
+      var linha = document.createElement('label');
+      linha.className = 'painel-receita-item';
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = true;
+      if (partes.itens.length === 1) cb.style.display = 'none';
+      checks.push(cb);
+      var info = document.createElement('span');
+      var nomeEl = document.createElement('span');
+      nomeEl.textContent = nome;
+      info.appendChild(nomeEl);
+      var pa = principioAtivo(nome);
+      if (pa) {
+        var paEl = document.createElement('small');
+        paEl.textContent = pa;
+        info.appendChild(paEl);
+      }
+      linha.appendChild(cb);
+      linha.appendChild(info);
+      el.appendChild(linha);
+    });
+
+    function filtrar(textoAtual) {
+      var atual = dividirBlocosReceita(textoAtual);
+      if (atual.itens.length !== checks.length) return textoAtual;
+      if (checks.every(function(c) { return c.checked; })) return textoAtual;
+      var escolhidos = atual.itens.filter(function(_, i) { return checks[i].checked; });
+      return atual.cabecalho.concat(escolhidos).join('\n\n');
+    }
+
+    return { el: el, filtrar: filtrar };
+  }
+
+  // Retorno: texto montado na hora, sem IA, com o prazo digitado.
+  function criarGeradorRetorno() {
+    var wrap = document.createElement('div');
+    wrap.className = 'gerador-avulso';
+    wrap.innerHTML = '<span class="gerador-avulso-titulo">Gerar retorno com o prazo deste paciente</span>';
+
+    var select = document.createElement('select');
+    select.innerHTML = '<option value="exame">Ambulatorial — após exame (com prazo de segurança)</option>' +
+      '<option value="amb">Ambulatorial — após trauma</option>' +
+      '<option value="ps">Pronto-socorro — após trauma</option>';
+    select.style.cssText = 'padding:9px 11px; background:var(--panel); border:1px solid var(--panel-border); border-radius:8px; font-size:13px; color:var(--ink); margin-bottom:8px; width:100%;';
+
+    var dias = document.createElement('input');
+    dias.type = 'text';
+    dias.inputMode = 'numeric';
+    dias.placeholder = 'Dias para o retorno (ex: 7)';
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-gerar-avulso';
+    btn.textContent = 'Gerar';
+
+    var erro = document.createElement('div');
+    erro.className = 'erro-avulso';
+
+    var resultado = document.createElement('div');
+    resultado.className = 'resultado-avulso';
+    var resultadoTexto = document.createElement('div');
+    resultadoTexto.className = 'resultado-avulso-texto';
+    var btnCopiar = document.createElement('button');
+    btnCopiar.type = 'button';
+    btnCopiar.className = 'btn-copiar-item';
+    btnCopiar.textContent = 'Copiar';
+    resultado.appendChild(resultadoTexto);
+    resultado.appendChild(btnCopiar);
+
+    btn.addEventListener('click', function() {
+      erro.classList.remove('show');
+      var d = parseInt(String(dias.value).replace(/\D/g, ''), 10);
+      if (!d) {
+        erro.textContent = 'Informe os dias.';
+        erro.classList.add('show');
+        return;
+      }
+      var prazo = d + (d === 1 ? ' dia' : ' dias');
+      var texto;
+      if (select.value === 'exame') {
+        texto = 'Solicito agendamento de retorno ambulatorial com ortopedista especialista neste serviço após a realização do exame solicitado nesta avaliação ou em até ' + prazo + ', o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado, para reavaliação clínica e definição de conduta.';
+      } else if (select.value === 'amb') {
+        texto = 'Solicito agendamento de retorno ambulatorial com ortopedista especialista neste serviço, em ' + prazo + ', para reavaliação clínica e acompanhamento evolutivo.';
+      } else {
+        texto = 'Solicito retorno via pronto-socorro com ortopedista neste serviço, em ' + prazo + ', para reavaliação clínica e acompanhamento evolutivo.';
+      }
+      resultadoTexto.textContent = texto;
+      resultado.classList.add('show');
+    });
+
+    btnCopiar.addEventListener('click', function() {
+      copiarTextoProntuario(resultadoTexto.textContent).then(function() {
+        btnCopiar.textContent = 'Copiado';
+        setTimeout(function() { btnCopiar.textContent = 'Copiar'; }, 1800);
+      });
+    });
+
+    wrap.appendChild(select);
+    wrap.appendChild(dias);
+    wrap.appendChild(btn);
+    wrap.appendChild(erro);
+    wrap.appendChild(resultado);
+    return wrap;
+  }
+
+  // Botões de escolha única/múltipla usados nos geradores de exame e fisio.
+  function criarChips(opcoes, multiplo, padrao) {
+    var box = document.createElement('div');
+    box.className = 'chips-gerador';
+    var valores = padrao.slice();
+    opcoes.forEach(function(o) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn-atalho-avulso' + (valores.indexOf(o[0]) !== -1 ? ' ativo' : '');
+      b.textContent = o[1];
+      b.addEventListener('click', function() {
+        if (multiplo) {
+          var i = valores.indexOf(o[0]);
+          if (i === -1) valores.push(o[0]); else valores.splice(i, 1);
+        } else {
+          valores = [o[0]];
+        }
+        box.querySelectorAll('button').forEach(function(x, k) {
+          x.classList.toggle('ativo', valores.indexOf(opcoes[k][0]) !== -1);
+        });
+      });
+      box.appendChild(b);
+    });
+    return { el: box, valores: function() { return valores.slice(); } };
+  }
+
   function criarGeradorAvulso(cat) {
     var wrap = document.createElement('div');
     wrap.className = 'gerador-avulso';
@@ -3450,9 +3784,10 @@
     wrap.appendChild(hint);
 
     var ehAtestado = cat.categoria === 'Atestados';
-    var CATEGORIAS_SO_GERADOR = ['Exames', 'Fisioterapia'];
+    var CATEGORIAS_SO_GERADOR = ['Exames', 'Fisio / Acupuntura'];
     var temAtalhos = CATEGORIAS_SO_GERADOR.indexOf(cat.categoria) !== -1 && cat.itens.length > 0;
     var selectTipo, inputDias, textareaDiagnostico, textareaPedido, labelDiagnostico;
+    var chipsExame, chipsLado, chipsFisio, inputSessoes;
 
     if (temAtalhos) {
       var atalhosDiv = document.createElement('div');
@@ -3507,11 +3842,29 @@
       }
       selectTipo.addEventListener('change', atualizarCampoDiagnostico);
       atualizarCampoDiagnostico();
+    } else if (cat.categoria === 'Exames') {
+      chipsExame = criarChips([['RM', 'RM'], ['USG', 'USG']], false, ['RM']);
+      chipsLado = criarChips([['', 'Sem lado'], ['direito', 'Direito'], ['esquerdo', 'Esquerdo'], ['bilateral', 'Bilateral']], false, ['']);
+      wrap.appendChild(chipsExame.el);
+      wrap.appendChild(chipsLado.el);
+      textareaPedido = document.createElement('textarea');
+      textareaPedido.placeholder = 'Hipótese diagnóstica (ex: lesão do manguito rotador) — a IA acha o segmento e o CID';
+      wrap.appendChild(textareaPedido);
+    } else if (cat.categoria === 'Fisio / Acupuntura') {
+      chipsFisio = criarChips([['fisioterapia', 'Fisioterapia'], ['acupuntura', 'Acupuntura']], true, ['fisioterapia']);
+      wrap.appendChild(chipsFisio.el);
+      inputSessoes = document.createElement('input');
+      inputSessoes.type = 'text';
+      inputSessoes.inputMode = 'numeric';
+      inputSessoes.placeholder = 'Sessões (padrão 10)';
+      inputSessoes.style.marginBottom = '8px';
+      wrap.appendChild(inputSessoes);
+      textareaPedido = document.createElement('textarea');
+      textareaPedido.placeholder = 'Hipótese diagnóstica (ex: lombalgia mecânica)';
+      wrap.appendChild(textareaPedido);
     } else {
       textareaPedido = document.createElement('textarea');
-      textareaPedido.placeholder = cat.categoria === 'Fisioterapia'
-        ? 'Ex: 10 sessões de RPG, diagnóstico de escoliose'
-        : 'Ex: USG de punho, suspeita de tendinite de De Quervain';
+      textareaPedido.placeholder = 'Descreva o que precisa';
       wrap.appendChild(textareaPedido);
     }
 
@@ -3594,9 +3947,24 @@
       } else {
         var pedido = textareaPedido.value.trim();
         if (!pedido) {
-          erro.textContent = 'Escreva o pedido.';
+          erro.textContent = cat.categoria === 'Exames' || cat.categoria === 'Fisio / Acupuntura' ? 'Escreva a hipótese diagnóstica.' : 'Escreva o pedido.';
           erro.classList.add('show');
           return;
+        }
+        if (cat.categoria === 'Exames') {
+          var tipoExame = chipsExame.valores()[0] === 'USG' ? 'Ultrassonografia (USG)' : 'Ressonância magnética (RNM)';
+          var lado = chipsLado.valores()[0];
+          var textoLado = lado === 'bilateral' ? ', bilateral (esquerdo e direito)' : (lado ? ', lado ' + lado : ', sem lado definido');
+          pedido = tipoExame + textoLado + '. Hipótese diagnóstica: ' + pedido + '. Deduza o segmento anatômico a partir da hipótese.';
+        } else if (cat.categoria === 'Fisio / Acupuntura') {
+          var tipos = chipsFisio.valores();
+          if (!tipos.length) {
+            erro.textContent = 'Marque fisioterapia e/ou acupuntura.';
+            erro.classList.add('show');
+            return;
+          }
+          var sessoes = parseInt(String(inputSessoes.value).replace(/\D/g, ''), 10) || 10;
+          pedido = sessoes + ' sessões de ' + tipos.join(' e de ') + (tipos.length > 1 ? ' (gere um pedido separado para cada, um abaixo do outro)' : '') + '. Hipótese diagnóstica: ' + pedido + '.';
         }
         payload.pedido = pedido;
       }
@@ -3667,7 +4035,7 @@
   var GRUPOS_TEMPLATES = [
     { categoria: 'Prontuário — Atendimento', chaves: ['a', 'b', 'bf'] },
     { categoria: 'Prontuário — Reavaliação', chaves: ['c', 'd', 'g', 'f'] },
-    { categoria: 'Prontuário — Crônicos', chaves: ['e1','e2','e3','e4','e5','e6','e7','e8'] },
+    { categoria: 'Prontuário — Crônicos', chaves: ['e1','e2','e3','e4','e5','e6','e7','e8','h'] },
     { categoria: 'Mensagens', chaves: ['chefe', 'internacao', 'paciente', 'retaguarda'], tipo: 'mensagem' }
   ];
 
@@ -3785,6 +4153,8 @@
     tipoAtendimento: 'Tipo de atendimento',
     template: 'Template',
     acompanhante: 'Relato por acompanhante',
+    deambulacao: 'Deambulação',
+    exameParaCasa: 'Exame para casa (botão)',
     atendimentoInicial: 'Atendimento inicial',
     dadosCaso: 'Dados do caso',
     exames: 'Exames/laudo',
