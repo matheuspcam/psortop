@@ -30,7 +30,7 @@ export default async function handler(req, res) {
       : (ehMensagem ? montarPromptSistemaMensagem() : montarPromptSistema()));
 
   const contextoAjuste = ehAjuste && !ehMensagem && !ehAvulso
-    ? `CONTEXTO ORIGINAL (fonte para cronologia e autoria; não é uma nova ordem de geração):\n${montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial })}\n\n`
+    ? `CONTEXTO ORIGINAL (fonte para cronologia e autoria; não é uma nova ordem de geração):\n${montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje })}\n\n`
     : '';
 
   const contents = ehAjuste
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
           ? montarPromptAvulso({ categoria, exemplos, pedido, tipoAtestado, diasAfastamento, diagnosticoAtestado })
           : (ehMensagem
             ? montarPromptMensagem({ dadosCaso, template, dataHoje })
-            : montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial })),
+            : montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje })),
         imagens
       ) }];
 
@@ -278,7 +278,10 @@ function regrasDocumentacao() {
 - ORIGEM DO RELATO: registre que a história foi relatada pela filha, familiar ou acompanhante na HDA/HPMA/QD, nunca no EXAME FÍSICO. Aplique isso tanto ao toggle quanto à informação escrita pelo médico. Preserve quem relatou, quem foi examinado e quem recebeu as orientações; são informações distintas.
 - DIAGNÓSTICO É BASE PARA REDIGIR, NÃO PARA SER CITADO: um diagnóstico ou hipótese escrito pelo médico (ex: "Haglund", "tendinite do tibial anterior", "metatarsalgia") serve para você construir a história e o exame físico coerentes com aquele quadro — topografia precisa, característica da dor e fatores de piora típicos —, e NÃO para ser mencionado no texto. Não escreva o nome do diagnóstico na HDA/HPMA, no EXAME FÍSICO nem no EM TEMPO, e nunca "paciente refere metatarsalgia/fascite/tendinopatia". Exemplos: metatarsalgia em pé direito → "paciente refere dor na região plantar do antepé direito, com piora à deambulação"; Haglund → "dor na região posterossuperior do calcâneo, próxima à inserção do tendão calcâneo, com piora ao uso de calçados fechados e à atividade" e, no exame, "Dor à palpação da região posterossuperior do calcâneo, adjacente à inserção do tendão calcâneo"; tendinite do tibial anterior → dor na face anterior e medial do tornozelo/dorso do pé, no trajeto do tendão, com piora à deambulação e à dorsiflexão. Não acrescente edema, sinais flogísticos, déficits nem manobras nomeadas não informados. Se for apenas hipótese, não a converta em diagnóstico confirmado. Só atribua diagnóstico prévio ao paciente quando ele tiver sido relatado como tal. Essa regra também vale para o template e8 e para ajustes posteriores.
 - RADIOGRAFIA SÓ COM ACHADOS CRÔNICOS: se o médico informar radiografia sem alteração aguda, apenas com achados crônicos/degenerativos (ex: "RX normal da artrose", "só artrose"), use a frase padrão longa, acrescentando o achado crônico informado: "Avalio radiografias do segmento acometido, evidenciando alterações degenerativas compatíveis com artrose, sem fraturas, luxações ou outras alterações osteoarticulares agudas, dentro das limitações e sensibilidade do método, passíveis de não identificação em fases iniciais ou em lesões de baixa expressão radiográfica." Nunca resuma para uma frase curta como "compatíveis com artrose, sem outras alterações". Se a radiografia foi avaliada, a linha "Oferecida realização de radiografia..." sai da CONDUTA.
-- DATAS E NÚMEROS INFORMADOS: copie exatamente como o médico escreveu (ex: "07/2026" continua "07/2026", mesmo que pareça estranho). Nunca troque o ano, o mês ou o dia.
+- DATAS E NÚMEROS INFORMADOS: nunca troque o dia, o mês ou o ano que o médico escreveu. A única coisa que você completa é o formato: toda data vai para DD/MM/AAAA (ex: "08/08" com a data de hoje em 2026 vira "08/08/2026"; "07/26" vira "07/2026"). Use a DATA DE HOJE informada no contexto para deduzir o ano: se o dia/mês informado já passou neste ano, é deste ano; se cair no futuro, é do ano anterior. Nunca escreva data incompleta nem invente dia quando só houver mês e ano.
+- PROIBIDO DEIXAR LACUNA NO TEXTO: nunca escreva "a definir", "a combinar", "XX", "(informar)", "[data]" ou qualquer espaço reservado. Se faltar o dado (prazo de retorno, lado, tempo de evolução), sinalize no topo com ⚠️ e escreva a frase de forma genérica, sem o dado — ex: sem prazo informado, "Orientado retorno ambulatorial para reavaliação da evolução funcional.", nunca "em prazo a definir".
+- QUEM RELATA x QUEM CONSTATA: o paciente relata sintomas e história (dor, melhora, limitação, queixas, o que aconteceu). O médico constata achados (consolidação, sinais de fratura, alinhamento, resultado de imagem, achados de exame físico, diagnóstico). Nunca escreva "paciente refere que está consolidado", "refere fratura consolidada" ou "refere melhora radiográfica". O que o médico constatou vai para EXAME FÍSICO, EM TEMPO ou CONDUTA, em primeira pessoa ou em voz passiva — ex: "Evidenciados sinais de consolidação ao exame de imagem". O que o paciente conta fica na história, com "refere".
+- QUEDA, ACIDENTE E TORÇÃO SÃO TRAUMA: se a história tem queda, acidente, torção, entorse, esmagamento ou pancada, o caso É traumático. Nunca escreva "nega história de trauma" nesses casos — isso torna o texto incoerente. Nos casos de trauma, as negativas de rotina são "Nega traumatismo cranioencefálico. Nega perda de consciência. Nega dor em outras topografias. Nega demais queixas associadas.", na mesma linha, e essas negativas ficam na história (QD/HDA), nunca no AP.
 - DEAMBULAÇÃO: por padrão o paciente deambula, e a primeira linha do EXAME FÍSICO é "Paciente em bom estado geral, lúcido e orientado, deambulando.". Só retire "deambulando" quando o médico marcar que o paciente não deambula (cadeira de rodas/acamado) ou informar incapacidade de apoio/marcha; nesse caso descreva apenas o que foi informado (ex: "em cadeira de rodas", "restrito ao leito").
 - EXAME NORMAL NÃO É "COMPATÍVEL COM": se o médico disse que a radiografia está normal, "sem grandes achados" ou sem alterações, use a frase padrão de exame normal no EM TEMPO e nunca acrescente "compatível com [diagnóstico]". Um exame sem achados não pode ser compatível com uma doença. Só descreva achado radiográfico específico (ex: proeminência posterossuperior do calcâneo) se o médico informou esse achado no exame.
 - EXAME FÍSICO: mantenha detalhamento organizado, com cada achado em uma linha. Quando houver dados suficientes, organize por inspeção, palpação, mobilidade, estabilidade e avaliação neurovascular, preservando os títulos do modelo. Preserve os achados e negativas padrão pertinentes, substituindo os contraditos. Não acrescente edema, claudicação, dor em tendões adjacentes, medidas, pulsos específicos ou manobras especiais não informados só por serem plausíveis para o diagnóstico. Não converta achado típico em achado observado. Manobras nomeadas e seus resultados só entram quando fornecidos. Uma dor no navicular não autoriza inventar dor nos tendões tibiais nem testes de gaveta/varo/valgo negativos.
@@ -403,7 +406,7 @@ const TEMPLATES = {
     nome: '1º Atendimento',
     texto: `AP: nega alergias. (Instrução: incluir todo antecedente informado de forma completa — cirurgias prévias com o procedimento e o material de síntese quando informados, ex: "Antecedente de fratura de maléolo lateral direito há 10 anos, submetida a osteossíntese com placa"; comorbidades; medicações contínuas.)
 
-QD: (Instrução: iniciar com letra minúscula após os dois-pontos. Não resumir a queixa a uma frase telegráfica quando o médico informou mais dados: redigir uma história articulada, em uma ou mais linhas, com TODOS os dados fornecidos — mecanismo, tempo de evolução, sintomas, fatores de piora, evolução, tratamentos já tentados, relação com cirurgia/material prévio e motivo da procura atual —, conectando os fatos com nexo temporal e clínico. Exemplo: "dor e edema em tornozelo direito há 2 semanas, sem trauma recente, em paciente com antecedente de osteossíntese com placa em maléolo lateral direito, sem melhora com analgesia oral". Negativas sobre o evento — "nega TCE", "nega perda de consciência", "nega dor em outras topografias", "nega demais queixas" — entram aqui na QD, na mesma linha, ao final da história; nunca no AP.)
+QD: (Instrução: iniciar com letra minúscula após os dois-pontos. Não resumir a queixa a uma frase telegráfica quando o médico informou mais dados: redigir uma história articulada, em uma ou mais linhas, com TODOS os dados fornecidos — mecanismo, tempo de evolução, sintomas, fatores de piora, evolução, tratamentos já tentados, relação com cirurgia/material prévio e motivo da procura atual —, conectando os fatos com nexo temporal e clínico. Exemplo: "dor e edema em tornozelo direito há 2 semanas, sem trauma recente, em paciente com antecedente de osteossíntese com placa em maléolo lateral direito, sem melhora com analgesia oral". Negativas sobre o evento entram aqui na QD, na mesma linha, ao final da história; nunca no AP. Como o 1º atendimento é sempre traumático, as negativas padrão são "Nega traumatismo cranioencefálico. Nega perda de consciência. Nega dor em outras topografias. Nega demais queixas associadas." — NUNCA "nega história de trauma", que contradiz a queda/acidente relatado.)
 
 EXAME FÍSICO:
 Paciente em bom estado geral, lúcido e orientado, deambulando.
@@ -872,8 +875,11 @@ TEMPLATES.h = {
   nome: 'Relato / Burocracia',
   texto: `(Instrução: este modelo NÃO é um atendimento clínico estruturado. Redija um RELATO CORRIDO, em primeira pessoa, em um ou mais parágrafos curtos, SEM as seções AP, HDA/HPMA, EXAME FÍSICO, EM TEMPO ou CONDUTA e sem nenhum rótulo de seção. Registre em ordem cronológica, com linguagem formal, objetiva e neutra: o que ocorreu, quem acionou/encaminhou, horários (apenas se informados), o que foi verificado e a providência tomada. Situações típicas: paciente triado para a ortopedia cuja queixa é de outra especialidade/clínica médica; pedido de parecer direcionado à especialidade errada; enfermagem solicitando ajuste de prescrição feita por outro colega; paciente que chega com carta/encaminhamento de médico externo solicitando internação pelo PS; paciente que não comparece ao chamado. Nunca julgue, critique ou comente a conduta de colegas — descreva apenas os fatos. Não invente horários, nomes, CRM, setores, contatos ou encaminhamentos não informados. Não acrescente "Sem indicação de procedimento...", sinais de alarme, orientações de alta nem avisos de exame físico, salvo se informado.)
 
-Exemplo de estilo (apenas referência de tom — adapte aos fatos informados):
-Sou acionado pela equipe de enfermagem para avaliação de prescrição realizada por outro colega. Verifico a prescrição vigente e realizo o ajuste solicitado, conforme descrito em prescrição médica. Oriento a equipe quanto à alteração realizada.`
+QUEM NARRA: o relato é do próprio ortopedista de plantão, que na maioria das vezes é quem IDENTIFICA o problema e COMUNICA as equipes envolvidas. Escreva "Identifico...", "Constato...", "Comunico...", "Oriento...". Só escreva "Sou acionado por..." quando o médico informar expressamente que alguém o chamou.
+
+Exemplos de estilo (referência de tom — adapte aos fatos informados):
+Avalio ficha aberta para a ortopedia e identifico que a queixa do paciente não é ortopédica, tratando-se de caso de clínica médica. Comunico a equipe de recepção e de triagem quanto ao direcionamento correto do paciente e do fluxo de atendimento.
+Identifico prescrição com dose inadequada para o caso e realizo o ajuste, conforme descrito em prescrição médica. Comunico a equipe de enfermagem quanto à alteração realizada.`
 };
 
 // Atendimento completo que termina em internação: reaproveita a anamnese/exame
@@ -906,7 +912,20 @@ Nega novos traumas. Nega febre ou outros sinais flogísticos. Nega demais queixa
 
 EXAME FÍSICO:
 Paciente em bom estado geral, lúcido e orientado, deambulando.
-(Instrução: descrever os achados atuais informados — condição da imobilização/ferida operatória, dor no foco, mobilidade, exame neurovascular — cada achado em uma linha. Sem achado informado, use exame neurovascular preservado e ausência de sinais flogísticos.)
+Sem lesões cutâneas abertas, sem escoriações ou sinais de exposição óssea.
+Sem deformidades, desalinhamentos ou encurtamentos do segmento.
+Sem edema, sem abaulamentos e sem tensão de partes moles.
+Sem sinais flogísticos locais.
+Sem dor importante à palpação do foco. (Instrução: se houver dor ou outro achado informado, troque esta linha pelo achado.)
+Sem gaps palpáveis ou crepitações.
+Amplitude de movimento preservada dentro dos limites da dor.
+Sem bloqueios mecânicos ou instabilidade grosseira.
+Força motora e sensibilidade preservadas.
+Pulsos distais palpáveis e simétricos.
+Perfusão periférica adequada, com tec < 3 segundos.
+Sem sinais sugestivos de lesão vascular aguda.
+Sem sinais clínicos de trombose venosa profunda.
+(Instrução: este é o exame físico PADRÃO do retorno e deve sair completo, do mesmo jeito dos demais modelos. Só altere as linhas correspondentes ao que o médico informou — condição da imobilização, ferida operatória, dor no foco, limitação de movimento. Não resuma, não troque por frases genéricas e não acrescente linhas que o médico não informou.)
 
 EM TEMPO:
 (Instrução: descrever os exames atuais comparando com os anteriores informados — alinhamento, desvio, sinais de consolidação, calo ósseo, posição do material de síntese. Omitir se não houver exame.)`;
@@ -918,7 +937,7 @@ TEMPLATES.r1 = {
 CONDUTA:
 Sem indicação de procedimento ortopédico cirúrgico no momento.
 Mantido tratamento conservador (instrução: citar a imobilização/órtese mantida ou trocada, se informado).
-Orientado retorno ambulatorial em (instrução: prazo informado; se não informado, sinalize no topo) para reavaliação clínica e radiográfica.
+Orientado retorno ambulatorial em (instrução: prazo informado) para reavaliação clínica e radiográfica. (Instrução: sem prazo informado, sinalize no topo com ⚠️ e escreva "Orientado retorno ambulatorial para reavaliação clínica e radiográfica." — nunca "em prazo a definir".)
 Esclarecido que a evolução clínica deve ser acompanhada, podendo haver necessidade de mudança de conduta conforme evolução.
 Orientado quanto a sinais de alarme e necessidade de retorno imediato em caso de piora da dor, aumento importante do edema, alteração de sensibilidade ou força, alteração de coloração do membro, problemas com a imobilização ou outras intercorrências.
 Paciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.`
@@ -932,7 +951,7 @@ Sem indicação de procedimento ortopédico cirúrgico no momento.
 Evidenciada evolução favorável, com sinais de consolidação ao exame de imagem. (Instrução: use apenas se o médico informou consolidação/evolução favorável.)
 Liberada retirada da imobilização, com retorno progressivo às atividades e à carga conforme tolerância. (Instrução: adaptar ao que foi liberado.)
 Encaminhado para fisioterapia para reabilitação. (Instrução: incluir apenas se mencionado.)
-Orientado retorno ambulatorial em (instrução: prazo informado; se não informado, sinalize no topo) para reavaliação da evolução funcional. (Instrução: OBRIGATÓRIO — na ortopedia não existe alta do seguimento; nunca escrever "alta", "alta do seguimento" ou "alta ambulatorial".)
+Orientado retorno ambulatorial em (instrução: prazo informado) para reavaliação da evolução funcional. (Instrução: sem prazo informado, sinalize no topo com ⚠️ e escreva "Orientado retorno ambulatorial para reavaliação da evolução funcional." — nunca "em prazo a definir".) (Instrução: OBRIGATÓRIO — na ortopedia não existe alta do seguimento; nunca escrever "alta", "alta do seguimento" ou "alta ambulatorial".)
 Esclarecido que a recuperação funcional é gradual, podendo haver dor residual e limitação transitória durante a reabilitação.
 Orientado quanto a sinais de alarme e necessidade de retorno imediato em caso de piora da dor, novo trauma, deformidade, alteração de sensibilidade ou força ou outras intercorrências.
 Paciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.`
@@ -953,7 +972,7 @@ const NOMES_TIPO = {
   retorno: 'Retorno ambulatorial (paciente em seguimento, com um ou mais atendimentos prévios em outros dias; não é a reavaliação de hoje)'
 };
 
-function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial }) {
+function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje }) {
   const templatesEscolhidos = String(template)
     .split('+')
     .map(t => t.trim())
@@ -966,6 +985,9 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
     .join('\n\n');
 
   let partes = [];
+  if (dataHoje) {
+    partes.push(`DATA DE HOJE: ${dataHoje}. Use-a só para completar o ano de datas informadas sem ano e para interpretar "hoje", "ontem", "semana passada". Nunca crie datas que o médico não informou.`);
+  }
   partes.push(`TIPO DE ATENDIMENTO: ${NOMES_TIPO[tipoAtendimento] || tipoAtendimento}`);
 
   const ehRelato = templatesEscolhidos.includes('h');
