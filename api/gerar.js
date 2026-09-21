@@ -79,6 +79,7 @@ export default async function handler(req, res) {
 // (independem do modelo seguir ou não a regra do prompt).
 function posProcessarProntuario(texto) {
   let t = String(texto || '');
+  t = limparCaracteresEstranhos(t);
   t = removerAvisosGenericos(t);
   t = juntarNegativasDaHistoria(t);
   t = removerOfertaDeRxSeRxAvaliado(t);
@@ -93,6 +94,17 @@ function posProcessarProntuario(texto) {
     // Palavras em inglês / trocas já observadas nas saídas do modelo
     .replace(/\blimitations\b/gi, 'limitações')
     .replace(/fases internas/gi, 'fases iniciais');
+}
+
+// O modelo leve às vezes "vaza" pontuação chinesa/japonesa ou corta palavra no meio (ex: "pronto-sor、").
+function limparCaracteresEstranhos(texto) {
+  return texto
+    .replace(/pronto-so[a-zç]{0,4}(?=[、。，\s,.;]|$)/gi, m => /pronto-socorro/i.test(m) ? m : 'pronto-socorro')
+    .replace(/[、，]/g, ', ')
+    .replace(/[。]/g, '. ')
+    .replace(/[\u3000-\u303F\u3040-\u30FF\u4E00-\u9FFF\uFF00-\uFFEF]/g, '')
+    .replace(/ {2,}/g, ' ')
+    .replace(/ ([,.])/g, '$1');
 }
 
 // Avisos que não dizem qual dado falta não ajudam no plantão: saem do texto.
@@ -281,6 +293,9 @@ function regrasDocumentacao() {
 - DATAS E NÚMEROS INFORMADOS: nunca troque o dia, o mês ou o ano que o médico escreveu. A única coisa que você completa é o formato: toda data vai para DD/MM/AAAA (ex: "08/08" com a data de hoje em 2026 vira "08/08/2026"; "07/26" vira "07/2026"). Use a DATA DE HOJE informada no contexto para deduzir o ano: se o dia/mês informado já passou neste ano, é deste ano; se cair no futuro, é do ano anterior. Nunca escreva data incompleta nem invente dia quando só houver mês e ano.
 - PROIBIDO DEIXAR LACUNA NO TEXTO: nunca escreva "a definir", "a combinar", "XX", "(informar)", "[data]" ou qualquer espaço reservado. Se faltar o dado (prazo de retorno, lado, tempo de evolução), sinalize no topo com ⚠️ e escreva a frase de forma genérica, sem o dado — ex: sem prazo informado, "Orientado retorno ambulatorial para reavaliação da evolução funcional.", nunca "em prazo a definir".
 - QUEM RELATA x QUEM CONSTATA: o paciente relata sintomas e história (dor, melhora, limitação, queixas, o que aconteceu). O médico constata achados (consolidação, sinais de fratura, alinhamento, resultado de imagem, achados de exame físico, diagnóstico). Nunca escreva "paciente refere que está consolidado", "refere fratura consolidada" ou "refere melhora radiográfica". O que o médico constatou vai para EXAME FÍSICO, EM TEMPO ou CONDUTA, em primeira pessoa ou em voz passiva — ex: "Evidenciados sinais de consolidação ao exame de imagem". O que o paciente conta fica na história, com "refere".
+- VERBO NA 1ª PESSOA É ATO DO MÉDICO: quando o médico escreve "retiro", "realizo", "imobilizo", "solicito", "oriento", "reduzo", "suturo", foi ELE quem fez. Registre como procedimento/conduta do médico (ex: "Realizada retirada de aliança do 4º quirodáctilo esquerdo, sem intercorrências."), nunca como algo que o paciente relatou ter feito.
+- NÃO ACRESCENTE FATOS: não invente de onde o paciente veio, unidade de origem, encaminhamento, mecanismo, comorbidade ou tratamento que não esteja nos dados, nas imagens ou nos atendimentos anteriores. Na dúvida, omita. Uma frase a menos é melhor que um fato errado.
+- CONSOLIDAÇÃO É PROCESSO: fratura em acompanhamento está "em processo de consolidação" / "com sinais de consolidação óssea em curso". Só escreva "consolidada" ou "consolidação completa" se o médico disser isso com essas palavras.
 - QUEDA, ACIDENTE E TORÇÃO SÃO TRAUMA: se a história tem queda, acidente, torção, entorse, esmagamento ou pancada, o caso É traumático. Nunca escreva "nega história de trauma" nesses casos — isso torna o texto incoerente. Nos casos de trauma, as negativas de rotina são "Nega traumatismo cranioencefálico. Nega perda de consciência. Nega dor em outras topografias. Nega demais queixas associadas.", na mesma linha, e essas negativas ficam na história (QD/HDA), nunca no AP.
 - DEAMBULAÇÃO: por padrão o paciente deambula, e a primeira linha do EXAME FÍSICO é "Paciente em bom estado geral, lúcido e orientado, deambulando.". Só retire "deambulando" quando o médico marcar que o paciente não deambula (cadeira de rodas/acamado) ou informar incapacidade de apoio/marcha; nesse caso descreva apenas o que foi informado (ex: "em cadeira de rodas", "restrito ao leito").
 - EXAME NORMAL NÃO É "COMPATÍVEL COM": se o médico disse que a radiografia está normal, "sem grandes achados" ou sem alterações, use a frase padrão de exame normal no EM TEMPO e nunca acrescente "compatível com [diagnóstico]". Um exame sem achados não pode ser compatível com uma doença. Só descreva achado radiográfico específico (ex: proeminência posterossuperior do calcâneo) se o médico informou esse achado no exame.
@@ -905,7 +920,7 @@ TEMPLATES.bg = {
 const ANAMNESE_RETORNO = `AP: nega alergias. (Instrução: incluir antecedentes informados.)
 
 HDA:
-Paciente em seguimento ortopédico por (instrução: lesão/fratura informada, com lado e data do trauma ou do diagnóstico), em (instrução: tratamento em curso informado — conservador com imobilização X, pós-operatório de Y em DD/MM, etc.).
+Paciente em seguimento ortopédico por (instrução: lesão/fratura com lado), com trauma em (instrução: data DD/MM/AAAA), em (instrução: tratamento em curso — ex: tratamento conservador com robofoot), totalizando cerca de (instrução: X semanas desde o trauma e Y semanas de imobilização, usando os valores do bloco TEMPO CALCULADO; omita o que não puder ser calculado). (Instrução: esta primeira linha contém SÓ lesão, data do trauma, tratamento e o tempo — sem unidade de origem, encaminhamento ou mecanismo, que vêm nas linhas seguintes apenas se informados.)
 (Instrução: resumir em ordem cronológica cada atendimento prévio informado, com a data e o que foi feito em cada um — ex: "Em 02/09, avaliado no PS, realizada imobilização com tala gessada. Em 12/09, retorno com manutenção da conduta." Não inventar atendimentos nem datas.)
 Retorna hoje para reavaliação ambulatorial (instrução: acrescente "com resultado de exame" se trouxe exame). (Instrução: queixas atuais informadas; se sem queixas, "Refere melhora da dor, sem queixas no momento".)
 Nega novos traumas. Nega febre ou outros sinais flogísticos. Nega demais queixas associadas.
@@ -930,6 +945,16 @@ Sem sinais clínicos de trombose venosa profunda.
 EM TEMPO:
 (Instrução: descrever os exames atuais comparando com os anteriores informados — alinhamento, desvio, sinais de consolidação, calo ósseo, posição do material de síntese. Omitir se não houver exame.)`;
 
+TEMPLATES.r0 = {
+  nome: 'Retorno — pede RX e reavalia após',
+  texto: ANAMNESE_RETORNO.split('\n\nEM TEMPO:')[0] + `
+
+CONDUTA:
+Solicito radiografias de controle (instrução: segmento e lado acometidos).
+Reavaliação após o resultado dos exames.
+(Instrução: esta é a PRIMEIRA ETAPA do retorno — o médico pediu RX e vai reavaliar depois. A conduta tem SÓ estas duas linhas, sem EM TEMPO, sem desfecho, sem orientações de alta e sem "Sem indicação de procedimento...". Na HDA, termine a linha de hoje sem citar o exame pedido.)`
+};
+
 TEMPLATES.r1 = {
   nome: 'Retorno — mantém conservador',
   texto: ANAMNESE_RETORNO + `
@@ -948,7 +973,7 @@ TEMPLATES.r2 = {
 
 CONDUTA:
 Sem indicação de procedimento ortopédico cirúrgico no momento.
-Evidenciada evolução favorável, com sinais de consolidação ao exame de imagem. (Instrução: use apenas se o médico informou consolidação/evolução favorável.)
+Evidenciada evolução favorável, com sinais de consolidação óssea em curso ao exame de imagem. (Instrução: use apenas se o médico informou boa evolução/consolidação; só escreva "consolidada" se ele disser isso.)
 Liberada retirada da imobilização, com retorno progressivo às atividades e à carga conforme tolerância. (Instrução: adaptar ao que foi liberado.)
 Encaminhado para fisioterapia para reabilitação. (Instrução: incluir apenas se mencionado.)
 Orientado retorno ambulatorial em (instrução: prazo informado) para reavaliação da evolução funcional. (Instrução: sem prazo informado, sinalize no topo com ⚠️ e escreva "Orientado retorno ambulatorial para reavaliação da evolução funcional." — nunca "em prazo a definir".) (Instrução: OBRIGATÓRIO — na ortopedia não existe alta do seguimento; nunca escrever "alta", "alta do seguimento" ou "alta ambulatorial".)
@@ -964,6 +989,40 @@ TEMPLATES.r4 = {
   nome: 'Retorno — internação',
   texto: ANAMNESE_RETORNO + '\n\n' + TEMPLATES.f.texto.slice(TEMPLATES.f.texto.indexOf('CONDUTA:'))
 };
+
+// Converte "DD/MM" ou "DD/MM/AAAA" em Date, completando o ano pela data de hoje.
+function lerData(txt, hoje) {
+  const m = String(txt).match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (!m) return null;
+  const dia = +m[1], mes = +m[2];
+  if (dia < 1 || dia > 31 || mes < 1 || mes > 12) return null;
+  let ano = m[3] ? +m[3] : hoje.getFullYear();
+  if (ano < 100) ano += 2000;
+  let d = new Date(ano, mes - 1, dia);
+  if (!m[3] && d > hoje) d = new Date(ano - 1, mes - 1, dia);
+  return d;
+}
+
+// Lista cada data encontrada nos atendimentos com o tempo até hoje (semanas + dias).
+function calcularTempos(texto, dataHoje) {
+  const mh = String(dataHoje || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (!mh) return '';
+  const hoje = new Date(+mh[3], +mh[2] - 1, +mh[1]);
+  const vistas = new Set();
+  const linhas = [];
+  (String(texto).match(/\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g) || []).forEach(t => {
+    const d = lerData(t, hoje);
+    if (!d || d > hoje) return;
+    const chave = d.toISOString().slice(0, 10);
+    if (vistas.has(chave)) return;
+    vistas.add(chave);
+    const dias = Math.round((hoje - d) / 86400000);
+    const sem = Math.floor(dias / 7), resto = dias % 7;
+    const dd = String(d.getDate()).padStart(2, '0'), mm = String(d.getMonth() + 1).padStart(2, '0');
+    linhas.push(`- ${dd}/${mm}/${d.getFullYear()}: ${dias} dias atrás (${sem} semana${sem === 1 ? '' : 's'}${resto ? ` e ${resto} dia${resto === 1 ? '' : 's'}` : ''}; escreva "cerca de ${resto >= 4 ? sem + 1 : sem} semanas")`);
+  });
+  return linhas.join('\n');
+}
 
 const NOMES_TIPO = {
   inicial: 'Atendimento inicial (paciente será reavaliado depois, ainda sem desfecho)',
@@ -998,7 +1057,7 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
       : acompanhante === 'idoso'
         ? 'por familiar/cuidador (use "filha", "filho", "cuidador(a)" ou "familiar" conforme informado)'
         : 'por acompanhante (ex: pai, mãe, familiar ou cuidador, conforme informado)';
-    partes.push(`\nHISTÓRIA RELATADA ${relator}. Identifique o relator na HDA/HPMA/QD, nunca no EXAME FÍSICO. Ajuste as linhas de esclarecimento/orientação conforme quem efetivamente recebeu as orientações. Não confunda relator com paciente examinado nem presuma que ambos receberam orientações.`);
+    partes.push(`\nHISTÓRIA RELATADA ${relator}. Quem conta a história é o acompanhante, então ELE é o sujeito do verbo: "Filha relata que a paciente prensou o 4º dedo da mão esquerda na porta do carro...". Nunca misture as duas vozes ("conforme relato da filha, paciente refere..." não faz sentido). Não use termos técnicos que o acompanhante não diria como se fossem fala dele ("trauma contuso", "entorse", "fratura") — descreva o mecanismo como foi contado. Identifique o relator na HDA/HPMA/QD, nunca no EXAME FÍSICO. Ajuste as linhas de esclarecimento/orientação conforme quem efetivamente recebeu as orientações. Não confunda relator com paciente examinado nem presuma que ambos receberam orientações.`);
   }
 
   if (!ehRelato) {
@@ -1019,6 +1078,10 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
     partes.push(`\nATENDIMENTOS PRÉVIOS (um ou mais, em datas anteriores, possivelmente de outros profissionais; resumir em ordem cronológica com as datas, sem apresentar como avaliação de hoje):\n${atendimentoInicial}`);
   }
   if (tipoAtendimento === 'retorno') {
+    const tempo = calcularTempos(`${atendimentoInicial || ''}\n${dadosCaso || ''}`, dataHoje);
+    if (tempo) partes.push(`\nTEMPO CALCULADO (já calculado a partir das datas; use estes valores, não recalcule):\n${tempo}`);
+  }
+  if (tipoAtendimento === 'retorno' && !templatesEscolhidos.includes('r0')) {
     partes.push(`\nRETORNO AMBULATORIAL: na ortopedia não existe alta do seguimento. Todo retorno termina com novo retorno ambulatorial com prazo (o informado pelo médico; se não informado, sinalize no topo). Nunca escreva "alta", "alta do seguimento" ou "alta ambulatorial".`);
   }
 
@@ -1109,7 +1172,8 @@ HOSPITAL DE ORIGEM: [hospital]
 OBS: [opcional, apenas quando clinicamente relevante]
 
 REGRAS DESTE MODELO:
-- Valores padrão, salvo indicação contrária do médico: ANTICOAGULANTE = NÃO, MARCAPASSO = NÃO, HOSPITAL DE ORIGEM = HSM MADRID
+- Valores padrão, salvo indicação contrária do médico: ANTICOAGULANTE = NÃO, MARCAPASSO = NÃO, HOSPITAL DE ORIGEM = HSM SANTIAGO
+- IDADE: apenas os anos completos seguidos de "ANOS" (ex: "62 ANOS"). Nunca meses ("62A 2M"), nunca data de nascimento
 - Campos ausentes devem ser sinalizados explicitamente na linha de aviso do topo. No corpo da mensagem, deixe a linha com o rótulo mas sem o valor (ex: "TELEFONE: "), exatamente como ficaria se o médico tivesse esquecido de preencher à mão — nunca escreva "NÃO INFORMADO" nem invente um valor. O texto final deve parecer uma ficha preenchida manualmente com uma lacuna esquecida, não um formulário gerado por IA
 - HD com precisão anatômica: inclua lateralidade (direito/esquerdo) e localização (ex: "extremidade distal", "terço proximal"). Se o médico informou de forma imprecisa, proponha a terminologia padronizada e sinalize a sugestão no aviso do topo para ele confirmar
 - A linha OBS só entra quando houver algo clinicamente relevante; caso contrário, omita a linha inteira
