@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "api/gerar.js": { "maxDuration": 60 }
+  },
   "headers": [
     {
       "source": "/(.*)",

@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ erro: 'Método não permitido' });
   }
 
-  const { pin, tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, modo, dataHoje, imagens, resultadoAnterior, instrucaoAjuste, categoria, exemplos, pedido, tipoAtestado, diasAfastamento, diagnosticoAtestado } = req.body;
+  const { pin, tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, encaminhamentos, modo, dataHoje, imagens, resultadoAnterior, instrucaoAjuste, categoria, exemplos, pedido, tipoAtestado, diasAfastamento, diagnosticoAtestado } = req.body;
 
   if (!process.env.SITE_PIN || pin !== process.env.SITE_PIN) {
     return res.status(401).json({ erro: 'PIN incorreto' });
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
       : (ehMensagem ? montarPromptSistemaMensagem() : montarPromptSistema()));
 
   const contextoAjuste = ehAjuste && !ehMensagem && !ehAvulso
-    ? `CONTEXTO ORIGINAL (fonte para cronologia e autoria; não é uma nova ordem de geração):\n${montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje })}\n\n`
+    ? `CONTEXTO ORIGINAL (fonte para cronologia e autoria; não é uma nova ordem de geração):\n${montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje, encaminhamentos })}\n\n`
     : '';
 
   const contents = ehAjuste
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
           ? montarPromptAvulso({ categoria, exemplos, pedido, tipoAtestado, diasAfastamento, diagnosticoAtestado })
           : (ehMensagem
             ? montarPromptMensagem({ dadosCaso, template, dataHoje })
-            : montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje })),
+            : montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje, encaminhamentos })),
         imagens
       ) }];
 
@@ -80,6 +80,10 @@ export default async function handler(req, res) {
 function posProcessarProntuario(texto) {
   let t = String(texto || '');
   t = limparCaracteresEstranhos(t);
+  t = corrigirEspanholETipos(t);
+  t = siglasDosDedos(t);
+  t = removerNegaTraumaSeHouveTrauma(t);
+  t = separarNegativasDaHistoria(t);
   t = removerAvisosGenericos(t);
   t = juntarNegativasDaHistoria(t);
   t = removerOfertaDeRxSeRxAvaliado(t);
@@ -105,6 +109,48 @@ function limparCaracteresEstranhos(texto) {
     .replace(/[\u3000-\u303F\u3040-\u30FF\u4E00-\u9FFF\uFF00-\uFFEF]/g, '')
     .replace(/ {2,}/g, ' ')
     .replace(/ ([,.])/g, '$1');
+}
+
+// Palavras em espanhol que o modelo leve às vezes solta, e erros recorrentes.
+function corrigirEspanholETipos(texto) {
+  return texto
+    .replace(/\b(\p{L}+)ción\b/gu, '$1ção')
+    .replace(/\b(\p{L}+)ciones\b/gu, '$1ções')
+    .replace(/\badecuad/gi, m => m[0] === 'A' ? 'Adequad' : 'adequad')
+    .replace(/\btolerorad/gi, 'tolerad')
+    .replace(/\s+$/, '')
+    .split('\n').map(l => (/quirod[áa]ctilo/i.test(l) && /(^|[^\p{L}])p[ée]s?(?![\p{L}])/iu.test(l) && !/(^|[^\p{L}])m[ãa]os?(?![\p{L}])/iu.test(l))
+      ? l.replace(/quirod[áa]ctilo/gi, m => m[0] === 'Q' ? 'Pododáctilo' : 'pododáctilo') : l).join('\n');
+}
+
+// "Nega história de trauma" num caso com queda/trauma/agressão é contraditório: sai.
+// "quinto pododáctilo do pé direito" / "3º quirodáctilo da mão esquerda" -> "5º PDD" / "3º QDE"
+function siglasDosDedos(texto) {
+  const ord = { primeiro: 1, segundo: 2, terceiro: 3, quarto: 4, quinto: 5 };
+  const re = /(primeiro|segundo|terceiro|quarto|quinto|[1-5])\s*[ºo°]?\s+(pododáctilo|pododactilo|quirodáctilo|quirodactilo)(?:\s+d[aoe]\s+(?:pé|pe|mão|mao))?\s+(direit[oa]|esquerd[oa])/gi;
+  return texto.replace(re, (m, n, dedo, lado) => {
+    const num = ord[String(n).toLowerCase()] || n;
+    const tipo = /^pod/i.test(dedo) ? 'PD' : 'QD';
+    const l = /^d/i.test(lado) ? 'D' : 'E';
+    return `${num}º ${tipo}${l}`;
+  });
+}
+
+function removerNegaTraumaSeHouveTrauma(texto) {
+  const historia = (texto.match(/^\s*(QD|HDA|HPMA)\s*:.*$/gim) || []).join(' ');
+  const semNegativas = historia.replace(/Nega[^.]*\./gi, '');
+  if (!/(queda|trauma (direto|torcional|contuso)|tor[çc][aã]o|entorse|acidente|agress|prens|atropel|colis[aã]o|pancada|esmagamento|trauma em|trauma no|trauma na)/i.test(semNegativas)) return texto;
+  return texto.replace(/ ?Nega hist[óo]ria de trauma[^.]*\.[ \t]*/gi, ' ').replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n');
+}
+
+// Negativas grudadas no fim da linha da QD/HDA/HPMA vão para a linha de baixo.
+function separarNegativasDaHistoria(texto) {
+  return texto.split('\n').map(l => {
+    if (!/^\s*(QD|HDA|HPMA)\s*:/i.test(l)) return l;
+    const i = l.search(/\.\s+Nega\b/);
+    if (i === -1) return l;
+    return l.slice(0, i + 1) + '\n' + l.slice(i + 1).trim();
+  }).join('\n');
 }
 
 // Avisos que não dizem qual dado falta não ajudam no plantão: saem do texto.
@@ -219,10 +265,18 @@ function extrairTexto(data) {
 }
 
 async function chamarGemini(promptSistema, contents, temperature, apiKey, res, silencioso) {
-  const agora = Date.now();
   const modelos = listaModelos();
   let ultimoErro = '';
+  let houveSobrecarga = false;
 
+  // Até 2 rodadas: se todos os modelos estiverem sobrecarregados (503/500/504/rede), espera e tenta de novo.
+  for (let rodada = 0; rodada < 2; rodada++) {
+  if (rodada > 0) {
+    if (!houveSobrecarga) break;
+    await new Promise(r => setTimeout(r, 2500));
+    houveSobrecarga = false;
+  }
+  const agora = Date.now();
   for (let i = 0; i < modelos.length; i++) {
     const modelo = modelos[i];
     const ehUltimo = i === modelos.length - 1;
@@ -245,6 +299,7 @@ async function chamarGemini(promptSistema, contents, temperature, apiKey, res, s
       data = await resposta.json().catch(() => ({}));
     } catch (e) {
       ultimoErro = e.message || 'falha de rede';
+      houveSobrecarga = true;
       console.error(`Gemini ${modelo}: falha de rede`, e);
       continue;
     }
@@ -261,7 +316,10 @@ async function chamarGemini(promptSistema, contents, temperature, apiKey, res, s
         pausaAte.set(modelo, Date.now() + (diaria ? 60 * 60 * 1000 : 60 * 1000));
         continue;
       }
-      if (STATUS_PULAR_MODELO.has(resposta.status)) continue;
+      if (STATUS_PULAR_MODELO.has(resposta.status)) {
+        if (resposta.status !== 404) houveSobrecarga = true;
+        continue;
+      }
 
       // outros erros (ex: requisição inválida) não mudam trocando de modelo
       break;
@@ -274,10 +332,15 @@ async function chamarGemini(promptSistema, contents, temperature, apiKey, res, s
     res.locals.modeloUsado = modelo;
     return texto;
   }
+  }
 
   if (!silencioso) {
-    const detalhe = ultimoErro ? ` (${ultimoErro})` : '';
-    res.status(502).json({ erro: `Erro ao gerar o texto${detalhe}` });
+    const sobrecarga = /high demand|overloaded|unavailable|503|try again/i.test(ultimoErro);
+    res.status(502).json({
+      erro: sobrecarga
+        ? 'O Gemini está sobrecarregado agora (instabilidade do Google, não do site). Já tentei os modelos disponíveis duas vezes. Espere alguns segundos e clique em gerar de novo — seus dados continuam na tela.'
+        : `Erro ao gerar o texto${ultimoErro ? ` (${ultimoErro})` : ''}`
+    });
   }
   return null;
 }
@@ -293,10 +356,19 @@ function regrasDocumentacao() {
 - DATAS E NÚMEROS INFORMADOS: nunca troque o dia, o mês ou o ano que o médico escreveu. A única coisa que você completa é o formato: toda data vai para DD/MM/AAAA (ex: "08/08" com a data de hoje em 2026 vira "08/08/2026"; "07/26" vira "07/2026"). Use a DATA DE HOJE informada no contexto para deduzir o ano: se o dia/mês informado já passou neste ano, é deste ano; se cair no futuro, é do ano anterior. Nunca escreva data incompleta nem invente dia quando só houver mês e ano.
 - PROIBIDO DEIXAR LACUNA NO TEXTO: nunca escreva "a definir", "a combinar", "XX", "(informar)", "[data]" ou qualquer espaço reservado. Se faltar o dado (prazo de retorno, lado, tempo de evolução), sinalize no topo com ⚠️ e escreva a frase de forma genérica, sem o dado — ex: sem prazo informado, "Orientado retorno ambulatorial para reavaliação da evolução funcional.", nunca "em prazo a definir".
 - QUEM RELATA x QUEM CONSTATA: o paciente relata sintomas e história (dor, melhora, limitação, queixas, o que aconteceu). O médico constata achados (consolidação, sinais de fratura, alinhamento, resultado de imagem, achados de exame físico, diagnóstico). Nunca escreva "paciente refere que está consolidado", "refere fratura consolidada" ou "refere melhora radiográfica". O que o médico constatou vai para EXAME FÍSICO, EM TEMPO ou CONDUTA, em primeira pessoa ou em voz passiva — ex: "Evidenciados sinais de consolidação ao exame de imagem". O que o paciente conta fica na história, com "refere".
-- VERBO NA 1ª PESSOA É ATO DO MÉDICO: quando o médico escreve "retiro", "realizo", "imobilizo", "solicito", "oriento", "reduzo", "suturo", foi ELE quem fez. Registre como procedimento/conduta do médico (ex: "Realizada retirada de aliança do 4º quirodáctilo esquerdo, sem intercorrências."), nunca como algo que o paciente relatou ter feito.
+- VERBO NA 1ª PESSOA É ATO DO MÉDICO: quando o médico escreve "retiro", "realizo", "imobilizo", "solicito", "oriento", "reduzo", "suturo", foi ELE quem fez. Registre como procedimento/conduta do médico (ex: "Realizada retirada de aliança do 4º QDE, sem intercorrências."), nunca como algo que o paciente relatou ter feito.
 - NÃO ACRESCENTE FATOS: não invente de onde o paciente veio, unidade de origem, encaminhamento, mecanismo, comorbidade ou tratamento que não esteja nos dados, nas imagens ou nos atendimentos anteriores. Na dúvida, omita. Uma frase a menos é melhor que um fato errado.
 - CONSOLIDAÇÃO É PROCESSO: fratura em acompanhamento está "em processo de consolidação" / "com sinais de consolidação óssea em curso". Só escreva "consolidada" ou "consolidação completa" se o médico disser isso com essas palavras.
-- QUEDA, ACIDENTE E TORÇÃO SÃO TRAUMA: se a história tem queda, acidente, torção, entorse, esmagamento ou pancada, o caso É traumático. Nunca escreva "nega história de trauma" nesses casos — isso torna o texto incoerente. Nos casos de trauma, as negativas de rotina são "Nega traumatismo cranioencefálico. Nega perda de consciência. Nega dor em outras topografias. Nega demais queixas associadas.", na mesma linha, e essas negativas ficam na história (QD/HDA), nunca no AP.
+- QUEDA, ACIDENTE, TORÇÃO E AGRESSÃO SÃO TRAUMA: se a história tem queda, acidente, torção, entorse, esmagamento, agressão, pancada ou trauma direto, o caso É traumático. Nunca escreva "nega história de trauma" nesses casos — isso torna o texto incoerente. Nos casos de trauma, as negativas de rotina são "Nega TCE. Nega perda de consciência. Nega dor em outras topografias. Nega demais queixas associadas." Essas negativas ficam na história, numa linha própria logo ABAIXO da linha da QD/HDA (todas juntas na mesma linha), nunca grudadas no fim da frase da história e nunca no AP.
+- ORDEM DA HISTÓRIA DE TRAUMA: primeiro o mecanismo, depois a evolução — "QD: trauma torcional e direto no joelho direito decorrente de queda ao nível do solo, evoluindo com dor e edema na face anterior e lateral do joelho direito." Nunca comece pelos sintomas para depois explicar o trauma.
+- NOME E MATRÍCULA NÃO ENTRAM NO TEXTO: o médico costuma colar nome completo e matrícula/registro no início dos dados só para identificar o caso. Nunca escreva o nome do paciente nem a matrícula no prontuário (o sistema do hospital já identifica).
+- TELEFONE DO PACIENTE ENTRA: se o médico informar telefone(s) do paciente ou do acompanhante, registre na última linha do texto, exatamente como informado: "Telefone para contato: 99943-0428 / 99988-1793." (no modelo de relato, pode entrar no próprio relato). Não gere aviso ⚠️ por haver telefone ou mais de um número.
+- PRESCRITO x REALIZADO: "analgesia", "med", "medicação" nos dados significa que o médico PRESCREVEU. Escreva "Prescrita analgesia." / "Prescrita medicação analgésica.". Só escreva "Realizada medicação" se o médico disser que já foi feita/administrada ("fez", "realizada", "administrada", "após medicação").
+- ESTADO GERAL COERENTE COM OS DADOS: "Paciente em bom estado geral, lúcido e orientado, deambulando." é só o padrão. Se os dados trazem confusão mental, agitação, delirium, rebaixamento, hipocontactuante, sonolência ou gravidade clínica, a primeira linha do exame tem que refletir isso (ex: "Paciente em regular estado geral, confusa, hipocontactuante, em cadeira de rodas.") — nunca "lúcido e orientado" junto de confusão mental.
+- DEDOS — USE AS SIGLAS: dedo da mão = QD (quirodáctilo); dedo do pé = PD (pododáctilo). Escreva sempre número ordinal + sigla com o lado: QDD = quirodáctilo direito, QDE = quirodáctilo esquerdo, PDD = pododáctilo direito, PDE = pododáctilo esquerdo. Ex: "Dor à palpação da falange distal do 5º PDD.", "Edema em IFP do 3º QDE.". Nunca escreva por extenso ("quinto quirodáctilo da mão direita") nem "quirodáctilo do pé". Se o lado não foi informado, use "5º pododáctilo"/"3º quirodáctilo" por extenso e sinalize o lado no topo.
+- RADIOGRAFIA NORMAL COM ACHADO À PARTE: se o RX não tem lesão aguda mas tem um achado incidental ou crônico pontual, use a frase padrão longa do RX normal inteira e acrescente a ressalva no fim — ex: "Avalio radiografias do segmento acometido, sem evidências de fraturas, luxações ou outras alterações osteoarticulares agudas, dentro das limitações e sensibilidade do método, passíveis de não identificação em fases iniciais ou em lesões de baixa expressão radiográfica, exceto por achado incidental na fíbula."
+- AVISOS ⚠️ SÓ PARA O QUE FALTA OU CONFLITA: nunca escreva aviso para informação que FOI fornecida ("Contato telefônico fornecido", "Relato prestado pela filha", "Antecedente de baixa cognição", "Solicitação de remarcação"). Aviso é para dado ausente ou contraditório que o médico precisa corrigir antes de copiar.
+- SÓ PORTUGUÊS DO BRASIL: nunca use palavras em espanhol ("mobilización", "adecuada", "tolerancia") nem em outro idioma.
 - DEAMBULAÇÃO: por padrão o paciente deambula, e a primeira linha do EXAME FÍSICO é "Paciente em bom estado geral, lúcido e orientado, deambulando.". Só retire "deambulando" quando o médico marcar que o paciente não deambula (cadeira de rodas/acamado) ou informar incapacidade de apoio/marcha; nesse caso descreva apenas o que foi informado (ex: "em cadeira de rodas", "restrito ao leito").
 - EXAME NORMAL NÃO É "COMPATÍVEL COM": se o médico disse que a radiografia está normal, "sem grandes achados" ou sem alterações, use a frase padrão de exame normal no EM TEMPO e nunca acrescente "compatível com [diagnóstico]". Um exame sem achados não pode ser compatível com uma doença. Só descreva achado radiográfico específico (ex: proeminência posterossuperior do calcâneo) se o médico informou esse achado no exame.
 - EXAME FÍSICO: mantenha detalhamento organizado, com cada achado em uma linha. Quando houver dados suficientes, organize por inspeção, palpação, mobilidade, estabilidade e avaliação neurovascular, preservando os títulos do modelo. Preserve os achados e negativas padrão pertinentes, substituindo os contraditos. Não acrescente edema, claudicação, dor em tendões adjacentes, medidas, pulsos específicos ou manobras especiais não informados só por serem plausíveis para o diagnóstico. Não converta achado típico em achado observado. Manobras nomeadas e seus resultados só entram quando fornecidos. Uma dor no navicular não autoriza inventar dor nos tendões tibiais nem testes de gaveta/varo/valgo negativos.
@@ -313,7 +385,7 @@ function regrasDocumentacao() {
 - EXAME FÍSICO DE COLUNA: quando o segmento acometido for coluna (pela queixa, pelo texto ou pela imagem), o exame não pode ficar com linhas de membro. Troque a linha "Sem deformidades, desalinhamentos ou encurtamentos do segmento." por "Sem deformidades ou desalinhamentos evidentes da coluna." (mantendo a negativa), cite a dor à palpação na topografia do nível acometido (ex: "Dor à palpação de processos espinhosos em transição toracolombar"), troque "Força motora e sensibilidade preservadas." por "Força motora e sensibilidade preservadas em membros superiores e inferiores, sem déficits neurológicos evidentes ao exame segmentar." e acrescente "Sem sinais clínicos de mielopatia ou síndrome da cauda equina." e "Reflexos patológicos ausentes (Hoffman, Clônus, Babinski e Oppenheim).", salvo achado contrário informado. "Amplitude de movimento preservada" não se aplica a coluna fraturada: use "Mobilidade da coluna não testada/limitada pela dor" apenas conforme o contexto, ou omita.
 - LETRA MINÚSCULA APÓS RÓTULO: na mesma linha de "AP:", "QD:", "HDA:" ou "HPMA:", a primeira palavra após os dois-pontos começa com letra minúscula (ex: "HPMA: paciente refere lombalgia crônica..."; "QD: dor em tornozelo direito..."), exceto siglas e nomes próprios. Linhas seguintes da seção começam com maiúscula normalmente.
 - SOLICITADO ≠ REALIZADO: respeite exatamente o tempo verbal e o status de cada ação informada. "Pedi/solicitei/vou pedir RX e TC" → "Solicito radiografias e tomografia computadorizada."; nunca "Realizados exames de imagem". Só use "Realizado(a)" para exame, medicação, procedimento ou imobilização que o médico disse que já foi feito. Exame apenas solicitado não gera EM TEMPO nem achado; o desfecho vira "Reavaliação após resultado dos exames". O mesmo vale para analgesia: "prescrevi" → "Prescrita analgesia"; só "Realizada analgesia" se foi administrada.
-- ELABORAR, NÃO TRANSCREVER: frases de raciocínio ou impressões soltas do médico (ex: "tempo de fratura e imobilização considerável, dor articular pela doença reumatológica, sem dor no foco da fratura", "RX comparado mantendo padrão") nunca são coladas como uma frase única em uma seção. Decomponha cada informação e leve-a à seção correta, redigida em linguagem médica completa: queixa e contexto na HDA/HPMA ("Refere dor articular em 4º quirodáctilo esquerdo, relacionada ao quadro reumatológico de base, sem dor em topografia da fratura."); achado de exame no EXAME FÍSICO, em linhas próprias, substituindo as linhas padrão correspondentes ("Indolor à palpação do foco de fratura." / "Dor à palpação articular em 4º quirodáctilo esquerdo."); exame de imagem no EM TEMPO, descrevendo o exame, o segmento e a comparação ("Avalio radiografias atuais do 4º quirodáctilo esquerdo, comparadas ao exame prévio, mantendo o mesmo padrão e alinhamento da fratura da falange proximal, sem alterações em relação ao controle anterior."); decisão na CONDUTA. Não acrescente dados que não estejam implícitos no que foi informado.
+- ELABORAR, NÃO TRANSCREVER: frases de raciocínio ou impressões soltas do médico (ex: "tempo de fratura e imobilização considerável, dor articular pela doença reumatológica, sem dor no foco da fratura", "RX comparado mantendo padrão") nunca são coladas como uma frase única em uma seção. Decomponha cada informação e leve-a à seção correta, redigida em linguagem médica completa: queixa e contexto na HDA/HPMA ("Refere dor articular em 4º QDE, relacionada ao quadro reumatológico de base, sem dor em topografia da fratura."); achado de exame no EXAME FÍSICO, em linhas próprias, substituindo as linhas padrão correspondentes ("Indolor à palpação do foco de fratura." / "Dor à palpação articular em 4º QDE."); exame de imagem no EM TEMPO, descrevendo o exame, o segmento e a comparação ("Avalio radiografias atuais do 4º QDE, comparadas ao exame prévio, mantendo o mesmo padrão e alinhamento da fratura da falange proximal, sem alterações em relação ao controle anterior."); decisão na CONDUTA. Não acrescente dados que não estejam implícitos no que foi informado.
 - COERÊNCIA QUEIXA × EXAME: o EXAME FÍSICO nunca pode contradizer a QD/HDA/HPMA. Se a queixa é dor em um segmento, linhas padrão como "Indolor à palpação" e "Sem pontos de dor focal" devem ser trocadas pela dor à palpação na topografia da queixa (com o lado), salvo informação explícita de exame indolor. Em queixa de coluna, adapte as linhas apendiculares ao exame de coluna (déficits neurológicos segmentares, mielopatia/cauda equina, reflexos patológicos) conforme os modelos de coluna. Isso não autoriza inventar edema, deformidade, déficit ou manobras.
 - INTERNAÇÃO: decisão atual explícita do médico prevalece sobre o nome de um modelo de liberação. Quando indicada, preserve o atendimento completo (AP, HDA, EXAME FÍSICO, EM TEMPO se houver exames) e finalize com a conduta de internação elaborada do modelo f; não entregue apenas uma canetada resumida quando houver atendimento completo. Não confunda "sem indicação de internação", internação passada, hipótese condicional ou recomendação clínica de alerta com decisão atual de internar. Na dúvida sobre o desfecho, sinalize no topo e não invente uma decisão. Em internação definida, retire alta, retorno ambulatorial como desfecho e avisos de conflito com alta causados apenas pelo nome do template.
 - A internação pode ser clínica, ortopédica, neurocirúrgica, para controle álgico ou investigação; não implica cirurgia automaticamente. Documente motivo, medidas no PS, discussão/encaminhamento e destino apenas conforme os dados. Preserve hospital, equipe, médico, CRM e leito quando informados. Não invente discussão, aceite de vaga, transferência realizada, procedimento, riscos explicados ou compreensão/consentimento. Adapte os esclarecimentos ao tratamento realmente proposto e ao interlocutor capaz de recebê-los; não atribua compreensão a paciente sonolento/incapaz sem confirmação. Durante internação, sinais de alarme exigem comunicação à equipe assistente, não retorno ao PS após alta.`;
@@ -421,7 +493,8 @@ const TEMPLATES = {
     nome: '1º Atendimento',
     texto: `AP: nega alergias. (Instrução: incluir todo antecedente informado de forma completa — cirurgias prévias com o procedimento e o material de síntese quando informados, ex: "Antecedente de fratura de maléolo lateral direito há 10 anos, submetida a osteossíntese com placa"; comorbidades; medicações contínuas.)
 
-QD: (Instrução: iniciar com letra minúscula após os dois-pontos. Não resumir a queixa a uma frase telegráfica quando o médico informou mais dados: redigir uma história articulada, em uma ou mais linhas, com TODOS os dados fornecidos — mecanismo, tempo de evolução, sintomas, fatores de piora, evolução, tratamentos já tentados, relação com cirurgia/material prévio e motivo da procura atual —, conectando os fatos com nexo temporal e clínico. Exemplo: "dor e edema em tornozelo direito há 2 semanas, sem trauma recente, em paciente com antecedente de osteossíntese com placa em maléolo lateral direito, sem melhora com analgesia oral". Negativas sobre o evento entram aqui na QD, na mesma linha, ao final da história; nunca no AP. Como o 1º atendimento é sempre traumático, as negativas padrão são "Nega traumatismo cranioencefálico. Nega perda de consciência. Nega dor em outras topografias. Nega demais queixas associadas." — NUNCA "nega história de trauma", que contradiz a queda/acidente relatado.)
+QD: (Instrução: iniciar com letra minúscula após os dois-pontos. Não resumir a queixa a uma frase telegráfica quando o médico informou mais dados: redigir uma história articulada, em uma ou mais linhas, com TODOS os dados fornecidos — mecanismo, tempo de evolução, sintomas, fatores de piora, evolução, tratamentos já tentados, relação com cirurgia/material prévio e motivo da procura atual —, conectando os fatos com nexo temporal e clínico. Exemplo: "dor e edema em tornozelo direito há 2 semanas, sem trauma recente, em paciente com antecedente de osteossíntese com placa em maléolo lateral direito, sem melhora com analgesia oral". Comece pelo mecanismo e depois a evolução: "trauma torcional e direto no joelho direito decorrente de queda ao nível do solo, evoluindo com dor e edema...". Não escreva nome nem matrícula do paciente.)
+Nega TCE. Nega perda de consciência. Nega dor em outras topografias. Nega demais queixas associadas. (Instrução: negativas padrão do trauma, numa linha própria logo abaixo da QD, todas juntas. NUNCA "nega história de trauma", que contradiz a queda/acidente relatado. Negativas nunca vão no AP.)
 
 EXAME FÍSICO:
 Paciente em bom estado geral, lúcido e orientado, deambulando.
@@ -442,7 +515,7 @@ Sem sinais clínicos de trombose venosa profunda.
 (Instrução: se a queixa for em coluna cervical, torácica ou lombar, trocar a linha "Sem deformidades, desalinhamentos ou encurtamentos do segmento." por "Sem deformidades ou desalinhamentos evidentes da coluna.", trocar "Força motora e sensibilidade preservadas." por "Força motora e sensibilidade preservadas em membros superiores e inferiores, sem déficits neurológicos evidentes ao exame segmentar." e acrescentar ao final "Sem sinais clínicos de mielopatia ou síndrome da cauda equina." e "Reflexos patológicos ausentes (Hoffman, Clônus, Babinski e Oppenheim)." — salvo achado contrário informado.)
 
 CONDUTA:
-Realizada medicação analgésica no pronto-socorro. (Instrução: incluir sempre que o médico escrever MED, medicação, analgesia, sintomáticos ou citar o remédio feito no PS; se citar o fármaco ou a via, especifique — ex: "Realizada analgesia endovenosa com dipirona". Nunca omitir quando informado.)
+Prescrita analgesia. (Instrução: incluir sempre que o médico escrever MED, medicação, analgesia ou sintomáticos. Se citar fármaco ou via, especifique — ex: "Prescrita analgesia endovenosa com dipirona". Só troque por "Realizada medicação analgésica" se o médico disser que já foi feita/administrada. Nunca omitir quando informado.)
 Solicito radiografias (Instrução: citar os exames que o médico SOLICITOU usando "Solicito"; nunca escrever "Realizados exames" quando o médico apenas pediu.)
 Reavaliação após (o médico informa o prazo/momento — ex: resultado de exame, algumas horas, retorno ainda neste plantão; nunca assuma um número de dias)`
   },
@@ -842,7 +915,7 @@ Sem sinais clínicos de síndrome compartimental.
 Sem sinais sugestivos de lesão vascular aguda.
 Sem sinais clínicos de trombose venosa profunda.
 (Instrução: se o segmento for de coluna, acrescente "Reflexos patológicos ausentes (Hoffman, Clônus, Babinski e Oppenheim)."; omita essa linha para segmentos apendiculares.)
-(Instrução: em seguimento de fratura prévia, o exame deve documentar separadamente o foco da fratura e as demais estruturas — ex: "Indolor à palpação do foco de fratura da falange proximal do 4º quirodáctilo esquerdo." e "Dor à palpação articular em 4º quirodáctilo esquerdo." —, substituindo a linha genérica de dor à palpação. Nunca escrever "sem pontos de dor focal adicionais no foco da fratura". Limitação de mobilidade, rigidez ou deformidade só entram se informadas.)
+(Instrução: em seguimento de fratura prévia, o exame deve documentar separadamente o foco da fratura e as demais estruturas — ex: "Indolor à palpação do foco de fratura da falange proximal do 4º QDE." e "Dor à palpação articular em 4º QDE." —, substituindo a linha genérica de dor à palpação. Nunca escrever "sem pontos de dor focal adicionais no foco da fratura". Limitação de mobilidade, rigidez ou deformidade só entram se informadas.)
 
 CONDUTA:
 Sem indicação de procedimento ortopédico de urgência no momento.
@@ -890,11 +963,14 @@ TEMPLATES.h = {
   nome: 'Relato / Burocracia',
   texto: `(Instrução: este modelo NÃO é um atendimento clínico estruturado. Redija um RELATO CORRIDO, em primeira pessoa, em um ou mais parágrafos curtos, SEM as seções AP, HDA/HPMA, EXAME FÍSICO, EM TEMPO ou CONDUTA e sem nenhum rótulo de seção. Registre em ordem cronológica, com linguagem formal, objetiva e neutra: o que ocorreu, quem acionou/encaminhou, horários (apenas se informados), o que foi verificado e a providência tomada. Situações típicas: paciente triado para a ortopedia cuja queixa é de outra especialidade/clínica médica; pedido de parecer direcionado à especialidade errada; enfermagem solicitando ajuste de prescrição feita por outro colega; paciente que chega com carta/encaminhamento de médico externo solicitando internação pelo PS; paciente que não comparece ao chamado. Nunca julgue, critique ou comente a conduta de colegas — descreva apenas os fatos. Não invente horários, nomes, CRM, setores, contatos ou encaminhamentos não informados. Não acrescente "Sem indicação de procedimento...", sinais de alarme, orientações de alta nem avisos de exame físico, salvo se informado.)
 
-QUEM NARRA: o relato é do próprio ortopedista de plantão, que na maioria das vezes é quem IDENTIFICA o problema e COMUNICA as equipes envolvidas. Escreva "Identifico...", "Constato...", "Comunico...", "Oriento...". Só escreva "Sou acionado por..." quando o médico informar expressamente que alguém o chamou.
+QUEM NARRA: o relato é do próprio ortopedista de plantão, que na maioria das vezes é quem IDENTIFICA o problema e COMUNICA as equipes envolvidas. Use a primeira pessoa só para os atos dele ("Identifico...", "Prescrevo...", "Comunico...", "Oriento...", "Obtenho..."). Só escreva "Sou acionado por..." quando o médico informar expressamente que alguém o chamou.
+COMO COMEÇAR: abra com o fato em si, com o paciente como sujeito ("Paciente comparece ao pronto-socorro com carta...", "Paciente relata perda da consulta..."). Nunca abra com "Avalio", "Reavalio" ou "Realizo contato com a paciente", e nunca escreva nome, matrícula ou número de cadastro do paciente — o sistema já identifica.
 
 Exemplos de estilo (referência de tom — adapte aos fatos informados):
 Avalio ficha aberta para a ortopedia e identifico que a queixa do paciente não é ortopédica, tratando-se de caso de clínica médica. Comunico a equipe de recepção e de triagem quanto ao direcionamento correto do paciente e do fluxo de atendimento.
-Identifico prescrição com dose inadequada para o caso e realizo o ajuste, conforme descrito em prescrição médica. Comunico a equipe de enfermagem quanto à alteração realizada.`
+Identifico prescrição com dose inadequada para o caso e realizo o ajuste, conforme descrito em prescrição médica. Comunico a equipe de enfermagem quanto à alteração realizada.
+Paciente comparece ao pronto-socorro com carta de médico externo (nome e CRM exatamente como informados), solicitando coleta de exames laboratoriais. Prescrevo os exames para coleta conforme solicitado pelo colega.
+Paciente relata perda da consulta agendada anteriormente com especialista em joelho e informa estar em processo para a realização de prótese de joelho direito. Manifesta interesse em remarcar o atendimento especializado. Obtenho os contatos telefônicos informados, com a finalidade de viabilizar a remarcação e o contato posterior após o reagendamento.`
 };
 
 // Atendimento completo que termina em internação: reaproveita a anamnese/exame
@@ -920,7 +996,7 @@ TEMPLATES.bg = {
 const ANAMNESE_RETORNO = `AP: nega alergias. (Instrução: incluir antecedentes informados.)
 
 HDA:
-Paciente em seguimento ortopédico por (instrução: lesão/fratura com lado), com trauma em (instrução: data DD/MM/AAAA), em (instrução: tratamento em curso — ex: tratamento conservador com robofoot), totalizando cerca de (instrução: X semanas desde o trauma e Y semanas de imobilização, usando os valores do bloco TEMPO CALCULADO; omita o que não puder ser calculado). (Instrução: esta primeira linha contém SÓ lesão, data do trauma, tratamento e o tempo — sem unidade de origem, encaminhamento ou mecanismo, que vêm nas linhas seguintes apenas se informados.)
+Paciente em seguimento ortopédico por (instrução: lesão/fratura com lado), com trauma em (instrução: data DD/MM/AAAA), em (instrução: tratamento em curso — ex: tratamento conservador com robofoot), totalizando cerca de (instrução: X semanas desde o trauma e Y semanas de imobilização, usando os valores do bloco TEMPO CALCULADO; omita o que não puder ser calculado). (Instrução: esta primeira linha contém SÓ lesão, data do trauma, tratamento e o tempo — sem unidade de origem, encaminhamento ou mecanismo, que vêm nas linhas seguintes apenas se informados. O TEMPO EM SEMANAS É OBRIGATÓRIO sempre que existir qualquer data no bloco TEMPO CALCULADO: use a data mais antiga como data do trauma e escreva "atualmente com cerca de X semanas de evolução" e, se houver imobilização, "e cerca de Y semanas de imobilização". Não cite nome nem CRM dos médicos dos atendimentos anteriores.)
 (Instrução: resumir em ordem cronológica cada atendimento prévio informado, com a data e o que foi feito em cada um — ex: "Em 02/09, avaliado no PS, realizada imobilização com tala gessada. Em 12/09, retorno com manutenção da conduta." Não inventar atendimentos nem datas.)
 Retorna hoje para reavaliação ambulatorial (instrução: acrescente "com resultado de exame" se trouxe exame). (Instrução: queixas atuais informadas; se sem queixas, "Refere melhora da dor, sem queixas no momento".)
 Nega novos traumas. Nega febre ou outros sinais flogísticos. Nega demais queixas associadas.
@@ -952,7 +1028,7 @@ TEMPLATES.r0 = {
 CONDUTA:
 Solicito radiografias de controle (instrução: segmento e lado acometidos).
 Reavaliação após o resultado dos exames.
-(Instrução: esta é a PRIMEIRA ETAPA do retorno — o médico pediu RX e vai reavaliar depois. A conduta tem SÓ estas duas linhas, sem EM TEMPO, sem desfecho, sem orientações de alta e sem "Sem indicação de procedimento...". Na HDA, termine a linha de hoje sem citar o exame pedido.)`
+(Instrução: esta é a PRIMEIRA ETAPA do retorno — o médico pediu RX e vai reavaliar depois. A conduta tem SÓ estas duas linhas (mais "Prescrita analgesia." se ele pediu), sem EM TEMPO, sem desfecho, sem internação, sem orientações de alta e sem "Sem indicação de procedimento...", MESMO que os dados tragam diagnóstico ou exames anteriores. Na HDA, termine a linha de hoje sem citar o exame pedido.)`
 };
 
 TEMPLATES.r1 = {
@@ -1031,7 +1107,7 @@ const NOMES_TIPO = {
   retorno: 'Retorno ambulatorial (paciente em seguimento, com um ou mais atendimentos prévios em outros dias; não é a reavaliação de hoje)'
 };
 
-function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje }) {
+function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje, encaminhamentos }) {
   const templatesEscolhidos = String(template)
     .split('+')
     .map(t => t.trim())
@@ -1077,6 +1153,11 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
   if (tipoAtendimento === 'retorno' && atendimentoInicial) {
     partes.push(`\nATENDIMENTOS PRÉVIOS (um ou mais, em datas anteriores, possivelmente de outros profissionais; resumir em ordem cronológica com as datas, sem apresentar como avaliação de hoje):\n${atendimentoInicial}`);
   }
+  const encs = Array.isArray(encaminhamentos) ? encaminhamentos.filter(e => e === 'fisioterapia' || e === 'acupuntura') : [];
+  if (encs.length && !ehRelato) {
+    partes.push(`\nENCAMINHAMENTOS MARCADOS PELO MÉDICO: ${encs.join(' e ')}. Inclua na CONDUTA, logo após "Sem indicação de procedimento..." e das linhas de exame/retorno, ${encs.map(e => `"Encaminhado para ${e}."`).join(' e ')}`);
+  }
+
   if (tipoAtendimento === 'retorno') {
     const tempo = calcularTempos(`${atendimentoInicial || ''}\n${dadosCaso || ''}`, dataHoje);
     if (tempo) partes.push(`\nTEMPO CALCULADO (já calculado a partir das datas; use estes valores, não recalcule):\n${tempo}`);
@@ -1313,7 +1394,8 @@ function montarPromptAvulso({ categoria, exemplos, pedido, tipoAtestado, diasAfa
   }
 
   if (categoria === 'Atestados') {
-    partes.push(`\nUse como base o exemplo de "${tipoAtestado === 'pediatria' ? 'Atestado Pediatria' : 'Atestado de Trabalho'}" acima.`);
+    const nomeExemplo = tipoAtestado === 'pediatria' ? 'Atestado Pediatria' : tipoAtestado === 'acompanhante' ? 'Atestado de Acompanhante' : 'Atestado de Trabalho';
+    partes.push(`\nUse como base o exemplo de "${nomeExemplo}" acima.`);
     partes.push(`Dias de afastamento/dispensa: ${diasAfastamento || 'não informado — mantenha o formato do exemplo (linha em branco para preencher à mão) se não for possível determinar'}`);
     partes.push(`Diagnóstico informado pelo médico: ${diagnosticoAtestado}`);
     partes.push(`\nGere o atestado completo, preenchendo os dias e determinando o CID-10 correto a partir do diagnóstico informado (apenas se o exemplo de referência tiver campo de CID-10).`);

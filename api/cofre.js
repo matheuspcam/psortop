@@ -81,9 +81,13 @@ export default async function handler(req, res) {
     await upstash(['DEL', CHAVE_FALHAS]);
 
     if (acao === 'listar') {
+      const dec = v => { try { return decodeURIComponent(String(v || '')); } catch (e) { return String(v || ''); } };
+      const local = [dec(req.headers['x-vercel-ip-city']), dec(req.headers['x-vercel-ip-country-region']), dec(req.headers['x-vercel-ip-country'])]
+        .filter(Boolean).join(' / ');
       const registro = {
         data: new Date().toISOString(),
         ip: String(req.headers['x-forwarded-for'] || '').split(',')[0].trim(),
+        local: local,
         aparelho: String(req.headers['user-agent'] || '').slice(0, 200)
       };
       await upstash(['LPUSH', CHAVE_ACESSOS, JSON.stringify(registro)]);
@@ -93,6 +97,11 @@ export default async function handler(req, res) {
       const acessosRaw = await upstash(['LRANGE', CHAVE_ACESSOS, '0', '19']);
       const acessos = (acessosRaw || []).map(s => { try { return JSON.parse(s); } catch (e) { return null; } }).filter(Boolean);
       return res.status(200).json({ itens, acessos });
+    }
+
+    if (acao === 'limpar_acessos') {
+      await upstash(['DEL', CHAVE_ACESSOS]);
+      return res.status(200).json({ ok: true, acessos: [] });
     }
 
     if (acao === 'salvar') {
