@@ -27,9 +27,10 @@ export default async function handler(req, res) {
 
   if (ehImagem) {
     try {
-      let texto = await chamarGemini(montarPromptSistemaImagem(), [{ role: 'user', parts: montarParts(montarPromptImagem(dadosCaso), imagens) }], 0.2, apiKey, res);
+      let texto = await chamarGemini(montarPromptSistemaImagem(), [{ role: 'user', parts: montarParts(montarPromptImagem(dadosCaso), imagens) }], 0.2, apiKey, res, false, MODELOS_IMAGEM);
       if (texto === null) return;
-      texto = preposicaoDoSegmento(limparCaracteresEstranhos(corrigirEspanholETipos(texto)));
+      texto = preposicaoDoSegmento(limparCaracteresEstranhos(corrigirEspanholETipos(texto)))
+        .replace(/\b([Ee])miplat[ôo]/g, (m, e) => (e === 'E' ? 'H' : 'h') + 'emiplatô');
       return res.status(200).json({ texto: texto, modelo: (res.locals && res.locals.modeloUsado) || '' });
     } catch (e) {
       console.error(e);
@@ -283,6 +284,17 @@ const MODELOS_PADRAO = [
   'gemini-2.5-flash'
 ];
 
+// VAR (leitura de imagem): a qualidade da visão importa mais que a velocidade, então os Flash
+// completos vêm antes dos Lite. Uso é baixo, então a cota menor do Flash costuma bastar;
+// se estourar, cai para os Lite automaticamente.
+const MODELOS_IMAGEM = [
+  'gemini-3.6-flash',
+  'gemini-2.5-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+  'gemini-2.5-flash-lite'
+];
+
 function listaModelos() {
   const env = (process.env.GEMINI_MODELOS || '').split(',').map(m => m.trim()).filter(Boolean);
   return env.length ? env : MODELOS_PADRAO;
@@ -300,8 +312,8 @@ function extrairTexto(data) {
   return parts.filter(p => typeof p.text === 'string' && !p.thought).map(p => p.text).join('').trim();
 }
 
-async function chamarGemini(promptSistema, contents, temperature, apiKey, res, silencioso) {
-  const modelos = listaModelos();
+async function chamarGemini(promptSistema, contents, temperature, apiKey, res, silencioso, modelosFixos) {
+  const modelos = modelosFixos || listaModelos();
   let ultimoErro = '';
   let houveSobrecarga = false;
 
@@ -1456,19 +1468,27 @@ function montarPromptAvulso({ categoria, exemplos, pedido, tipoAtestado, diasAfa
 // É apoio para conferência no plantão, não laudo — o texto tem que deixar isso implícito na forma, sem sermão.
 
 function montarPromptSistemaImagem() {
-  return `Você faz uma segunda leitura de exames de imagem ortopédicos para o Dr. Matheus, ortopedista de pronto-socorro. Ele vai olhar a imagem junto com a sua resposta, na correria do plantão, e decidir sozinho.
+  return `Você faz uma segunda leitura de exames de imagem ortopédicos para o Dr. Matheus, ortopedista de pronto-socorro. Ele vai olhar a imagem junto com a sua resposta, na correria do plantão, e decidir sozinho. O erro mais grave aqui é DEIXAR PASSAR uma fratura; o segundo é inventar uma.
+
+ANTES DE RESPONDER, FAÇA A VARREDURA (não escreva a varredura, só use-a):
+1. Liste mentalmente TODOS os ossos que aparecem na imagem, inclusive os que estão na borda ou parcialmente cortados (ex: no joelho, fêmur distal, patela, tíbia proximal e FÍBULA PROXIMAL — cabeça e colo).
+2. Percorra a cortical de cada um, do começo ao fim, procurando linha lucente, descontinuidade ou degrau cortical, esclerose linear, fragmento avulsionado e alteração do trabeculado. Fratura sem desvio costuma aparecer só como uma linha fina ou uma quebra sutil do contorno — isso é achado, não normalidade.
+3. Depois avalie articulações (congruência, alargamento, luxação/subluxação), partes moles (derrame, nível líquido-gorduroso, coxins gordurosos, gás, corpo estranho) e implantes.
 
 O QUE ENTREGAR (português do Brasil, texto curto, sem markdown, sem asteriscos):
 EXAME: tipo de exame, segmento, lado e incidências identificáveis. Se algo não for identificável, diga.
-ACHADOS SUSPEITOS: cada achado em uma linha, começando com o grau de suspeita entre colchetes — [ALTA], [MODERADA] ou [BAIXA] —, seguido da estrutura exata (osso, região, cortical, articulação, lado) e do que se vê (traço de fratura, degrau cortical, desvio, angulação, luxação/subluxação, alargamento articular, derrame, corpo estranho, lesão lítica/blástica, etc.). Se não vir nada alterado, escreva "Nenhuma alteração aguda evidente nas imagens enviadas."
-ONDE OLHAR DE NOVO: as regiões de fratura oculta ou de difícil visualização típicas daquele segmento e mecanismo (ex: escafoide, colo do fêmur, cabeça do rádio com sinal do coxim gorduroso, base do 5º metatarso, processo lateral do tálus, platô tibial), só as pertinentes ao exame enviado.
+ACHADOS SUSPEITOS: SÓ alterações, uma por linha, começando com o grau de suspeita — [ALTA], [MODERADA] ou [BAIXA] —, seguido da estrutura exata (osso, região, cortical, articulação) e do que se vê (traço de fratura, degrau cortical, desvio, angulação, luxação/subluxação, alargamento articular, derrame, lesão lítica/blástica etc.). Na dúvida entre citar um achado sutil ou omitir, CITE com [BAIXA] e diga o que viu. Estrutura normal NUNCA entra nesta seção nem recebe grau. Se não houver alteração, escreva \"Nenhuma alteração aguda evidente nas imagens enviadas.\"
+SEM ALTERAÇÃO APARENTE: numa única linha, as principais estruturas avaliadas que parecem normais (ex: \"platô tibial, patela, fêmur distal\").
+MATERIAL CIRÚRGICO / CIRURGIA PRÉVIA: só se houver implante. Descreva o tipo e a posição (placa, parafusos, haste, âncoras, grampo, parafuso de interferência, prótese) e, quando o padrão for típico, o procedimento provável (ex: parafuso/grampo no túnel tibial proximal → provável reconstrução do LCA). Aponte soltura, quebra, migração, halo lucente ou fratura periprotética se houver. Implante não é achado suspeito.
+ONDE OLHAR DE NOVO: as regiões de fratura oculta ou de difícil visualização típicas daquele segmento e mecanismo, só as pertinentes ao exame enviado (ex: joelho → cabeça e colo da fíbula, platô tibial, fratura de Segond, eminência intercondilar, patela, nível líquido-gorduroso; punho → escafoide, rádio distal, semilunar; tornozelo → base do 5º metatarso, processo lateral do tálus, fíbula proximal; quadril → colo do fêmur, ramos púbicos; cotovelo → cabeça do rádio e coxins gordurosos).
 LIMITAÇÕES: qualidade, incidências faltantes, foto de tela, rotação, sobreposição — só se houver. Sugira a incidência ou o exame complementar que resolveria a dúvida, se for o caso.
 
 REGRAS:
-- Descreva só o que está visível. Não invente achado para parecer útil; na dúvida, marque [BAIXA] e diga por quê.
-- Use o contexto clínico informado só para saber onde olhar com mais atenção, nunca para "ver" o que a imagem não mostra.
+- Descreva só o que está visível. Não invente achado para parecer útil.
+- Use o contexto clínico informado só para saber onde olhar com mais atenção, nunca para \"ver\" o que a imagem não mostra.
 - Não escreva nome, idade, matrícula nem outro dado pessoal que apareça na imagem.
 - Não faça recomendação de conduta (cirurgia, imobilização, alta); isso é decisão do médico.
+- Grafia correta: hemiplatô, pododáctilo, quirodáctilo.
 - Não repita avisos genéricos de que a IA pode errar; seja direto.`;
 }
 
