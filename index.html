@@ -1753,7 +1753,7 @@
   <div id="abaSugestoes" class="oculto">
     <div class="card">
       <div class="hint" style="margin-top:0; margin-bottom:14px;">
-        Sugestões de mudança salvas durante o plantão, através do botão "Salvar sugestão" nas telas de Gerar e Mensagens, ou escritas direto aqui. Copie tudo e cole numa mensagem para o Claude quando tiver tempo. A lista não é limpa automaticamente — use "Apagar tudo" quando já tiver resolvido.
+        Sugestões de mudança salvas durante o plantão, através do botão "Salvar sugestão" nas telas de Gerar, Mensagens e VAR, ou escritas direto aqui. Copie tudo e cole numa mensagem para o Claude quando tiver tempo. A lista não é limpa automaticamente — use "Apagar tudo" quando já tiver resolvido.
       </div>
 
       <div class="gerador-avulso" style="margin-bottom:14px;">
@@ -1801,6 +1801,13 @@
           <button class="btn-copiar-lateral" id="btnCopiarImg">COPIAR</button>
           <div class="modelo-ia" id="modeloIAImg"></div>
         </div>
+      </div>
+
+      <div class="caixa-sugerir caixa-sugerir-full" id="caixaSugerirImg">
+        <span class="caixa-sugerir-titulo">⚠️ Sugerir mudança permanente</span>
+        <div class="caixa-sugerir-hint">Viu erro na análise? Descreva o que a IA errou ou deixou passar (ex: apontou fratura que não existe, não viu o degrau no rádio distal). Salva para revisarmos depois — não altera a análise acima.</div>
+        <textarea id="sugestaoMudancaImg" placeholder="Ex: marcou fratura do escafoide, mas é sobreposição; não comentou o alargamento escafossemilunar..."></textarea>
+        <button type="button" class="btn-sugerir" id="btnSugerirImg">Salvar sugestão</button>
       </div>
     </div>
     <button class="btn-recomecar" id="btnLimparImg" style="margin-top:10px;">Nova análise</button>
@@ -2719,6 +2726,9 @@
   var modeloIAImg = document.getElementById('modeloIAImg');
   var imgContexto = document.getElementById('imgContexto');
   var ultimoTextoImg = '';
+  var historicoImg = [];
+  var contextoEnviadoImg = '';
+  var qtdImagensImg = 0;
 
   function erroAnalise(msg) { erroImg.textContent = msg; erroImg.classList.add('show'); }
 
@@ -2726,6 +2736,8 @@
     erroImg.classList.remove('show');
     var imgs = imagensAnalise.obter();
     if (!imgs.length) { erroAnalise('Anexe pelo menos uma imagem.'); return; }
+    contextoEnviadoImg = imgContexto.value.trim();
+    qtdImagensImg = imgs.length;
     btnAnalisarImg.disabled = true;
     spinnerImg.classList.add('show');
     resultadoCardImg.classList.remove('show');
@@ -2741,6 +2753,7 @@
           return;
         }
         ultimoTextoImg = data.texto || '';
+        historicoImg = [{ tipo: 'geracao', data: agoraIso(), entrada: { contexto: contextoEnviadoImg || '(sem contexto)', imagensAnexadas: String(qtdImagensImg) }, modelo: data.modelo || '', saida: ultimoTextoImg }];
         resultadoTextoImg.textContent = ultimoTextoImg;
         modeloIAImg.textContent = data.modelo || '';
         resultadoCardImg.classList.add('show');
@@ -2763,10 +2776,36 @@
     });
   });
 
+  var btnSugerirImg = document.getElementById('btnSugerirImg');
+  var sugestaoMudancaImg = document.getElementById('sugestaoMudancaImg');
+  btnSugerirImg.addEventListener('click', function() {
+    var observacao = sugestaoMudancaImg.value.trim();
+    if (!observacao) return;
+    btnSugerirImg.disabled = true;
+    fetch('/api/sugestoes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: pinAtual, aba: 'VAR (análise de imagem)', template: '-', resultadoGerado: ultimoTextoImg || '', observacao: observacao, historico: historicoImg })
+    }).then(function(resp) {
+      return resp.json().then(function(data) {
+        if (!resp.ok) { erroAnalise(data.erro || 'Erro ao salvar a sugestão.'); return; }
+        sugestaoMudancaImg.value = '';
+        btnSugerirImg.textContent = 'Salvo!';
+        btnSugerirImg.classList.add('salvo');
+        setTimeout(function() { btnSugerirImg.textContent = 'Salvar sugestão'; btnSugerirImg.classList.remove('salvo'); }, 2000);
+      });
+    }).catch(function() {
+      erroAnalise('Falha de conexão ao salvar a sugestão.');
+    }).finally(function() {
+      btnSugerirImg.disabled = false;
+    });
+  });
+
   document.getElementById('btnLimparImg').addEventListener('click', function() {
     imagensAnalise.limpar();
     imgContexto.value = '';
     ultimoTextoImg = '';
+    historicoImg = [];
     resultadoCardImg.classList.remove('show');
     erroImg.classList.remove('show');
   });
@@ -4669,7 +4708,8 @@
     atendimentoInicial: 'Atendimento inicial',
     dadosCaso: 'Dados do caso',
     exames: 'Exames/laudo',
-    imagensAnexadas: 'Imagens anexadas'
+    imagensAnexadas: 'Imagens anexadas',
+    contexto: 'Contexto clínico'
   };
 
   function formatarHistorico(historico) {
