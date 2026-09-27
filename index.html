@@ -1452,6 +1452,7 @@
       <button type="button" data-ir="cofre">Senhas e links</button>
       <button type="button" data-ir="sugestoes">Sugestões pendentes</button>
       <button type="button" data-ir="templates">Ver templates</button>
+      <button type="button" data-ir="imagem">VAR</button>
       <div class="menu-versao" id="menuVersao">Última atualização: carregando...</div>
     </div>
   </header>
@@ -1771,6 +1772,40 @@
     <button class="btn-recomecar" id="btnApagarSugestoes" style="margin-top:10px;">Apagar tudo</button>
   </div>
 
+  <div id="abaImagem" class="oculto">
+    <div class="card">
+      <div class="hint" style="margin-top:0; margin-bottom:14px;">
+        Anexe as imagens do exame (RX, TC, RM ou foto da tela). A IA aponta o que parece alterado e onde olhar. É uma segunda leitura para conferir, não um laudo.
+      </div>
+      <span class="label">Contexto (opcional)</span>
+      <textarea id="imgContexto" placeholder="Ex: queda da própria altura, dor no punho direito / RX de joelho, dor medial após torção..."></textarea>
+      <div style="margin-top:10px;">
+        <div class="zona-upload" id="zonaUploadImg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Anexar imagens do exame
+          <input type="file" id="inputFileImg" accept="image/*,application/pdf" multiple style="display:none">
+        </div>
+      </div>
+      <div class="lista-imagens" id="listaImagensImg"></div>
+      <div class="aviso-imagem" id="avisoImagemImg" style="display:none;">Evite fotos com nome ou dados do paciente visíveis.</div>
+    </div>
+
+    <button class="btn-gerar" id="btnAnalisarImg">Analisar imagem</button>
+    <div class="spinner" id="spinnerImg"><span class="dot"></span> Analisando...</div>
+    <div class="erro" id="erroImg"></div>
+
+    <div class="card resultado" id="resultadoCardImg">
+      <div class="resultado-linha">
+        <div class="resultado-texto" id="resultadoTextoImg"></div>
+        <div class="coluna-lateral-resultado">
+          <button class="btn-copiar-lateral" id="btnCopiarImg">COPIAR</button>
+          <div class="modelo-ia" id="modeloIAImg"></div>
+        </div>
+      </div>
+    </div>
+    <button class="btn-recomecar" id="btnLimparImg" style="margin-top:10px;">Nova análise</button>
+  </div>
+
   <div id="abaCofre" class="oculto">
     <div class="card" id="cofreBloqueado">
       <span class="label">Senha do cofre</span>
@@ -1922,11 +1957,13 @@
   var abaTemplates = document.getElementById('abaTemplates');
   var abaSugestoes = document.getElementById('abaSugestoes');
   var abaCofre = document.getElementById('abaCofre');
+  var abaImagem = document.getElementById('abaImagem');
 
   var TITULOS_SECAO = {
     templates: 'Ver templates',
     sugestoes: 'Sugestões pendentes',
-    cofre: 'Senhas e links'
+    cofre: 'Senhas e links',
+    imagem: 'VAR'
   };
 
   // ================= CÓPIA PARA O SISTEMA DO HOSPITAL =================
@@ -2466,12 +2503,13 @@
     abaTemplates.classList.toggle('oculto', aba !== 'templates');
     abaSugestoes.classList.toggle('oculto', aba !== 'sugestoes');
     abaCofre.classList.toggle('oculto', aba !== 'cofre');
+    abaImagem.classList.toggle('oculto', aba !== 'imagem');
 
     // O cofre tranca sempre que se entra ou sai dele: a senha é pedida a cada abertura.
     trancarCofre();
     if (aba === 'cofre') setTimeout(function() { inputSenhaCofre.focus(); }, 50);
 
-    var ehSecundaria = (aba === 'templates' || aba === 'sugestoes' || aba === 'cofre');
+    var ehSecundaria = (aba === 'templates' || aba === 'sugestoes' || aba === 'cofre' || aba === 'imagem');
 
     // Nas secoes secundarias, esconde os botoes grandes e mostra a barra de voltar
     navPrincipal.style.display = ehSecundaria ? 'none' : 'grid';
@@ -2652,6 +2690,69 @@
   }
 
   var imagensExame = criarGerenciadorImagens('zonaUploadExame', 'inputFileExame', 'listaImagensExame', 'avisoImagemExame');
+
+  // ================= ANALISAR IMAGEM (segunda leitura por IA) =================
+  var imagensAnalise = criarGerenciadorImagens('zonaUploadImg', 'inputFileImg', 'listaImagensImg', 'avisoImagemImg');
+  var btnAnalisarImg = document.getElementById('btnAnalisarImg');
+  var spinnerImg = document.getElementById('spinnerImg');
+  var erroImg = document.getElementById('erroImg');
+  var resultadoCardImg = document.getElementById('resultadoCardImg');
+  var resultadoTextoImg = document.getElementById('resultadoTextoImg');
+  var btnCopiarImg = document.getElementById('btnCopiarImg');
+  var modeloIAImg = document.getElementById('modeloIAImg');
+  var imgContexto = document.getElementById('imgContexto');
+  var ultimoTextoImg = '';
+
+  function erroAnalise(msg) { erroImg.textContent = msg; erroImg.classList.add('show'); }
+
+  btnAnalisarImg.addEventListener('click', function() {
+    erroImg.classList.remove('show');
+    var imgs = imagensAnalise.obter();
+    if (!imgs.length) { erroAnalise('Anexe pelo menos uma imagem.'); return; }
+    btnAnalisarImg.disabled = true;
+    spinnerImg.classList.add('show');
+    resultadoCardImg.classList.remove('show');
+    fetch('/api/gerar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: pinAtual, modo: 'imagem', dadosCaso: imgContexto.value.trim(), imagens: imgs })
+    }).then(function(resp) {
+      return resp.json().then(function(data) {
+        if (!resp.ok) {
+          if (resp.status === 401) { sessionStorage.removeItem('pin_ps'); erroAnalise('PIN incorreto. Recarregue a página.'); }
+          else erroAnalise(data.erro || 'Erro ao analisar a imagem.');
+          return;
+        }
+        ultimoTextoImg = data.texto || '';
+        resultadoTextoImg.textContent = ultimoTextoImg;
+        modeloIAImg.textContent = data.modelo || '';
+        resultadoCardImg.classList.add('show');
+        btnCopiarImg.textContent = 'COPIAR';
+        btnCopiarImg.classList.remove('copiado');
+      });
+    }).catch(function() {
+      erroAnalise('Falha de conexão. Verifique a internet e tente novamente.');
+    }).finally(function() {
+      btnAnalisarImg.disabled = false;
+      spinnerImg.classList.remove('show');
+    });
+  });
+
+  btnCopiarImg.addEventListener('click', function() {
+    if (!ultimoTextoImg) return;
+    navigator.clipboard.writeText(ultimoTextoImg).then(function() {
+      btnCopiarImg.textContent = 'COPIADO';
+      btnCopiarImg.classList.add('copiado');
+    });
+  });
+
+  document.getElementById('btnLimparImg').addEventListener('click', function() {
+    imagensAnalise.limpar();
+    imgContexto.value = '';
+    ultimoTextoImg = '';
+    resultadoCardImg.classList.remove('show');
+    erroImg.classList.remove('show');
+  });
   var imagensMsg = criarGerenciadorImagens('zonaUploadMsg', 'inputFileMsg', 'listaImagensMsg', 'avisoImagemMsg');
 
   // ===== Retorno: um card por atendimento anterior =====
