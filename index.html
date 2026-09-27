@@ -1778,8 +1778,8 @@
         Anexe as imagens do exame (RX, TC, RM ou foto da tela). A IA aponta o que parece alterado e onde olhar. É uma segunda leitura para conferir, não um laudo.
       </div>
       <span class="label">Contexto (opcional)</span>
-      <textarea id="imgContexto" placeholder="Ex: queda da própria altura, dor no punho direito / RX de joelho, dor medial após torção..."></textarea>
-      <div style="margin-top:10px;">
+      <div class="campo-com-upload">
+        <textarea id="imgContexto" placeholder="Cole o print aqui (Ctrl+V) e, se quiser, escreva o contexto: queda da própria altura, dor no punho direito..."></textarea>
         <div class="zona-upload" id="zonaUploadImg">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Anexar imagens do exame
@@ -2685,7 +2685,8 @@
 
     return {
       obter: function() { return imagens.map(function(i) { return { base64: i.base64, mimeType: i.mimeType }; }); },
-      limpar: function() { imagens = []; renderizar(); }
+      limpar: function() { imagens = []; renderizar(); },
+      adicionar: adicionarArquivos
     };
   }
 
@@ -2693,6 +2694,22 @@
 
   // ================= ANALISAR IMAGEM (segunda leitura por IA) =================
   var imagensAnalise = criarGerenciadorImagens('zonaUploadImg', 'inputFileImg', 'listaImagensImg', 'avisoImagemImg');
+  // Na tela VAR, colar um print em qualquer lugar da tela já anexa a imagem
+  document.addEventListener('paste', function(e) {
+    if (e.defaultPrevented || abaImagem.classList.contains('oculto')) return;
+    var itens = (e.clipboardData && e.clipboardData.items) || [];
+    var arquivos = [];
+    for (var i = 0; i < itens.length; i++) {
+      if (itens[i].kind === 'file') {
+        var f = itens[i].getAsFile();
+        if (f && (f.type.indexOf('image/') === 0 || f.type === 'application/pdf')) arquivos.push(f);
+      }
+    }
+    if (arquivos.length) {
+      e.preventDefault();
+      imagensAnalise.adicionar(arquivos);
+    }
+  });
   var btnAnalisarImg = document.getElementById('btnAnalisarImg');
   var spinnerImg = document.getElementById('spinnerImg');
   var erroImg = document.getElementById('erroImg');
