@@ -2732,6 +2732,13 @@
 
   function erroAnalise(msg) { erroImg.textContent = msg; erroImg.classList.add('show'); }
 
+  // Resultado da VAR: escapa o HTML e transforma **texto** em negrito (só na tela; a cópia sai sem os asteriscos).
+  function formatarVarHtml(txt) {
+    return String(txt || '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  }
+
   btnAnalisarImg.addEventListener('click', function() {
     erroImg.classList.remove('show');
     var imgs = imagensAnalise.obter();
@@ -2754,7 +2761,7 @@
         }
         ultimoTextoImg = data.texto || '';
         historicoImg = [{ tipo: 'geracao', data: agoraIso(), entrada: { contexto: contextoEnviadoImg || '(sem contexto)', imagensAnexadas: String(qtdImagensImg) }, modelo: data.modelo || '', saida: ultimoTextoImg }];
-        resultadoTextoImg.textContent = ultimoTextoImg;
+        resultadoTextoImg.innerHTML = formatarVarHtml(ultimoTextoImg);
         modeloIAImg.textContent = data.modelo || '';
         resultadoCardImg.classList.add('show');
         btnCopiarImg.textContent = 'COPIAR';
@@ -2770,7 +2777,7 @@
 
   btnCopiarImg.addEventListener('click', function() {
     if (!ultimoTextoImg) return;
-    navigator.clipboard.writeText(ultimoTextoImg).then(function() {
+    navigator.clipboard.writeText(ultimoTextoImg.replace(/\*\*/g, '')).then(function() {
       btnCopiarImg.textContent = 'COPIADO';
       btnCopiarImg.classList.add('copiado');
     });

@@ -27,10 +27,14 @@ export default async function handler(req, res) {
 
   if (ehImagem) {
     try {
-      let texto = await chamarGemini(montarPromptSistemaImagem(), [{ role: 'user', parts: montarParts(montarPromptImagem(dadosCaso), imagens) }], 0.2, apiKey, res, false, MODELOS_IMAGEM);
-      if (texto === null) return;
-      texto = preposicaoDoSegmento(limparCaracteresEstranhos(corrigirEspanholETipos(texto)))
-        .replace(/\b([Ee])miplat[ôo]/g, (m, e) => (e === 'E' ? 'H' : 'h') + 'emiplatô');
+      // 1º: Claude (só se ANTHROPIC_API_KEY estiver na Vercel); se falhar ou não houver chave, cai no Gemini.
+      let texto = await chamarClaudeImagem(montarPromptSistemaImagem(), montarPromptImagem(dadosCaso), imagens, res);
+      if (texto === null) {
+        texto = await chamarGemini(montarPromptSistemaImagem(), [{ role: 'user', parts: montarParts(montarPromptImagem(dadosCaso), imagens) }], 0.2, apiKey, res, false, listaModelosImagem());
+        if (texto === null) return;
+      }
+      texto = limparSecoesVaziasVar(preposicaoDoSegmento(limparCaracteresEstranhos(corrigirEspanholETipos(texto)))
+        .replace(/\b([Ee])miplat[ôo]/g, (m, e) => (e === 'E' ? 'H' : 'h') + 'emiplatô'));
       return res.status(200).json({ texto: texto, modelo: (res.locals && res.locals.modeloUsado) || '' });
     } catch (e) {
       console.error(e);
@@ -86,6 +90,9 @@ export default async function handler(req, res) {
 
     if (!ehMensagem && !ehAvulso) texto = posProcessarProntuario(texto);
     else texto = preposicaoDoSegmento(texto);
+    if (!ehAjuste && !ehMensagem && !ehAvulso && tipoAtendimento === 'retorno') {
+      texto = garantirTempoDoTrauma(texto, template, `${atendimentoInicial || ''}\n${dadosCaso || ''}`, dataHoje);
+    }
 
     return res.status(200).json({ texto: texto, modelo: (res.locals && res.locals.modeloUsado) || '' });
   } catch (e) {
@@ -109,6 +116,8 @@ function posProcessarProntuario(texto) {
   t = removerOfertaDeRxSeRxAvaliado(t);
   t = subirCondutasNovas(t);
   t = semIndicacaoPrimeiroNaConduta(t);
+  t = removerTelefoneSemNumero(t);
+  t = moverLinhasDeTempoParaOFim(t);
   return t
     // Primeira palavra após "AP:", "QD:", "HDA:" ou "HPMA:" em minúscula
     // (só quando é palavra comum: maiúscula seguida de minúscula — preserva siglas como "PO", "TC").
@@ -256,6 +265,62 @@ function semIndicacaoPrimeiroNaConduta(texto) {
   return linhas.join('\n');
 }
 
+// "Telefone para contato:" sem número (só nomes de acompanhantes) não ajuda ninguém: a linha sai (28/09/2026).
+function removerTelefoneSemNumero(texto) {
+  const linhas = String(texto || '').split('\n');
+  const saida = linhas.filter(l => !(/^\s*Telefone para contato\s*:/i.test(l) && !/\d{4}[\s-]?\d{4}/.test(l)));
+  if (saida.length === linhas.length) return texto;
+  return saida.join('\n').replace(/\n{3,}/g, '\n\n').replace(/\s+$/, '');
+}
+
+// "X SEMANAS E Y DIAS" em caixa alta, para as linhas finais do retorno.
+function tempoEmCaixaAlta(dias) {
+  const sem = Math.floor(dias / 7), resto = dias % 7;
+  const partes = [];
+  if (sem) partes.push(`${sem} SEMANA${sem === 1 ? '' : 'S'}`);
+  if (resto || !sem) partes.push(`${resto} DIA${resto === 1 ? '' : 'S'}`);
+  return partes.join(' E ');
+}
+
+// As linhas "TEMPO DESDE O TRAUMA" e "TEMPO TOTAL DE IMOBILIZAÇÃO" ficam sempre no fim do texto, em caixa alta.
+function moverLinhasDeTempoParaOFim(texto) {
+  const tempo = [];
+  const resto = String(texto || '').split('\n').filter(l => {
+    if (/^\s*TEMPO (DESDE O TRAUMA|TOTAL DE IMOBILIZA[ÇC][ÃA]O)\s*:/i.test(l)) { tempo.push(l.trim().toUpperCase()); return false; }
+    return true;
+  });
+  if (!tempo.length) return texto;
+  tempo.sort((a, b) => (/TRAUMA/.test(a) ? 0 : 1) - (/TRAUMA/.test(b) ? 0 : 1));
+  return resto.join('\n').replace(/\s+$/, '') + '\n\n' + tempo.join('\n');
+}
+
+// Se o modelo esqueceu a linha do tempo desde o trauma, ela é calculada aqui (data mais antiga informada).
+function garantirTempoDoTrauma(texto, template, fontes, dataHoje) {
+  const primeiro = String(template || '').split('+')[0].trim();
+  if (!/^r\d/.test(primeiro)) return texto;
+  if (/^\s*TEMPO DESDE O TRAUMA\s*:/im.test(texto)) return texto;
+  if (!/fratur|trauma|luxa|entorse|les[ãa]o/i.test(texto)) return texto;
+  const mh = String(dataHoje || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (!mh) return texto;
+  const hoje = new Date(+mh[3], +mh[2] - 1, +mh[1]);
+  let menor = null;
+  (String(fontes).match(/\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g) || []).forEach(t => {
+    const d = lerData(t, hoje);
+    if (d && d <= hoje && (!menor || d < menor)) menor = d;
+  });
+  if (!menor) return texto;
+  const dias = Math.round((hoje - menor) / 86400000);
+  return String(texto).replace(/\s+$/, '') + '\n\nTEMPO DESDE O TRAUMA: ' + tempoEmCaixaAlta(dias);
+}
+
+// VAR: seções sem conteúdo ("Material cirúrgico: Ausente", "Limitações: sem limitações") saem do texto.
+function limparSecoesVaziasVar(texto) {
+  let t = String(texto || '');
+  t = t.replace(/^[^\n]*MATERIAL CIRÚRGICO[^\n:]*:[^\n\wÀ-ÿ]*(?:ausente|nenhum[a]?|sem material[^\n]*|não (?:há|se observa|identificad[oa])[^\n]*)\.?[ \t]*$/gimu, '');
+  t = t.replace(/^[^\n]*LIMITAÇÕES[^\n:]*:[^\n\wÀ-ÿ]*(?:sem limitações[^\n]*|nenhuma[^\n]*|não há[^\n]*)\.?[ \t]*$/gimu, '');
+  return t.replace(/\n{3,}/g, '\n\n').trim();
+}
+
 // Normaliza e compara dois textos para detectar se o "ajuste" na prática não mudou nada relevante.
 function textoQuaseIgual(a, b) {
   function normalizar(s) {
@@ -294,6 +359,61 @@ const MODELOS_IMAGEM = [
   'gemini-3.1-flash-lite',
   'gemini-2.5-flash-lite'
 ];
+
+// Para a VAR, a lista pode ser trocada sem código pela variável MODELOS_IMAGEM na Vercel
+// (ex: "gemini-2.5-pro,gemini-3.6-flash"). Modelo Pro exige plano pago com cobrança ativa.
+function listaModelosImagem() {
+  const env = (process.env.MODELOS_IMAGEM || '').split(',').map(m => m.trim()).filter(Boolean);
+  return env.length ? env : MODELOS_IMAGEM;
+}
+
+// VAR com Claude (opcional). Só roda se existir a variável ANTHROPIC_API_KEY na Vercel.
+// O modelo pode ser trocado pela variável VAR_CLAUDE_MODELO (ex: claude-opus-5-5, mais forte e mais caro).
+// Qualquer falha devolve null e a VAR segue para a fila do Gemini.
+const CLAUDE_MODELO_PADRAO = 'claude-sonnet-5-5';
+async function chamarClaudeImagem(promptSistema, promptUsuario, imagens, res) {
+  const chave = process.env.ANTHROPIC_API_KEY;
+  if (!chave) return null;
+  const modelo = (process.env.VAR_CLAUDE_MODELO || CLAUDE_MODELO_PADRAO).trim();
+  const tiposImagem = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  const conteudo = [];
+  (Array.isArray(imagens) ? imagens : []).slice(0, MAX_IMAGENS).forEach(img => {
+    if (!img || !img.base64 || !img.mimeType) return;
+    if (tiposImagem.includes(img.mimeType)) {
+      conteudo.push({ type: 'image', source: { type: 'base64', media_type: img.mimeType, data: img.base64 } });
+    } else if (img.mimeType === 'application/pdf') {
+      conteudo.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: img.base64 } });
+    }
+  });
+  if (!conteudo.length) return null;
+  conteudo.push({ type: 'text', text: promptUsuario });
+
+  const controle = new AbortController();
+  const temporizador = setTimeout(() => controle.abort(), 35000);
+  try {
+    const resposta = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: controle.signal,
+      headers: { 'content-type': 'application/json', 'x-api-key': chave, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: modelo, max_tokens: 2500, system: promptSistema, messages: [{ role: 'user', content: conteudo }] })
+    });
+    const data = await resposta.json().catch(() => ({}));
+    if (!resposta.ok) {
+      console.error(`Claude ${modelo} (${resposta.status}):`, data?.error?.message || '');
+      return null;
+    }
+    const texto = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();
+    if (!texto) return null;
+    res.locals = res.locals || {};
+    res.locals.modeloUsado = modelo;
+    return texto;
+  } catch (e) {
+    console.error('Claude (VAR) falhou:', e.message || e);
+    return null;
+  } finally {
+    clearTimeout(temporizador);
+  }
+}
 
 function listaModelos() {
   const env = (process.env.GEMINI_MODELOS || '').split(',').map(m => m.trim()).filter(Boolean);
@@ -441,7 +561,17 @@ function regrasDocumentacao() {
 - ELABORAR, NÃO TRANSCREVER: frases de raciocínio ou impressões soltas do médico (ex: "tempo de fratura e imobilização considerável, dor articular pela doença reumatológica, sem dor no foco da fratura", "RX comparado mantendo padrão") nunca são coladas como uma frase única em uma seção. Decomponha cada informação e leve-a à seção correta, redigida em linguagem médica completa: queixa e contexto na HDA/HPMA ("Refere dor articular em 4º QDE, relacionada ao quadro reumatológico de base, sem dor em topografia da fratura."); achado de exame no EXAME FÍSICO, em linhas próprias, substituindo as linhas padrão correspondentes ("Indolor à palpação do foco de fratura." / "Dor à palpação articular em 4º QDE."); exame de imagem no EM TEMPO, descrevendo o exame, o segmento e a comparação ("Avalio radiografias atuais do 4º QDE, comparadas ao exame prévio, mantendo o mesmo padrão e alinhamento da fratura da falange proximal, sem alterações em relação ao controle anterior."); decisão na CONDUTA. Não acrescente dados que não estejam implícitos no que foi informado.
 - COERÊNCIA QUEIXA × EXAME: o EXAME FÍSICO nunca pode contradizer a QD/HDA/HPMA. Se a queixa é dor em um segmento, linhas padrão como "Indolor à palpação" e "Sem pontos de dor focal" devem ser trocadas pela dor à palpação na topografia da queixa (com o lado), salvo informação explícita de exame indolor. Em queixa de coluna, adapte as linhas apendiculares ao exame de coluna (déficits neurológicos segmentares, mielopatia/cauda equina, reflexos patológicos) conforme os modelos de coluna. Isso não autoriza inventar edema, deformidade, déficit ou manobras.
 - INTERNAÇÃO: decisão atual explícita do médico prevalece sobre o nome de um modelo de liberação. Quando indicada, preserve o atendimento completo (AP, HDA, EXAME FÍSICO, EM TEMPO se houver exames) e finalize com a conduta de internação elaborada do modelo f; não entregue apenas uma canetada resumida quando houver atendimento completo. Não confunda "sem indicação de internação", internação passada, hipótese condicional ou recomendação clínica de alerta com decisão atual de internar. Na dúvida sobre o desfecho, sinalize no topo e não invente uma decisão. Em internação definida, retire alta, retorno ambulatorial como desfecho e avisos de conflito com alta causados apenas pelo nome do template.
-- A internação pode ser clínica, ortopédica, neurocirúrgica, para controle álgico ou investigação; não implica cirurgia automaticamente. Documente motivo, medidas no PS, discussão/encaminhamento e destino apenas conforme os dados. Preserve hospital, equipe, médico, CRM e leito quando informados. Não invente discussão, aceite de vaga, transferência realizada, procedimento, riscos explicados ou compreensão/consentimento. Adapte os esclarecimentos ao tratamento realmente proposto e ao interlocutor capaz de recebê-los; não atribua compreensão a paciente sonolento/incapaz sem confirmação. Durante internação, sinais de alarme exigem comunicação à equipe assistente, não retorno ao PS após alta.`;
+- A internação pode ser clínica, ortopédica, neurocirúrgica, para controle álgico ou investigação; não implica cirurgia automaticamente. Documente motivo, medidas no PS, discussão/encaminhamento e destino apenas conforme os dados. Preserve hospital, equipe, médico, CRM e leito quando informados. Não invente discussão, aceite de vaga, transferência realizada, procedimento, riscos explicados ou compreensão/consentimento. Adapte os esclarecimentos ao tratamento realmente proposto e ao interlocutor capaz de recebê-los; não atribua compreensão a paciente sonolento/incapaz sem confirmação. Durante internação, sinais de alarme exigem comunicação à equipe assistente, não retorno ao PS após alta.
+- HISTÓRIA LIMPA E CRONOLÓGICA (pedido do médico, 28/09/2026): escreva a história em ordem cronológica, do mais antigo para o mais recente, citando cada fato e cada data UMA única vez, sem voltar atrás nem repetir. Frases curtas e diretas, uma ideia por frase. Se a história do médico vier confusa ou em ordem trocada, reorganize; não copie a bagunça.
+- MECANISMO SÓ COMO INFORMADO: descreva o mecanismo com as palavras que o médico usou. Não acrescente adjetivos de mecanismo (torcional, direto, contuso, de alta energia) que ele não informou. O exemplo "trauma torcional e direto" da regra de ordem da história de trauma mostra só a ORDEM (mecanismo primeiro); use \"torcional\" apenas se houver torção informada.
+- LADO INFORMADO UMA VEZ VALE PARA TODOS OS SEGMENTOS: quando o médico escreve o lado uma vez para mais de um segmento (ex: "joelho e cotovelo direito", "punho e mão esquerdos"), o lado vale para todos os segmentos citados. Nunca gere aviso de lado ausente nesse caso. Escreva o lado em cada segmento na história, no exame físico e nos exames solicitados (ex: "Solicito radiografias de joelho direito e cotovelo direito.").
+- PLANO DE HOJE SÓ NA CONDUTA: as decisões informadas nos dados da avaliação atual (analgesia, brace, órtese, RM, alta, tratamento conservador, retorno) são a conduta de HOJE. Vão SOMENTE na CONDUTA, como "Prescrita analgesia", "Prescrito uso de brace", "Solicito ressonância magnética...". Nunca na HDA/HPMA/QD e nunca como "uso prévio", "prescrição recente" ou tratamento já realizado. A história só tem queixa, mecanismo, evolução e o que o registro inicial informou (inclusive os exames que ele pediu).
+- SINTOMA NÃO INFORMADO NÃO ENTRA NA HISTÓRIA: edema, limitação funcional, piora ao apoio, irradiação etc. só entram na história se o médico informou. Se o exame atual diz "ADM preservada" ou "sem edema", a história não pode citar edema nem limitação funcional.
+- SIGLA NÃO RECONHECIDA: se uma sigla ou abreviação do médico não estiver no glossário nem for inequívoca pelo contexto, NÃO invente significado nem escreva palavra parecida (ex: "bulus"): omita aquela informação e sinalize no topo com aviso curto (ex: "⚠️ Sigla BPP não interpretada").
+- TELEFONE SÓ SE HOUVER NÚMERO: a linha "Telefone para contato:" só existe se o médico informou um número. Nunca escreva essa linha só com nomes de acompanhantes ou sem número.
+- DEAMBULAÇÃO x REGISTRO INICIAL: o botão de deambulação e os DADOS DA AVALIAÇÃO ATUAL definem a primeira linha do EXAME FÍSICO de hoje. Se o registro do atendimento inicial cita cadeira de rodas, isso é história anterior (pode aparecer como "atendida inicialmente em cadeira de rodas") e não muda o exame de hoje.
+- EXAME FÍSICO COM IMOBILIZAÇÃO: quando o paciente está com gesso, tala, robofoot, órtese ou curativo oclusivo NA CONSULTA DE HOJE, o exame físico descreve só o que é examinável: estado da imobilização (íntegra, sem quebras, frouxidão ou pontos de pressão), pele visível nas bordas e avaliação neurovascular das extremidades livres (perfusão, sensibilidade e mobilidade dos dedos, sem inventar pulsos). Retire as linhas que exigem ver ou palpar o segmento imobilizado (lesões cutâneas e escoriações, deformidade, edema, palpação do foco, gaps, crepitações, amplitude de movimento e estabilidade do segmento). Se o médico informou que está sem queixas, pode escrever "Sem queixas álgicas referidas.". Só descreva o segmento se o médico informou que retirou a imobilização e examinou.
+- SEM LINHAS REDUNDANTES NA CONDUTA: nunca escreva duas linhas com o mesmo sentido (ex: "Reavaliação após o resultado dos exames." junto com "Orientado retorno ambulatorial com o resultado dos exames."). Quando a reavaliação é logo após o exame, no mesmo plantão, não há orientação de retorno ambulatorial.`;
 }
 
 function montarPromptSistema() {
@@ -546,7 +676,7 @@ const TEMPLATES = {
     nome: '1º Atendimento',
     texto: `AP: nega alergias. (Instrução: incluir todo antecedente informado de forma completa — cirurgias prévias com o procedimento e o material de síntese quando informados, ex: "Antecedente de fratura de maléolo lateral direito há 10 anos, submetida a osteossíntese com placa"; comorbidades; medicações contínuas.)
 
-QD: (Instrução: iniciar com letra minúscula após os dois-pontos. Não resumir a queixa a uma frase telegráfica quando o médico informou mais dados: redigir uma história articulada, em uma ou mais linhas, com TODOS os dados fornecidos — mecanismo, tempo de evolução, sintomas, fatores de piora, evolução, tratamentos já tentados, relação com cirurgia/material prévio e motivo da procura atual —, conectando os fatos com nexo temporal e clínico. Exemplo: "dor e edema em tornozelo direito há 2 semanas, sem trauma recente, em paciente com antecedente de osteossíntese com placa em maléolo lateral direito, sem melhora com analgesia oral". Comece pelo mecanismo e depois a evolução: "trauma torcional e direto no joelho direito decorrente de queda ao nível do solo, evoluindo com dor e edema...". Não escreva nome nem matrícula do paciente.)
+QD: (Instrução: iniciar com letra minúscula após os dois-pontos. Não resumir a queixa a uma frase telegráfica quando o médico informou mais dados: redigir uma história articulada, em uma ou mais linhas, com TODOS os dados fornecidos — mecanismo, tempo de evolução, sintomas, fatores de piora, evolução, tratamentos já tentados, relação com cirurgia/material prévio e motivo da procura atual —, conectando os fatos com nexo temporal e clínico. Exemplo: "dor e edema em tornozelo direito há 2 semanas, sem trauma recente, em paciente com antecedente de osteossíntese com placa em maléolo lateral direito, sem melhora com analgesia oral". Comece pelo mecanismo e depois a evolução: "trauma torcional e direto no joelho direito decorrente de queda ao nível do solo, evoluindo com dor e edema...". Não escreva nome nem matrícula do paciente. História limpa e cronológica: quando aconteceu, mecanismo, segmentos atingidos com o lado, sintomas; uma ideia por frase, sem repetir o mesmo segmento. Exemplo: "queda de joelhos ontem, com trauma em joelho direito e cotovelo direito, evoluindo com dor na face anterior do joelho e no cotovelo, além de escoriação no cotovelo". Não acrescente "torcional" nem outro adjetivo de mecanismo que não foi informado. Lado citado uma vez para dois segmentos vale para os dois.)
 Nega TCE. Nega perda de consciência. Nega dor em outras topografias. Nega demais queixas associadas. (Instrução: negativas padrão do trauma, numa linha própria logo abaixo da QD, todas juntas. NUNCA "nega história de trauma", que contradiz a queda/acidente relatado. Negativas nunca vão no AP.)
 
 EXAME FÍSICO:
@@ -569,7 +699,7 @@ Sem sinais clínicos de trombose venosa profunda.
 
 CONDUTA:
 Prescrita analgesia. (Instrução: incluir sempre que o médico escrever MED, medicação, analgesia ou sintomáticos. Se citar fármaco ou via, especifique — ex: "Prescrita analgesia endovenosa com dipirona". Só troque por "Realizada medicação analgésica" se o médico disser que já foi feita/administrada. Nunca omitir quando informado.)
-Solicito radiografias (Instrução: citar os exames que o médico SOLICITOU usando "Solicito"; nunca escrever "Realizados exames" quando o médico apenas pediu.)
+Solicito radiografias (Instrução: citar os exames que o médico SOLICITOU usando "Solicito"; nunca escrever "Realizados exames" quando o médico apenas pediu. Sempre com segmento e lado, sem "segmentos acometidos": ex "Solicito radiografias de joelho direito e cotovelo direito.")
 Reavaliação após (o médico informa o prazo/momento — ex: resultado de exame, algumas horas, retorno ainda neste plantão; nunca assuma um número de dias)`
   },
   b: {
@@ -621,8 +751,10 @@ Realizada redução incruenta com sucesso. (Instrução: use esta linha apenas e
     nome: 'Liberação — RX Limpo',
     texto: `PSO
 
+AP: nega alergias. (Instrução: o AP é SEMPRE a primeira seção do texto, acima da HDA. Incluir alergias, comorbidades, medicações e cirurgias informadas.)
+
 HDA:
-(Instrução: quando houver história/evolução, iniciar com "Reavalio paciente com quadro de...", separando o registro inicial da avaliação atual. Incluir AP informado em seção própria. Omitir a seção HDA se não houver dados, sem inventar sintomas.)
+(Instrução: quando houver história/evolução, iniciar com "Reavalio paciente com quadro de...", em ordem cronológica: queixa, mecanismo, evolução e o que o registro inicial informou, inclusive exames que ele pediu. Só sintomas informados. As decisões de hoje (analgesia, brace, RM, alta, tratamento conservador, retorno) NÃO entram na HDA: vão só na CONDUTA. Omitir a seção HDA se não houver dados, sem inventar sintomas.)
 
 EXAME FÍSICO:
 (Instrução: iniciar com "Paciente em bom estado geral, lúcido e orientado, deambulando." (salvo informação contrária ou paciente marcado como não deambulante) e, em seguida, descrever de forma organizada os achados da avaliação atual, com cada achado em uma linha e detalhamento conforme fornecido. Não apresentar exame anterior como atual nem acrescentar manobras não informadas. Omitir a seção se não houver exame atual informado.)
@@ -644,8 +776,10 @@ Paciente refere compreensão das orientações, encontrando-se ciente da conduta
     nome: 'Liberação — Fratura',
     texto: `PSO
 
+AP: nega alergias. (Instrução: o AP é SEMPRE a primeira seção do texto, acima da HDA. Incluir alergias, comorbidades, medicações e cirurgias informadas.)
+
 HDA:
-(Instrução: quando houver história/evolução, iniciar com "Reavalio paciente com quadro de...", separando o registro inicial da avaliação atual. Incluir AP informado em seção própria. Omitir a seção HDA se não houver dados, sem inventar sintomas.)
+(Instrução: quando houver história/evolução, iniciar com "Reavalio paciente com quadro de...", em ordem cronológica: queixa, mecanismo, evolução e o que o registro inicial informou, inclusive exames que ele pediu. Só sintomas informados. As decisões de hoje (analgesia, brace, RM, alta, tratamento conservador, retorno) NÃO entram na HDA: vão só na CONDUTA. Omitir a seção HDA se não houver dados, sem inventar sintomas.)
 
 EXAME FÍSICO:
 (Instrução: iniciar com "Paciente em bom estado geral, lúcido e orientado, deambulando." (salvo informação contrária ou paciente marcado como não deambulante) e, em seguida, descrever de forma organizada os achados da avaliação atual, com cada achado em uma linha e detalhamento conforme fornecido. Não apresentar exame anterior como atual nem acrescentar manobras não informadas. Omitir a seção se não houver exame atual informado.)
@@ -1049,8 +1183,8 @@ TEMPLATES.bg = {
 const ANAMNESE_RETORNO = `AP: nega alergias. (Instrução: incluir antecedentes informados.)
 
 HDA:
-Paciente em seguimento ortopédico por (instrução: lesão/fratura com lado), com trauma em (instrução: data DD/MM/AAAA), em (instrução: tratamento em curso — ex: tratamento conservador com robofoot), totalizando cerca de (instrução: X semanas desde o trauma e Y semanas de imobilização, usando os valores do bloco TEMPO CALCULADO; omita o que não puder ser calculado). (Instrução: esta primeira linha contém SÓ lesão, data do trauma, tratamento e o tempo — sem unidade de origem, encaminhamento ou mecanismo, que vêm nas linhas seguintes apenas se informados. O TEMPO EM SEMANAS É OBRIGATÓRIO sempre que existir qualquer data no bloco TEMPO CALCULADO: use a data mais antiga como data do trauma e escreva "atualmente com cerca de X semanas de evolução" e, se houver imobilização, "e cerca de Y semanas de imobilização". Não cite nome nem CRM dos médicos dos atendimentos anteriores.)
-(Instrução: resumir em ordem cronológica cada atendimento prévio informado, com a data e o que foi feito em cada um — ex: "Em 02/09, avaliado no PS, realizada imobilização com tala gessada. Em 12/09, retorno com manutenção da conduta." Não inventar atendimentos nem datas.)
+Paciente em seguimento ortopédico por (instrução: lesão/fratura com o lado; se o médico informou o nome da lesão, use esse nome), em (instrução: tratamento em curso — ex: tratamento conservador com gesso antebraquial ou robofoot). (Instrução: esta primeira linha contém SÓ a lesão e o tratamento em curso: sem datas, sem tempo em semanas, sem unidade de origem, encaminhamento ou mecanismo. O tempo desde o trauma e o tempo de imobilização NÃO entram na HDA: vão em duas linhas no FIM do texto, conforme o bloco LINHAS FINAIS.)
+(Instrução: HISTÓRIA CRONOLÓGICA E ENXUTA. Uma linha por atendimento prévio, do mais antigo para o mais recente, cada data citada UMA vez, sem voltar atrás nem repetir o trauma. O primeiro atendimento começa com a data do trauma (e o mecanismo, se informado) e diz o que foi feito, ex: "Em 02/09/2026, trauma no punho, avaliado no pronto-socorro, realizada redução sem intercorrências e imobilização com membro elevado." Os seguintes dizem só o que mudou ou foi mantido, ex: "Em 12/09/2026, retorno ambulatorial com gesso em bom estado, mantida a conduta." Não cite nome nem CRM dos médicos anteriores, não invente atendimentos nem datas e não repita informação já dita.)
 Retorna hoje para reavaliação ambulatorial (instrução: acrescente "com resultado de exame" se trouxe exame). (Instrução: queixas atuais informadas; se sem queixas, "Refere melhora da dor, sem queixas no momento".)
 Nega novos traumas. Nega febre ou outros sinais flogísticos. Nega demais queixas associadas.
 
@@ -1069,7 +1203,7 @@ Pulsos distais palpáveis e simétricos.
 Perfusão periférica adequada, com tec < 3 segundos.
 Sem sinais sugestivos de lesão vascular aguda.
 Sem sinais clínicos de trombose venosa profunda.
-(Instrução: este é o exame físico PADRÃO do retorno e deve sair completo, do mesmo jeito dos demais modelos. Só altere as linhas correspondentes ao que o médico informou — condição da imobilização, ferida operatória, dor no foco, limitação de movimento. Não resuma, não troque por frases genéricas e não acrescente linhas que o médico não informou.)
+(Instrução: EXCEÇÃO OBRIGATÓRIA: se o paciente está com gesso, tala, robofoot ou órtese na consulta de hoje, NÃO use o exame padrão completo abaixo: aplique a regra EXAME FÍSICO COM IMOBILIZAÇÃO (só estado da imobilização e avaliação neurovascular das extremidades livres; sem escoriações, deformidade, edema, palpação do foco, gaps, crepitações, amplitude de movimento ou estabilidade do segmento). Fora dessa exceção, este é o exame físico PADRÃO do retorno e deve sair completo, do mesmo jeito dos demais modelos. Só altere as linhas correspondentes ao que o médico informou — condição da imobilização, ferida operatória, dor no foco, limitação de movimento. Não resuma, não troque por frases genéricas e não acrescente linhas que o médico não informou.)
 
 EM TEMPO:
 (Instrução: descrever os exames atuais comparando com os anteriores informados — alinhamento, desvio, sinais de consolidação, calo ósseo, posição do material de síntese. Omitir se não houver exame.)`;
@@ -1081,7 +1215,7 @@ TEMPLATES.r0 = {
 CONDUTA:
 Solicito radiografias de controle (instrução: segmento e lado acometidos).
 Reavaliação após o resultado dos exames.
-(Instrução: esta é a PRIMEIRA ETAPA do retorno — o médico pediu RX e vai reavaliar depois. A conduta tem SÓ estas duas linhas (mais "Prescrita analgesia." se ele pediu), sem EM TEMPO, sem desfecho, sem internação, sem orientações de alta e sem "Sem indicação de procedimento...", MESMO que os dados tragam diagnóstico ou exames anteriores. Na HDA, termine a linha de hoje sem citar o exame pedido.)`
+(Instrução: esta é a PRIMEIRA ETAPA do retorno — o médico pediu RX e vai reavaliar depois. A conduta tem SÓ estas duas linhas (mais "Prescrita analgesia." se ele pediu, e mais a linha de retirada da imobilização se ele pediu retirar tala/gesso: "Solicito retirada da tala gessada para a realização das radiografias.", que vem ANTES do RX; nunca acrescente "Orientado retorno ambulatorial...", pois a reavaliação é logo após o resultado), sem EM TEMPO, sem desfecho, sem internação, sem orientações de alta e sem "Sem indicação de procedimento...", MESMO que os dados tragam diagnóstico ou exames anteriores. Na HDA, termine a linha de hoje sem citar o exame pedido.)`
 };
 
 TEMPLATES.r1 = {
@@ -1148,7 +1282,7 @@ function calcularTempos(texto, dataHoje) {
     const dias = Math.round((hoje - d) / 86400000);
     const sem = Math.floor(dias / 7), resto = dias % 7;
     const dd = String(d.getDate()).padStart(2, '0'), mm = String(d.getMonth() + 1).padStart(2, '0');
-    linhas.push(`- ${dd}/${mm}/${d.getFullYear()}: ${dias} dias atrás (${sem} semana${sem === 1 ? '' : 's'}${resto ? ` e ${resto} dia${resto === 1 ? '' : 's'}` : ''}; escreva "cerca de ${resto >= 4 ? sem + 1 : sem} semanas")`);
+    linhas.push(`- ${dd}/${mm}/${d.getFullYear()}: ${dias} dias atrás (${sem} semana${sem === 1 ? '' : 's'}${resto ? ` e ${resto} dia${resto === 1 ? '' : 's'}` : ''}; no texto corrido escreva "cerca de ${resto >= 4 ? sem + 1 : sem} semanas"; na linha final escreva exatamente "${tempoEmCaixaAlta(dias)}")`);
   });
   return linhas.join('\n');
 }
@@ -1192,7 +1326,7 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
   if (!ehRelato) {
     partes.push(naoDeambula
       ? `\nDEAMBULAÇÃO: o médico marcou que o paciente NÃO deambula (cadeira de rodas ou acamado). Retire "deambulando" do EXAME FÍSICO; descreva "em cadeira de rodas" ou "restrito ao leito" somente se informado.`
-      : `\nDEAMBULAÇÃO: paciente deambulando (padrão). Mantenha "deambulando" na primeira linha do EXAME FÍSICO, salvo se os dados informarem incapacidade de marcha/apoio.`);
+      : `\nDEAMBULAÇÃO: paciente deambulando (padrão). Mantenha "deambulando" na primeira linha do EXAME FÍSICO, salvo se os DADOS DA AVALIAÇÃO ATUAL informarem incapacidade de marcha/apoio. Informação do registro do atendimento inicial (ex: chegou em cadeira de rodas) pertence àquele registro e não muda o exame de hoje.`);
 
     const exame = String(exameAmbulatorial || '').toUpperCase();
     if (exame === 'RM' || exame === 'USG') {
@@ -1214,6 +1348,9 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
   if (tipoAtendimento === 'retorno') {
     const tempo = calcularTempos(`${atendimentoInicial || ''}\n${dadosCaso || ''}`, dataHoje);
     if (tempo) partes.push(`\nTEMPO CALCULADO (já calculado a partir das datas; use estes valores, não recalcule):\n${tempo}`);
+    if (tempo && /^r/.test(templatesEscolhidos[0] || '')) {
+      partes.push(`\nLINHAS FINAIS (retorno de trauma/fratura): depois de TODA a CONDUTA, deixe uma linha em branco e escreva, em CAIXA ALTA, uma linha "TEMPO DESDE O TRAUMA: X SEMANAS E Y DIAS", usando o valor do TEMPO CALCULADO da data do trauma (a mais antiga). Se houve imobilização, escreva depois "TEMPO TOTAL DE IMOBILIZAÇÃO: X SEMANAS E Y DIAS", com o valor da data em que a imobilização começou (se foi na mesma data do trauma, o mesmo valor). Sem imobilização, não escreva essa segunda linha. Esses tempos NÃO entram na HDA.`);
+    }
   }
   if (tipoAtendimento === 'retorno' && !templatesEscolhidos.includes('r0')) {
     partes.push(`\nRETORNO AMBULATORIAL: na ortopedia não existe alta do seguimento. Todo retorno termina com novo retorno ambulatorial com prazo (o informado pelo médico; se não informado, sinalize no topo). Nunca escreva "alta", "alta do seguimento" ou "alta ambulatorial".`);
@@ -1475,13 +1612,13 @@ ANTES DE RESPONDER, FAÇA A VARREDURA (não escreva a varredura, só use-a):
 2. Percorra a cortical de cada um, do começo ao fim, procurando linha lucente, descontinuidade ou degrau cortical, esclerose linear, fragmento avulsionado e alteração do trabeculado. Fratura sem desvio costuma aparecer só como uma linha fina ou uma quebra sutil do contorno — isso é achado, não normalidade.
 3. Depois avalie articulações (congruência, alargamento, luxação/subluxação), partes moles (derrame, nível líquido-gorduroso, coxins gordurosos, gás, corpo estranho) e implantes.
 
-O QUE ENTREGAR (português do Brasil, texto curto, sem markdown, sem asteriscos):
-EXAME: tipo de exame, segmento, lado e incidências identificáveis. Se algo não for identificável, diga.
-ACHADOS SUSPEITOS: SÓ alterações, uma por linha, começando com o grau de suspeita — [ALTA], [MODERADA] ou [BAIXA] —, seguido da estrutura exata (osso, região, cortical, articulação) e do que se vê (traço de fratura, degrau cortical, desvio, angulação, luxação/subluxação, alargamento articular, derrame, lesão lítica/blástica etc.). Na dúvida entre citar um achado sutil ou omitir, CITE com [BAIXA] e diga o que viu. Estrutura normal NUNCA entra nesta seção nem recebe grau. Se não houver alteração, escreva \"Nenhuma alteração aguda evidente nas imagens enviadas.\"
-SEM ALTERAÇÃO APARENTE: numa única linha, as principais estruturas avaliadas que parecem normais (ex: \"platô tibial, patela, fêmur distal\").
-MATERIAL CIRÚRGICO / CIRURGIA PRÉVIA: só se houver implante. Descreva o tipo e a posição (placa, parafusos, haste, âncoras, grampo, parafuso de interferência, prótese) e, quando o padrão for típico, o procedimento provável (ex: parafuso/grampo no túnel tibial proximal → provável reconstrução do LCA). Aponte soltura, quebra, migração, halo lucente ou fratura periprotética se houver. Implante não é achado suspeito.
-ONDE OLHAR DE NOVO: as regiões de fratura oculta ou de difícil visualização típicas daquele segmento e mecanismo, só as pertinentes ao exame enviado (ex: joelho → cabeça e colo da fíbula, platô tibial, fratura de Segond, eminência intercondilar, patela, nível líquido-gorduroso; punho → escafoide, rádio distal, semilunar; tornozelo → base do 5º metatarso, processo lateral do tálus, fíbula proximal; quadril → colo do fêmur, ramos púbicos; cotovelo → cabeça do rádio e coxins gordurosos).
-LIMITAÇÕES: qualidade, incidências faltantes, foto de tela, rotação, sobreposição — só se houver. Sugira a incidência ou o exame complementar que resolveria a dúvida, se for o caso.
+O QUE ENTREGAR (português do Brasil, texto curto e visual: um emoji no início de cada seção, o título da seção e o grau de suspeita em **negrito** com asteriscos duplos, e nenhum outro markdown; sem tabelas). Use exatamente estes títulos, nesta ordem:
+🩻 **EXAME:** tipo de exame, segmento, lado e incidências identificáveis. Se algo não for identificável, diga.
+🚨 **ACHADOS SUSPEITOS:** SÓ alterações, uma por linha, cada linha começando com o grau de suspeita — 🔴 **ALTA**, 🟠 **MODERADA** ou 🟡 **BAIXA** —, seguido da estrutura exata (osso, região, cortical, articulação) e do que se vê (traço de fratura, degrau cortical, desvio, angulação, luxação/subluxação, alargamento articular, derrame, lesão lítica/blástica etc.). Na dúvida entre citar um achado sutil ou omitir, CITE com 🟡 **BAIXA** e diga o que viu. Estrutura normal NUNCA entra nesta seção nem recebe grau. Se não houver alteração, escreva \"✅ Nenhuma alteração aguda evidente nas imagens enviadas.\"
+🟢 **SEM ALTERAÇÃO APARENTE:** numa única linha, as principais estruturas avaliadas que parecem normais (ex: \"platô tibial, patela, fêmur distal\").
+🔩 **MATERIAL CIRÚRGICO / CIRURGIA PRÉVIA:** só se houver implante; sem implante, NÃO escreva esta seção (nunca \"Ausente\"). Descreva o tipo e a posição (placa, parafusos, haste, âncoras, grampo, parafuso de interferência, prótese) e, quando o padrão for típico, o procedimento provável (ex: parafuso/grampo no túnel tibial proximal → provável reconstrução do LCA). Aponte soltura, quebra, migração, halo lucente ou fratura periprotética se houver. Implante não é achado suspeito.
+🔎 **ONDE OLHAR DE NOVO:** as regiões de fratura oculta ou de difícil visualização típicas daquele segmento e mecanismo, só as pertinentes ao exame enviado (ex: joelho → cabeça e colo da fíbula, platô tibial, fratura de Segond, eminência intercondilar, patela, nível líquido-gorduroso; punho → escafoide, rádio distal, semilunar; tornozelo → base do 5º metatarso, processo lateral do tálus, fíbula proximal; quadril → colo do fêmur, ramos púbicos; cotovelo → cabeça do rádio e coxins gordurosos).
+⚠️ **LIMITAÇÕES:** qualidade, incidências faltantes, foto de tela, rotação, sobreposição — só se houver; sem limitações, NÃO escreva esta seção. Sugira a incidência ou o exame complementar que resolveria a dúvida, se for o caso.
 
 REGRAS:
 - Descreva só o que está visível. Não invente achado para parecer útil.
