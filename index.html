@@ -1857,6 +1857,10 @@
       <div class="aviso-imagem" id="avisoImagemImg" style="display:none;">Evite fotos com nome ou dados do paciente visíveis.</div>
     </div>
 
+    <div class="seletor-ia" style="margin-bottom:8px;">
+      <span class="label" style="margin:0;">IA da leitura</span>
+      <select id="provedorVar" style="font-size:13px; padding:6px;"></select>
+    </div>
     <button class="btn-gerar" id="btnAnalisarImg">Analisar imagem</button>
     <div class="spinner" id="spinnerImg"><span class="dot"></span> Analisando...</div>
     <div class="erro" id="erroImg"></div>
@@ -2598,6 +2602,7 @@
     }
 
     if (aba === 'sugestoes') carregarSugestoesPendentes();
+    if (aba === 'imagem') carregarStatusIA();
 
     // O botao "Comecar de novo" do header so aparece na aba que tem um resultado pendente
     var mostrarBtnRecomecar = (aba === btnRecomecarHeader.dataset.aba) &&
@@ -2859,7 +2864,7 @@
     fetch('/api/gerar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: pinAtual, modo: 'imagem', dadosCaso: imgContexto.value.trim(), imagens: imgs })
+      body: JSON.stringify({ pin: pinAtual, modo: 'imagem', dadosCaso: imgContexto.value.trim(), imagens: imgs, provedor: provedorVar.value || 'auto' })
     }).then(function(resp) {
       return resp.json().then(function(data) {
         if (!resp.ok) {
@@ -2871,6 +2876,9 @@
         historicoImg = [{ tipo: 'geracao', data: agoraIso(), entrada: { contexto: contextoEnviadoImg || '(sem contexto)', imagensAnexadas: String(qtdImagensImg) }, modelo: data.modelo || '', saida: ultimoTextoImg }];
         resultadoTextoImg.innerHTML = formatarVarHtml(ultimoTextoImg);
         modeloIAImg.textContent = data.modelo || '';
+        var falhasImg = (data.tentativas || []).filter(function(t) { return t && t.modelo !== data.modelo; });
+        if (falhasImg.length) modeloIAImg.textContent += ' — não usados: ' + falhasImg.map(function(t) { return t.modelo + ' (' + t.erro + ')'; }).join(', ');
+        provedorVar.value = 'auto';
         resultadoCardImg.classList.add('show');
         btnCopiarImg.textContent = 'COPIAR';
         btnCopiarImg.classList.remove('copiado');
@@ -3271,20 +3279,40 @@
     }).join(' ');
   }
 
-  // Escolha da IA (29/09/2026): Automático = fila do Gemini; Claude/ChatGPT via API.
+  // Escolha da IA (29/09/2026): o padrão é SEMPRE o Gemini grátis. Modelo pago só vale para a geração
+  // em que o médico o escolheu; depois o seletor volta sozinho para o automático.
   var provedorIA = 'auto';
-  try { provedorIA = localStorage.getItem('ortopia_provedor') || 'auto'; } catch (e) {}
   var ultimasTentativas = [];
   var statusIA = null;
   var statusIACarregando = false;
-  var OPCOES_IA = [
-    ['auto', 'Automático (Gemini)'],
-    ['claude-sonnet', 'Claude Sonnet'],
-    ['claude-opus', 'Claude Opus'],
-    ['openai', 'ChatGPT']
-  ];
   var ultimosIdsModelo = [];
   var ultimoRefazer = null;
+
+  function opcoesIA() {
+    return (statusIA && statusIA.opcoes) || [{ valor: 'auto', rotulo: 'Automático — Gemini grátis (padrão)', pago: false, disponivel: true }];
+  }
+
+  function preencherSelectIA(sel, valorAtual) {
+    sel.innerHTML = '';
+    var grupos = [['Grátis', false], ['Pago — só quando você escolher', true]];
+    grupos.forEach(function(g) {
+      var og = document.createElement('optgroup');
+      og.label = g[0];
+      opcoesIA().filter(function(o) { return !!o.pago === g[1]; }).forEach(function(o) {
+        var op = document.createElement('option');
+        op.value = o.valor;
+        op.textContent = (o.pago ? '💲 ' : '') + o.rotulo;
+        op.disabled = !o.disponivel;
+        if (o.valor === valorAtual) op.selected = true;
+        og.appendChild(op);
+      });
+      if (og.children.length) sel.appendChild(og);
+    });
+  }
+
+  var provedorVar = document.getElementById('provedorVar');
+  function atualizarSelectVar() { preencherSelectIA(provedorVar, provedorVar.value || 'auto'); }
+  atualizarSelectVar();
 
   function carregarStatusIA() {
     if (statusIA || statusIACarregando) return;
@@ -3294,16 +3322,10 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pin: pinAtual, modo: 'modelos' })
     }).then(function(r) { return r.json(); }).then(function(d) {
-      statusIA = d || {};
+      if (d && d.opcoes) statusIA = d;
+      atualizarSelectVar();
       if (ultimosIdsModelo.length) mostrarModeloIA(ultimosIdsModelo, ultimoRefazer);
     }).catch(function() {}).finally(function() { statusIACarregando = false; });
-  }
-
-  function iaDisponivel(valor) {
-    if (valor === 'auto') return true;
-    if (!statusIA) return true; // ainda carregando: deixa escolher; se faltar chave, cai no Gemini
-    if (valor === 'openai') return !!statusIA.openai;
-    return !!statusIA.claude;
   }
 
   function mostrarModeloIA(ids, refazer) {
@@ -3331,17 +3353,9 @@
       var box = document.createElement('div');
       box.className = 'seletor-ia';
       var sel = document.createElement('select');
-      OPCOES_IA.forEach(function(o) {
-        var op = document.createElement('option');
-        op.value = o[0];
-        op.textContent = o[1] + (iaDisponivel(o[0]) ? '' : ' (sem chave)');
-        op.disabled = !iaDisponivel(o[0]);
-        if (o[0] === provedorIA) op.selected = true;
-        sel.appendChild(op);
-      });
+      preencherSelectIA(sel, provedorIA);
       sel.addEventListener('change', function() {
         provedorIA = sel.value;
-        try { localStorage.setItem('ortopia_provedor', provedorIA); } catch (e) {}
         ids.forEach(function(outro) {
           var s2 = document.getElementById(outro);
           var sel2 = s2 && s2.querySelector('select');
@@ -3410,7 +3424,7 @@
         ultimasTentativas = data.tentativas || [];
         return data.texto || '';
       });
-    });
+    }).finally(function() { provedorIA = 'auto'; });
   }
 
   var TEMPLATES_AUTOSSUFICIENTES = ['e1', 'e2', 'e3', 'e4', 'e5', 'e6', 'e7'];
@@ -3970,7 +3984,7 @@
         ultimasTentativas = data.tentativas || [];
         return data.texto || '';
       });
-    });
+    }).finally(function() { provedorIA = 'auto'; });
   }
 
   btnGerarMsg.addEventListener('click', function() {
@@ -4648,6 +4662,7 @@
     function executarGeracao(payload) {
       erro.classList.remove('show');
       payload.provedor = provedorIA;
+      provedorIA = 'auto';
       payload.dataHoje = new Date().toLocaleDateString('pt-BR');
       btnGerar.disabled = true;
       btnGerar.textContent = 'Gerando...';

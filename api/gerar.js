@@ -34,10 +34,19 @@ export default async function handler(req, res) {
 
   if (ehImagem) {
     try {
-      // 1º: Claude (só se ANTHROPIC_API_KEY estiver na Vercel); se falhar ou não houver chave, cai no Gemini.
-      let texto = await chamarClaudeImagem(montarPromptSistemaImagem(), montarPromptImagem(dadosCaso), imagens, res);
+      // Padrão: Gemini grátis. Modelo pago (Claude/ChatGPT) só quando o médico escolhe no seletor (29/09/2026).
+      const contentsImg = [{ role: 'user', parts: montarParts(montarPromptImagem(dadosCaso), imagens) }];
+      let texto = null;
+      const escolhaImg = modeloDoProvedor(provedor);
+      if (escolhaImg && escolhaImg.tipo === 'claude') {
+        texto = await chamarClaudeImagem(montarPromptSistemaImagem(), montarPromptImagem(dadosCaso), imagens, res, escolhaImg.modelo);
+      } else if (escolhaImg && escolhaImg.tipo === 'openai') {
+        texto = await chamarOpenAI(escolhaImg.modelo, montarPromptSistemaImagem(), contentsImg, res);
+      } else if (escolhaImg && escolhaImg.tipo === 'gemini') {
+        texto = await chamarGemini(montarPromptSistemaImagem(), contentsImg, 0.2, apiKey, res, true, [escolhaImg.modelo]);
+      }
       if (texto === null) {
-        texto = await chamarGemini(montarPromptSistemaImagem(), [{ role: 'user', parts: montarParts(montarPromptImagem(dadosCaso), imagens) }], 0.2, apiKey, res, false, listaModelosImagem());
+        texto = await chamarGemini(montarPromptSistemaImagem(), contentsImg, 0.2, apiKey, res, false, listaModelosImagem());
         if (texto === null) return;
       }
       texto = limparSecoesVaziasVar(preposicaoDoSegmento(limparCaracteresEstranhos(corrigirEspanholETipos(texto)))
@@ -190,7 +199,7 @@ function exameDaTorcaoDoTornozelo(texto, fontes) {
   let t = String(texto).replace(/f[íi]bula alta/gi, m => m[0] === 'F' ? 'Fíbula proximal' : 'fíbula proximal');
   const base = `${fontes}\n${t}`;
   if (!/(tor[çc]|torc|entors|virou|inversão)/i.test(base) || !/(tornozelo|mal[ée]olo)/i.test(base)) return t;
-  if (/5[ºo°]? metatarso|quinto metatarso/i.test(t) || /(gesso|tala|robofoot|bota imobilizadora)/i.test(t)) return t;
+  if (/5[ºo°]? metatarso|quinto metatarso/i.test(t)) return t;
   const linhas = t.split('\n');
   const iEx = linhas.findIndex(l => /^\s*EXAME F[ÍI]SICO/i.test(l));
   if (iEx === -1) return t;
@@ -483,13 +492,13 @@ function listaModelosImagem() {
 }
 
 // VAR com Claude (opcional). Só roda se existir a variável ANTHROPIC_API_KEY na Vercel.
-// O modelo pode ser trocado pela variável VAR_CLAUDE_MODELO (ex: claude-opus-5-5, mais forte e mais caro).
+// Só roda quando o médico escolhe um Claude no seletor da VAR (padrão é o Gemini grátis, 29/09/2026).
 // Qualquer falha devolve null e a VAR segue para a fila do Gemini.
 const CLAUDE_MODELO_PADRAO = 'claude-sonnet-5-5';
-async function chamarClaudeImagem(promptSistema, promptUsuario, imagens, res) {
+async function chamarClaudeImagem(promptSistema, promptUsuario, imagens, res, modeloEscolhido) {
   const chave = process.env.ANTHROPIC_API_KEY;
-  if (!chave) return null;
-  const modelo = (process.env.VAR_CLAUDE_MODELO || CLAUDE_MODELO_PADRAO).trim();
+  const modelo = (modeloEscolhido || CLAUDE_MODELO_PADRAO).trim();
+  if (!chave) { registrarTentativa(res, modelo, 'sem chave ANTHROPIC_API_KEY'); return null; }
   const tiposImagem = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
   const conteudo = [];
   (Array.isArray(imagens) ? imagens : []).slice(0, MAX_IMAGENS).forEach(img => {
@@ -504,7 +513,7 @@ async function chamarClaudeImagem(promptSistema, promptUsuario, imagens, res) {
   conteudo.push({ type: 'text', text: promptUsuario });
 
   const controle = new AbortController();
-  const temporizador = setTimeout(() => controle.abort(), 35000);
+  const temporizador = setTimeout(() => controle.abort(), 45000);
   try {
     const resposta = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -536,10 +545,22 @@ async function chamarClaudeImagem(promptSistema, promptUsuario, imagens, res) {
 // provedor: 'auto' (fila do Gemini, padrão), 'claude-sonnet', 'claude-opus' ou 'openai'.
 // Claude usa ANTHROPIC_API_KEY (a mesma da VAR). ChatGPT exige OPENAI_API_KEY e OPENAI_MODELO na Vercel.
 // Se a IA escolhida falhar, o texto sai pela fila do Gemini e a falha aparece na lista de tentativas.
+// Modelos pagos oferecidos no seletor (API da Anthropic, chave ANTHROPIC_API_KEY). IDs trocáveis por variável na Vercel.
+const MODELOS_CLAUDE = [
+  { valor: 'claude-haiku', rotulo: 'Claude Haiku 4.5 (mais barato)', env: 'CLAUDE_MODELO_HAIKU', padrao: 'claude-haiku-4-5-20251001' },
+  { valor: 'claude-sonnet', rotulo: 'Claude Sonnet 5.5', env: 'CLAUDE_MODELO_SONNET', padrao: 'claude-sonnet-5-5' },
+  { valor: 'claude-opus', rotulo: 'Claude Opus 5.5', env: 'CLAUDE_MODELO_OPUS', padrao: 'claude-opus-5-5' },
+  { valor: 'claude-fable', rotulo: 'Claude Fable 5.1 (mais caro)', env: 'CLAUDE_MODELO_FABLE', padrao: 'claude-fable-5-1' }
+];
+
+// provedor: 'auto' (fila grátis do Gemini, PADRÃO SEMPRE), 'gemini:<modelo>' (um Gemini grátis específico),
+// 'claude-haiku' | 'claude-sonnet' | 'claude-opus' | 'claude-fable' ou 'openai' (pagos, só se o médico escolher).
 function modeloDoProvedor(provedor) {
-  if (provedor === 'claude-sonnet') return { tipo: 'claude', modelo: (process.env.CLAUDE_MODELO_SONNET || 'claude-sonnet-5-5').trim() };
-  if (provedor === 'claude-opus') return { tipo: 'claude', modelo: (process.env.CLAUDE_MODELO_OPUS || 'claude-opus-5-5').trim() };
-  if (provedor === 'openai') return { tipo: 'openai', modelo: (process.env.OPENAI_MODELO || '').trim() };
+  const p = String(provedor || '');
+  if (p.startsWith('gemini:')) return { tipo: 'gemini', modelo: p.slice(7) };
+  const c = MODELOS_CLAUDE.find(m => m.valor === p);
+  if (c) return { tipo: 'claude', modelo: (process.env[c.env] || c.padrao).trim() };
+  if (p === 'openai') return { tipo: 'openai', modelo: (process.env.OPENAI_MODELO || '').trim() };
   return null;
 }
 
@@ -552,22 +573,23 @@ function registrarTentativa(res, modelo, erro) {
 
 function statusModelos() {
   const agora = Date.now();
-  return {
-    gemini: listaModelos().map(m => ({
-      modelo: m,
-      situacao: modelosIndisponiveis.has(m) ? 'indisponível' : ((pausaAte.get(m) || 0) > agora ? 'em pausa (cota)' : 'ok')
-    })),
-    claude: !!process.env.ANTHROPIC_API_KEY,
-    claudeSonnet: (process.env.CLAUDE_MODELO_SONNET || 'claude-sonnet-5-5').trim(),
-    claudeOpus: (process.env.CLAUDE_MODELO_OPUS || 'claude-opus-5-5').trim(),
-    openai: !!(process.env.OPENAI_API_KEY && process.env.OPENAI_MODELO),
-    openaiModelo: (process.env.OPENAI_MODELO || '').trim()
-  };
+  const situacao = m => modelosIndisponiveis.has(m) ? 'indisponível' : ((pausaAte.get(m) || 0) > agora ? 'em pausa (cota)' : 'ok');
+  const gemini = Array.from(new Set(listaModelos().concat(listaModelosImagem())));
+  const temClaude = !!process.env.ANTHROPIC_API_KEY;
+  const temOpenAI = !!(process.env.OPENAI_API_KEY && process.env.OPENAI_MODELO);
+  const opcoes = [{ valor: 'auto', rotulo: 'Automático — Gemini grátis (padrão)', pago: false, disponivel: true }]
+    .concat(gemini.map(m => ({ valor: 'gemini:' + m, rotulo: m + (situacao(m) === 'ok' ? '' : ` — ${situacao(m)}`), pago: false, disponivel: situacao(m) !== 'indisponível' })))
+    .concat(MODELOS_CLAUDE.map(c => ({ valor: c.valor, rotulo: c.rotulo + (temClaude ? '' : ' — sem chave'), pago: true, disponivel: temClaude })))
+    .concat([{ valor: 'openai', rotulo: 'ChatGPT' + (temOpenAI ? ` (${process.env.OPENAI_MODELO})` : ' — configurar OPENAI_API_KEY e OPENAI_MODELO'), pago: true, disponivel: temOpenAI }]);
+  return { opcoes };
 }
 
 async function chamarModelo(provedor, promptSistema, contents, temperature, apiKey, res, silencioso) {
   const escolha = modeloDoProvedor(provedor);
-  if (escolha) {
+  if (escolha && escolha.tipo === 'gemini') {
+    const texto = await chamarGemini(promptSistema, contents, temperature, apiKey, res, true, [escolha.modelo]);
+    if (texto !== null) return texto;
+  } else if (escolha) {
     const texto = escolha.tipo === 'claude'
       ? await chamarClaudeTexto(escolha.modelo, promptSistema, contents, res)
       : await chamarOpenAI(escolha.modelo, promptSistema, contents, res);
@@ -821,7 +843,7 @@ function regrasDocumentacao() {
 - SIGLA NÃO RECONHECIDA: se uma sigla ou abreviação do médico não estiver no glossário nem for inequívoca pelo contexto, NÃO invente significado nem escreva palavra parecida (ex: "bulus"): omita aquela informação e sinalize no topo com aviso curto (ex: "⚠️ Sigla BPP não interpretada").
 - TELEFONE SÓ SE HOUVER NÚMERO: a linha "Telefone para contato:" só existe se o médico informou um número. Nunca escreva essa linha só com nomes de acompanhantes ou sem número.
 - DEAMBULAÇÃO x REGISTRO INICIAL: o botão de deambulação e os DADOS DA AVALIAÇÃO ATUAL definem a primeira linha do EXAME FÍSICO de hoje. Se o registro do atendimento inicial cita cadeira de rodas, isso é história anterior (pode aparecer como "atendida inicialmente em cadeira de rodas") e não muda o exame de hoje.
-- EXAME FÍSICO COM IMOBILIZAÇÃO: quando o paciente está com gesso, tala, robofoot, órtese ou curativo oclusivo NA CONSULTA DE HOJE, o exame físico descreve só o que é examinável: estado da imobilização (íntegra, sem quebras, frouxidão ou pontos de pressão), pele visível nas bordas e avaliação neurovascular das extremidades livres (perfusão, sensibilidade e mobilidade dos dedos, sem inventar pulsos). Retire as linhas que exigem ver ou palpar o segmento imobilizado (lesões cutâneas e escoriações, deformidade, edema, palpação do foco, gaps, crepitações, amplitude de movimento e estabilidade do segmento). Se o médico informou que está sem queixas, pode escrever "Sem queixas álgicas referidas.". Só descreva o segmento se o médico informou que retirou a imobilização e examinou.
+- EXAME FÍSICO SEMPRE COMPLETO, MESMO COM IMOBILIZAÇÃO (pedido do médico, 29/09/2026; substitui a regra de 28/09 que reduzia o exame): com gesso, tala, robofoot, órtese ou curativo, o EXAME FÍSICO sai com TODAS as linhas padrão do modelo, como em qualquer atendimento. Acrescente logo após a primeira linha uma linha com o estado da imobilização (ex: "Robofoot íntegro e bem adaptado, sem pontos de pressão."), e troque só as linhas contraditas pelo que o médico informou.
 - SÍNCOPE É PERDA DE CONSCIÊNCIA (29/09/2026): se a história tem síncope ou desmaio, nunca escreva \"Nega perda de consciência\". Registre a síncope na história e mantenha só as demais negativas.
 - AVALIAÇÃO DE OUTRA EQUIPE PEDIDA = SOLICITADA (29/09/2026): \"aval da clínica\", \"pedir avaliação da clínica/cardio/neuro\" → \"Solicitada avaliação da clínica médica devido ao quadro de síncope.\". Só escreva \"Realizada avaliação...\" se o médico disser que a outra equipe já avaliou.
 - ATENDIMENTO INICIAL NÃO TEM ORIENTAÇÃO DE ALTA (29/09/2026): no tipo \"Atendimento inicial\" (o médico vai reavaliar no mesmo plantão), a CONDUTA traz só o que foi feito e pedido (analgesia, exames, avaliações solicitadas) e \"Reavaliação após o resultado dos exames.\". Sem \"Esclarecido que...\", sem sinais de alarme, sem retorno imediato, sem compreensão das orientações: isso é só para o momento da alta.
@@ -1466,7 +1488,7 @@ Pulsos distais palpáveis e simétricos.
 Perfusão periférica adequada, com tec < 3 segundos.
 Sem sinais sugestivos de lesão vascular aguda.
 Sem sinais clínicos de trombose venosa profunda.
-(Instrução: EXCEÇÃO OBRIGATÓRIA: se o paciente está com gesso, tala, robofoot ou órtese na consulta de hoje, NÃO use o exame padrão completo abaixo: aplique a regra EXAME FÍSICO COM IMOBILIZAÇÃO (só estado da imobilização e avaliação neurovascular das extremidades livres; sem escoriações, deformidade, edema, palpação do foco, gaps, crepitações, amplitude de movimento ou estabilidade do segmento). Fora dessa exceção, este é o exame físico PADRÃO do retorno e deve sair completo, do mesmo jeito dos demais modelos. Só altere as linhas correspondentes ao que o médico informou — condição da imobilização, ferida operatória, dor no foco, limitação de movimento. Não resuma, não troque por frases genéricas e não acrescente linhas que o médico não informou.)
+(Instrução: este é o exame físico PADRÃO do retorno e sai SEMPRE completo, inclusive com gesso, tala, robofoot ou órtese (pedido do médico, 29/09/2026): nesse caso acrescente, logo após a primeira linha, o estado da imobilização. Só altere as linhas correspondentes ao que o médico informou — condição da imobilização, ferida operatória, dor no foco, limitação de movimento. Não resuma, não troque por frases genéricas e não acrescente linhas que o médico não informou.)
 
 EM TEMPO:
 (Instrução: descrever os exames atuais comparando com os anteriores informados — alinhamento, desvio, sinais de consolidação, calo ósseo, posição do material de síntese. Omitir se não houver exame.)`;
