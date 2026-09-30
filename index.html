@@ -129,48 +129,18 @@
     .menu-ferramentas { left: auto; right: 14px; }
   }
 
-  .menu-ferramentas-titulo {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--ink-dim);
-    padding: 2px 4px 8px;
-    border-bottom: 1px solid var(--panel-border);
-    margin-bottom: 4px;
+  .menu-ferramentas { padding: 6px 12px; gap: 0; }
+  .menu-ferramentas button[data-ir] {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 14px 8px; background: transparent; border: 0;
+    border-radius: 0; color: var(--ink); font-family: var(--sans);
+    font-size: 14px; font-weight: 500; text-align: left; cursor: pointer;
   }
-
-  .menu-ferramentas .menu-fechar {
-    width: auto;
-    padding: 2px 8px;
-    border: 1px solid var(--panel-border);
-    border-radius: 6px;
-    font-size: 14px;
-  }
-
-  .menu-ferramentas button {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 11px 12px;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 9px;
-    color: var(--ink);
-    font-size: 14px;
-    font-weight: 500;
-    text-align: left;
-    cursor: pointer;
-    transition: all 0.12s ease;
-  }
-
+  .menu-ferramentas button[data-ir] + button[data-ir] { border-top: 1px solid var(--panel-border); }
   .menu-ferramentas button .menu-emoji { font-size: 18px; width: 24px; text-align: center; }
-  .menu-ferramentas button:hover { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
-  .menu-ferramentas .menu-versao { margin-top: auto; padding: 8px 6px 0; border-top: 1px solid var(--panel-border); }
+  .menu-ferramentas button[data-ir]:hover { background: var(--accent-dim); color: var(--accent); }
+  .menu-ferramentas button[data-ir]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .menu-ferramentas .menu-versao { margin-top: 0; padding: 11px 4px 6px; border-top: 1px solid var(--panel-border); }
 
   /* Seletor de IA ao lado do resultado (29/09/2026): mesma largura e mesmo estilo do card Ajustar */
   .seletor-ia { display: flex; flex-direction: column; gap: 6px; margin-top: 7px; }
@@ -199,6 +169,34 @@
     transition: all 0.12s ease;
   }
   .seletor-ia button:hover { background: var(--accent); color: #ffffff; }
+
+  .lista-ia { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
+  .grupo-ia { margin: 6px 0 2px; color: var(--ink-dim); font-size: 10px; font-weight: 600; }
+  .opcao-ia { display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    width: 100%; padding: 8px; border: 1px solid #e2e5e7; border-radius: 6px;
+    background: #f4f5f6; color: #50585e; font: 11px var(--sans); text-align: left; cursor: pointer; }
+  .opcao-ia span:first-child { min-width: 0; overflow-wrap: anywhere; }
+  .opcao-ia .estado-ia { flex-shrink: 0; font-size: 9px; font-weight: 600; }
+  .opcao-ia.usada { background: #e8f4ed; color: #216845; border-color: #a6d0b7; }
+  .opcao-ia.falhou { background: #fff0f0; color: #a32a2a; border-color: #e8bbbb; }
+  .opcao-ia.selecionada { outline: 2px solid #3974c6; outline-offset: -2px; }
+  .opcao-ia.selecionada:not(.usada):not(.falhou) { background: #eaf2ff; color: #2259a3; }
+  .opcao-ia:disabled { cursor: not-allowed; color: #8b9297; }
+  .opcao-ia:focus-visible { outline: 2px solid #3974c6; outline-offset: 1px; }
+  .legenda-ia { font-size: 10px; line-height: 1.5; color: var(--ink-dim); }
+  .modelo-ia { width: 260px; max-width: 100%; }
+  .coluna-ajuste { overflow-y: auto; }
+  .resultado-avulso.com-ia.show { display: grid; grid-template-columns: minmax(0,1fr) 230px; gap: 12px; }
+  .resultado-avulso.com-ia .modelo-ia { grid-column: 2; grid-row: 1 / span 2; width: 230px; }
+  @media (max-width: 760px) {
+    .caixa-ajuste .modelo-ia { width: 100%; }
+    #resultadoCardImg .resultado-linha { flex-direction: column; }
+    #resultadoCardImg .coluna-lateral-resultado { width: 100%; }
+    #resultadoCardImg .modelo-ia { flex: 1; width: auto; }
+    .resultado-avulso.com-ia.show { display: block; }
+    .resultado-avulso.com-ia .modelo-ia { width: 100%; margin-top: 10px; }
+  }
+
   .tentativas-ia { font-size: 10.5px; line-height: 1.35; margin-top: 5px; color: var(--ink-dim); }
 
   .btn-recolher-prontos { margin-bottom: 10px; padding: 7px 12px; font-size: 13px; border: 1px solid var(--panel-border); border-radius: 8px; background: var(--panel); color: var(--ink); cursor: pointer; }
@@ -1528,7 +1526,6 @@
     </button>
 
     <div class="menu-ferramentas" id="menuFerramentas">
-      <div class="menu-ferramentas-titulo"><span>🧰 Ferramentas</span><button type="button" class="menu-fechar" id="btnFecharMenu" aria-label="Fechar">✕</button></div>
       <button type="button" data-ir="cofre"><span class="menu-emoji">🔐</span>Senhas e links</button>
       <button type="button" data-ir="sugestoes"><span class="menu-emoji">📝</span>Sugestões pendentes</button>
       <button type="button" data-ir="templates"><span class="menu-emoji">📄</span>Ver templates</button>
@@ -2687,9 +2684,7 @@
   menuFerramentas.querySelectorAll('button[data-ir]').forEach(function(btn) {
     btn.addEventListener('click', function() { mostrarAba(btn.dataset.ir); });
   });
-  document.getElementById('btnFecharMenu').addEventListener('click', function() {
-    menuFerramentas.classList.remove('show');
-  });
+
 
   // --- Copia e cola entre aparelhos (29/09/2026) ---
   var textoTransferir = document.getElementById('textoTransferir');
@@ -2724,6 +2719,10 @@
     chamarTransferir('apagar').then(function(d) {
       if (d) { textoTransferir.value = ''; statusTransferir.textContent = '🗑️ Apagado.'; }
     });
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') menuFerramentas.classList.remove('show');
   });
 
   // Fecha o menu ao clicar fora
@@ -2906,10 +2905,8 @@
         ultimoTextoImg = data.texto || '';
         historicoImg = [{ tipo: 'geracao', data: agoraIso(), entrada: { contexto: contextoEnviadoImg || '(sem contexto)', imagensAnexadas: String(qtdImagensImg) }, modelo: data.modelo || '', saida: ultimoTextoImg }];
         resultadoTextoImg.innerHTML = formatarVarHtml(ultimoTextoImg);
-        modeloIAImg.textContent = data.modelo || '';
-        var falhasImg = (data.tentativas || []).filter(function(t) { return t && t.modelo !== data.modelo; });
-        if (falhasImg.length) modeloIAImg.textContent += ' — não usados: ' + falhasImg.map(function(t) { return t.modelo + ' (' + t.erro + ')'; }).join(', ');
         provedorVar.value = 'auto';
+        registrarPainelIA(modeloIAImg, data.modelo, data.tentativas, function() { btnAnalisarImg.click(); }, true);
         resultadoCardImg.classList.add('show');
         btnCopiarImg.textContent = 'COPIAR';
         btnCopiarImg.classList.remove('copiado');
@@ -3316,26 +3313,20 @@
   var ultimasTentativas = [];
   var statusIA = null;
   var statusIACarregando = false;
-  var ultimosIdsModelo = [];
-  var ultimoRefazer = null;
+  var paineisIA = [];
 
   function opcoesIA() {
-    return (statusIA && statusIA.opcoes) || [{ valor: 'auto', rotulo: 'Automático — Gemini grátis (padrão)', pago: false, disponivel: true }];
+    return (statusIA && statusIA.opcoes) || [{ valor: 'auto', rotulo: 'Automático — Gemini grátis', pago: false, disponivel: true }];
   }
 
   function preencherSelectIA(sel, valorAtual) {
     sel.innerHTML = '';
-    var grupos = [['Grátis', false], ['Pago — só quando você escolher', true]];
-    grupos.forEach(function(g) {
-      var og = document.createElement('optgroup');
-      og.label = g[0];
+    [['Grátis', false], ['Pago — só quando você escolher', true]].forEach(function(g) {
+      var og = document.createElement('optgroup'); og.label = g[0];
       opcoesIA().filter(function(o) { return !!o.pago === g[1]; }).forEach(function(o) {
-        var op = document.createElement('option');
-        op.value = o.valor;
-        op.textContent = (o.pago ? '💲 ' : '') + o.rotulo;
-        op.disabled = !o.disponivel;
-        if (o.valor === valorAtual) op.selected = true;
-        og.appendChild(op);
+        var op = document.createElement('option'); op.value = o.valor;
+        op.textContent = (o.pago ? '💲 ' : '') + rotuloOpcaoIA(o);
+        op.disabled = !o.disponivel; op.selected = o.valor === valorAtual; og.appendChild(op);
       });
       if (og.children.length) sel.appendChild(og);
     });
@@ -3344,65 +3335,88 @@
   var provedorVar = document.getElementById('provedorVar');
   function atualizarSelectVar() { preencherSelectIA(provedorVar, provedorVar.value || 'auto'); }
   atualizarSelectVar();
+  provedorVar.addEventListener('change', function() { redesenharPaineisIA(); });
 
   function carregarStatusIA() {
     if (statusIA || statusIACarregando) return;
     statusIACarregando = true;
     fetch('/api/gerar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pin: pinAtual, modo: 'modelos' })
     }).then(function(r) { return r.json(); }).then(function(d) {
       if (d && d.opcoes) statusIA = d;
-      atualizarSelectVar();
-      if (ultimosIdsModelo.length) mostrarModeloIA(ultimosIdsModelo, ultimoRefazer);
+      atualizarSelectVar(); redesenharPaineisIA();
     }).catch(function() {}).finally(function() { statusIACarregando = false; });
   }
 
-  function mostrarModeloIA(ids, refazer) {
-    ultimosIdsModelo = ids;
-    ultimoRefazer = refazer || null;
-    carregarStatusIA();
-    ids.forEach(function(id) {
-      var el = document.getElementById(id);
-      if (!el) return;
-      el.innerHTML = '';
-      if (!ultimoModeloIA) return;
-      el.appendChild(document.createTextNode('🤖 Gerado com '));
-      var forte = document.createElement('strong');
-      forte.textContent = nomeModeloLegivel(ultimoModeloIA);
-      el.appendChild(forte);
+  function rotuloOpcaoIA(o) {
+    return o.valor.indexOf('gemini:') === 0 ? nomeModeloLegivel(o.valor.slice(7)) : o.rotulo;
+  }
 
-      var falhas = (ultimasTentativas || []).filter(function(t) { return t && t.modelo !== ultimoModeloIA; });
-      if (falhas.length) {
-        var tent = document.createElement('div');
-        tent.className = 'tentativas-ia';
-        tent.textContent = '⚠️ Não usados: ' + falhas.map(function(t) { return nomeModeloLegivel(t.modelo) + ' (' + t.erro + ')'; }).join(', ');
-        el.appendChild(tent);
-      }
+  function redesenharPaineisIA() { paineisIA.forEach(desenharPainelIA); }
 
-      var box = document.createElement('div');
-      box.className = 'seletor-ia';
-      var sel = document.createElement('select');
-      preencherSelectIA(sel, provedorIA);
-      sel.addEventListener('change', function() {
-        provedorIA = sel.value;
-        ids.forEach(function(outro) {
-          var s2 = document.getElementById(outro);
-          var sel2 = s2 && s2.querySelector('select');
-          if (sel2 && sel2 !== sel) sel2.value = provedorIA;
-        });
-      });
-      box.appendChild(sel);
-      if (refazer) {
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.textContent = '↻ Refazer com esta IA';
-        btn.addEventListener('click', refazer);
-        box.appendChild(btn);
-      }
-      el.appendChild(box);
+  function desenharPainelIA(painel) {
+    var el = painel.el; el.innerHTML = '';
+    var atual = painel.imagem ? (provedorVar.value || 'auto') : painel.selecionado;
+    var resumo = document.createElement('div');
+    resumo.textContent = 'Gerado com ' + nomeModeloLegivel(painel.modelo); el.appendChild(resumo);
+    var lista = document.createElement('div'); lista.className = 'lista-ia';
+    var opcoes = opcoesIA().slice();
+    // Retain the actual model even if its server configuration changed since this response.
+    [painel.modelo].concat(painel.tentativas.map(function(t) { return t.modelo; })).forEach(function(m) {
+      if (!m || opcoes.some(function(o) { return o.modelo === m || o.valor === 'gemini:' + m; })) return;
+      opcoes.push({ valor: m.indexOf('gemini-') === 0 ? 'gemini:' + m : 'observado:' + m,
+        modelo: m, rotulo: nomeModeloLegivel(m), disponivel: m.indexOf('gemini-') === 0, pago: m.indexOf('gemini-') !== 0 });
     });
+    [['Grátis · ordem de prioridade', false], ['Pagos · uso por escolha', true]].forEach(function(g) {
+      var titulo = document.createElement('div'); titulo.className = 'grupo-ia'; titulo.textContent = g[0]; lista.appendChild(titulo);
+      opcoes.filter(function(o) { return !!o.pago === g[1]; }).forEach(function(o) {
+        var codigo = o.modelo || (o.valor.indexOf('gemini:') === 0 ? o.valor.slice(7) : '');
+        var usada = !!codigo && codigo === painel.modelo;
+        var falha = painel.tentativas.find(function(t) { return t.modelo === codigo && t.erro; });
+        var selecionada = o.valor === atual;
+        var b = document.createElement('button'); b.type = 'button';
+        b.className = 'opcao-ia' + (usada ? ' usada' : falha ? ' falhou' : '') + (selecionada ? ' selecionada' : '');
+        b.disabled = !o.disponivel; b.setAttribute('aria-pressed', String(selecionada));
+        b.dataset.provedor = o.valor;
+        var nome = document.createElement('span'); nome.textContent = (o.pago ? '💲 ' : '') + rotuloOpcaoIA(o); b.appendChild(nome);
+        var estado = document.createElement('span'); estado.className = 'estado-ia';
+        estado.textContent = selecionada && o.valor !== 'auto' ? 'Próxima' : usada ? 'Usada' : falha ? 'Falhou' : !o.disponivel ? 'Indisponível' : o.valor === 'auto' ? 'Padrão' : '';
+        b.appendChild(estado);
+        b.title = [usada ? 'Usada neste resultado' : '', falha ? falha.erro : '', selecionada ? 'Selecionada para a próxima geração' : ''].filter(Boolean).join(' · ');
+        b.addEventListener('click', function() {
+          if (painel.imagem) provedorVar.value = o.valor;
+          else paineisIA.filter(function(p) { return p.refazer === painel.refazer; }).forEach(function(p) { p.selecionado = o.valor; });
+          redesenharPaineisIA();
+        });
+        lista.appendChild(b);
+      });
+    });
+    el.appendChild(lista);
+    var legenda = document.createElement('div'); legenda.className = 'legenda-ia';
+    legenda.textContent = 'Verde: usada · Vermelho: falhou · Azul: próxima'; el.appendChild(legenda);
+    if (painel.refazer) {
+      var box = document.createElement('div'); box.className = 'seletor-ia';
+      var btn = document.createElement('button'); btn.type = 'button'; btn.textContent = '↻ Refazer com esta IA';
+      btn.addEventListener('click', function() {
+        if (!painel.imagem) provedorIA = painel.selecionado || 'auto';
+        painel.refazer();
+      });
+      box.appendChild(btn); el.appendChild(box);
+    }
+  }
+
+  function registrarPainelIA(el, modelo, tentativas, refazer, imagem) {
+    if (!el) return;
+    paineisIA = paineisIA.filter(function(p) { return p.el !== el && p.el.isConnected; });
+    if (!modelo) { el.innerHTML = ''; return; }
+    var painel = { el: el, modelo: modelo, tentativas: tentativas || [], refazer: refazer,
+      imagem: !!imagem, selecionado: 'auto' };
+    paineisIA.push(painel); desenharPainelIA(painel); carregarStatusIA();
+  }
+
+  function mostrarModeloIA(ids, refazer) {
+    ids.forEach(function(id) { registrarPainelIA(document.getElementById(id), ultimoModeloIA, ultimasTentativas, refazer, false); });
   }
 
   function agoraIso() { return new Date().toISOString(); }
@@ -4681,6 +4695,9 @@
     btnCopiarResultado.textContent = 'Copiar';
     resultadoDiv.appendChild(resultadoTextoDiv);
     resultadoDiv.appendChild(btnCopiarResultado);
+    resultadoDiv.classList.add('com-ia');
+    var painelModeloAvulso = document.createElement('div'); painelModeloAvulso.className = 'modelo-ia';
+    resultadoDiv.appendChild(painelModeloAvulso);
     wrap.appendChild(resultadoDiv);
 
     btnCopiarResultado.addEventListener('click', function() {
@@ -4711,6 +4728,9 @@
             return;
           }
           resultadoTextoDiv.textContent = (data.texto || '').trim();
+          registrarPainelIA(painelModeloAvulso, data.modelo, data.tentativas, function() {
+            executarGeracao(Object.assign({}, payload));
+          }, false);
           resultadoDiv.classList.add('show');
         });
       }).catch(function() {

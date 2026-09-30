@@ -458,37 +458,31 @@ function textoQuaseIgual(a, b) {
   return diff < 5 && na.slice(0, 50) === nb.slice(0, 50);
 }
 
-// Ordem dos modelos. O Flash-Lite vem primeiro porque é o mais rápido e tem a maior cota grátis
-// (500/dia). Os Flash comuns ficaram lentos demais com os prompts longos do plantão, então só entram
-// como reserva se o Lite der erro ou estourar a cota.
-// Para testar outra ordem sem mexer no código, crie na Vercel a variável GEMINI_MODELOS
-// (lista separada por vírgula, ex: "gemini-3.6-flash,gemini-3.5-flash-lite").
-// A cota grátis é POR MODELO: cada modelo a mais na fila é mais uma cota diária com a mesma chave.
-// Modelo que não existir mais (404) é pulado automaticamente, sem erro para o usuário.
+// Prioridade de qualidade em TODAS as funções, inclusive a VAR (30/09/2026).
+// Flash recentes antes dos Lite; versões 2.5 são reservas para contas com acesso legado.
+// Referência de modelos/faixa gratuita: ai.google.dev/gemini-api/docs/models e /pricing.
+// É uma prioridade geral de capacidade, não um ranking de acurácia clínica.
 const MODELOS_PADRAO = [
+  'gemini-3.8-flash',
+  'gemini-3.7-flash',
+  'gemini-3.6-flash',
   'gemini-3.5-flash-lite',
   'gemini-3.1-flash-lite',
-  'gemini-2.5-flash-lite',
-  'gemini-3.6-flash',
-  'gemini-2.5-flash'
-];
-
-// VAR (leitura de imagem): a qualidade da visão importa mais que a velocidade, então os Flash
-// completos vêm antes dos Lite. Uso é baixo, então a cota menor do Flash costuma bastar;
-// se estourar, cai para os Lite automaticamente.
-const MODELOS_IMAGEM = [
-  'gemini-3.6-flash',
   'gemini-2.5-flash',
-  'gemini-3.5-flash-lite',
-  'gemini-3.1-flash-lite',
   'gemini-2.5-flash-lite'
 ];
+const MODELOS_IMAGEM = MODELOS_PADRAO;
 
-// Para a VAR, a lista pode ser trocada sem código pela variável MODELOS_IMAGEM na Vercel
-// (ex: "gemini-2.5-pro,gemini-3.6-flash"). Modelo Pro exige plano pago com cobrança ativa.
+function ordenarModelos(modelos) {
+  return Array.from(new Set(modelos)).sort((a, b) => {
+    const ia = MODELOS_PADRAO.indexOf(a), ib = MODELOS_PADRAO.indexOf(b);
+    return (ia < 0 ? MODELOS_PADRAO.length : ia) - (ib < 0 ? MODELOS_PADRAO.length : ib);
+  });
+}
+
 function listaModelosImagem() {
   const env = (process.env.MODELOS_IMAGEM || '').split(',').map(m => m.trim()).filter(Boolean);
-  return env.length ? env : MODELOS_IMAGEM;
+  return ordenarModelos(env.length ? env : MODELOS_IMAGEM);
 }
 
 // VAR com Claude (opcional). Só roda se existir a variável ANTHROPIC_API_KEY na Vercel.
@@ -574,13 +568,13 @@ function registrarTentativa(res, modelo, erro) {
 function statusModelos() {
   const agora = Date.now();
   const situacao = m => modelosIndisponiveis.has(m) ? 'indisponível' : ((pausaAte.get(m) || 0) > agora ? 'em pausa (cota)' : 'ok');
-  const gemini = Array.from(new Set(listaModelos().concat(listaModelosImagem())));
+  const gemini = ordenarModelos(listaModelos().concat(listaModelosImagem()));
   const temClaude = !!process.env.ANTHROPIC_API_KEY;
   const temOpenAI = !!(process.env.OPENAI_API_KEY && process.env.OPENAI_MODELO);
   const opcoes = [{ valor: 'auto', rotulo: 'Automático — Gemini grátis (padrão)', pago: false, disponivel: true }]
-    .concat(gemini.map(m => ({ valor: 'gemini:' + m, rotulo: m + (situacao(m) === 'ok' ? '' : ` — ${situacao(m)}`), pago: false, disponivel: situacao(m) !== 'indisponível' })))
-    .concat(MODELOS_CLAUDE.map(c => ({ valor: c.valor, rotulo: c.rotulo + (temClaude ? '' : ' — sem chave'), pago: true, disponivel: temClaude })))
-    .concat([{ valor: 'openai', rotulo: 'ChatGPT' + (temOpenAI ? ` (${process.env.OPENAI_MODELO})` : ' — configurar OPENAI_API_KEY e OPENAI_MODELO'), pago: true, disponivel: temOpenAI }]);
+    .concat(gemini.map(m => ({ valor: 'gemini:' + m, modelo: m, rotulo: m + (situacao(m) === 'ok' ? '' : ` — ${situacao(m)}`), pago: false, disponivel: situacao(m) !== 'indisponível' })))
+    .concat(MODELOS_CLAUDE.map(c => ({ valor: c.valor, modelo: modeloDoProvedor(c.valor).modelo, rotulo: c.rotulo + (temClaude ? '' : ' — sem chave'), pago: true, disponivel: temClaude })))
+    .concat([{ valor: 'openai', modelo: (process.env.OPENAI_MODELO || '').trim(), rotulo: 'ChatGPT' + (temOpenAI ? ` (${process.env.OPENAI_MODELO})` : ' — configurar OPENAI_API_KEY e OPENAI_MODELO'), pago: true, disponivel: temOpenAI }]);
   return { opcoes };
 }
 
@@ -685,7 +679,7 @@ async function chamarOpenAI(modelo, promptSistema, contents, res) {
 
 function listaModelos() {
   const env = (process.env.GEMINI_MODELOS || '').split(',').map(m => m.trim()).filter(Boolean);
-  return env.length ? env : MODELOS_PADRAO;
+  return ordenarModelos(env.length ? env : MODELOS_PADRAO);
 }
 
 // Memória da instância (dura enquanto a função estiver "quente" na Vercel):
