@@ -100,37 +100,85 @@
 
   .btn-engrenagem svg { width: 17px; height: 17px; }
 
+  /* Menu da engrenagem: gaveta que abre na lateral direita da tela, sem cobrir o texto do meio (29/09/2026) */
   .menu-ferramentas {
-    display: none;
-    position: absolute;
-    right: 14px;
-    top: calc(100% - 8px);
-    z-index: 20;
-    min-width: 190px;
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: 250px;
+    max-width: 85vw;
+    z-index: 50;
     background: var(--panel);
-    border: 1px solid var(--panel-border);
-    border-radius: 10px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.10);
-    overflow: hidden;
+    border-left: 1px solid var(--panel-border);
+    box-shadow: -8px 0 24px rgba(0,0,0,0.12);
+    padding: 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transform: translateX(105%);
+    visibility: hidden;
+    transition: transform 0.2s ease, visibility 0.2s;
   }
 
-  .menu-ferramentas.show { display: block; }
+  .menu-ferramentas.show { transform: translateX(0); visibility: visible; }
+
+  .menu-ferramentas-titulo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    padding: 4px 6px 10px;
+    border-bottom: 1px solid var(--panel-border);
+    margin-bottom: 6px;
+  }
+
+  .menu-ferramentas .menu-fechar {
+    width: auto;
+    padding: 2px 8px;
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    font-size: 14px;
+  }
 
   .menu-ferramentas button {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 10px;
     width: 100%;
-    padding: 12px 16px;
+    padding: 11px 12px;
     background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--panel-border);
+    border: 1px solid transparent;
+    border-radius: 9px;
     color: var(--ink);
     font-size: 14px;
+    font-weight: 500;
     text-align: left;
     cursor: pointer;
+    transition: all 0.12s ease;
   }
 
-  .menu-ferramentas button:last-child { border-bottom: none; }
-  .menu-ferramentas button:hover { background: var(--accent-dim); color: var(--accent); }
+  .menu-ferramentas button .menu-emoji { font-size: 18px; width: 24px; text-align: center; }
+  .menu-ferramentas button:hover { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .menu-ferramentas .menu-versao { margin-top: auto; padding: 8px 6px 0; border-top: 1px solid var(--panel-border); }
+
+  /* Seletor de IA ao lado do resultado (29/09/2026) */
+  .seletor-ia { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+  .seletor-ia select { font-size: 11px; padding: 3px 4px; border: 1px solid var(--panel-border); border-radius: 5px; background: var(--panel); color: var(--ink); }
+  .seletor-ia button { font-size: 11px; padding: 4px 6px; border: 1px solid var(--accent); border-radius: 5px; background: transparent; color: var(--accent); cursor: pointer; }
+  .seletor-ia button:hover { background: var(--accent-dim); }
+  .tentativas-ia { font-size: 10.5px; line-height: 1.35; margin-top: 4px; opacity: 0.85; }
+
+  .btn-recolher-prontos { margin-bottom: 10px; padding: 7px 12px; font-size: 13px; border: 1px solid var(--panel-border); border-radius: 8px; background: var(--panel); color: var(--ink); cursor: pointer; }
+  .btn-recolher-prontos:hover { border-color: var(--accent); color: var(--accent); }
+
+  .transferir-botoes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .transferir-botoes button { flex: 1; min-width: 120px; }
+  .transferir-status { font-size: 12px; margin-top: 8px; opacity: 0.8; }
 
   /* Navegacao principal: dois botoes grandes */
   .nav-principal {
@@ -1449,10 +1497,12 @@
     </button>
 
     <div class="menu-ferramentas" id="menuFerramentas">
-      <button type="button" data-ir="cofre">Senhas e links</button>
-      <button type="button" data-ir="sugestoes">Sugestões pendentes</button>
-      <button type="button" data-ir="templates">Ver templates</button>
-      <button type="button" data-ir="imagem">VAR</button>
+      <div class="menu-ferramentas-titulo"><span>🧰 Ferramentas</span><button type="button" class="menu-fechar" id="btnFecharMenu" aria-label="Fechar">✕</button></div>
+      <button type="button" data-ir="cofre"><span class="menu-emoji">🔐</span>Senhas e links</button>
+      <button type="button" data-ir="sugestoes"><span class="menu-emoji">📝</span>Sugestões pendentes</button>
+      <button type="button" data-ir="templates"><span class="menu-emoji">📄</span>Ver templates</button>
+      <button type="button" data-ir="imagem"><span class="menu-emoji">🩻</span>VAR</button>
+      <button type="button" data-ir="transferir"><span class="menu-emoji">📋</span>Copia e cola</button>
       <div class="menu-versao" id="menuVersao">Última atualização: carregando...</div>
     </div>
   </header>
@@ -1654,6 +1704,7 @@
     <div class="hint" style="margin-bottom:12px;">
       Textos fixos para copiar direto. Os geradores marcados com <span class="tag-ia">IA</span> passam pela IA; o resto não.
     </div>
+    <button type="button" class="btn-recolher-prontos" id="btnRecolherProntos">⬆️ Recolher tudo</button>
     <div id="containerProntos"></div>
 
     <div class="card instrucoes-livres" style="margin-top:14px;">
@@ -1770,6 +1821,22 @@
 
     <button class="btn-copiar-templates" id="btnCopiarSugestoes">Copiar tudo para o Claude</button>
     <button class="btn-recomecar" id="btnApagarSugestoes" style="margin-top:10px;">Apagar tudo</button>
+  </div>
+
+  <div id="abaTransferir" class="oculto">
+    <div class="card">
+      <div class="hint" style="margin-top:0; margin-bottom:12px;">
+        Cole aqui no celular e toque em <strong>Enviar</strong>; no computador, abra esta mesma tela e toque em <strong>Receber</strong>. Guarda um texto por vez e ele se apaga sozinho em 30 minutos. Evite nome, matrícula e outros dados que identifiquem o paciente.
+      </div>
+      <textarea id="textoTransferir" placeholder="Cole ou escreva o texto aqui..." style="min-height:160px;"></textarea>
+      <div class="transferir-botoes">
+        <button type="button" class="btn-gerar-avulso" id="btnEnviarTransferir">📤 Enviar</button>
+        <button type="button" class="btn-gerar-avulso" id="btnReceberTransferir">📥 Receber</button>
+        <button type="button" class="btn-gerar-avulso" id="btnCopiarTransferir">📋 Copiar</button>
+        <button type="button" class="btn-recomecar" id="btnApagarTransferir">🗑️ Apagar</button>
+      </div>
+      <div class="transferir-status" id="statusTransferir"></div>
+    </div>
   </div>
 
   <div id="abaImagem" class="oculto">
@@ -1965,12 +2032,14 @@
   var abaSugestoes = document.getElementById('abaSugestoes');
   var abaCofre = document.getElementById('abaCofre');
   var abaImagem = document.getElementById('abaImagem');
+  var abaTransferir = document.getElementById('abaTransferir');
 
   var TITULOS_SECAO = {
     templates: 'Ver templates',
     sugestoes: 'Sugestões pendentes',
     cofre: 'Senhas e links',
-    imagem: 'VAR'
+    imagem: 'VAR',
+    transferir: 'Copia e cola'
   };
 
   // ================= CÓPIA PARA O SISTEMA DO HOSPITAL =================
@@ -2511,12 +2580,13 @@
     abaSugestoes.classList.toggle('oculto', aba !== 'sugestoes');
     abaCofre.classList.toggle('oculto', aba !== 'cofre');
     abaImagem.classList.toggle('oculto', aba !== 'imagem');
+    abaTransferir.classList.toggle('oculto', aba !== 'transferir');
 
     // O cofre tranca sempre que se entra ou sai dele: a senha é pedida a cada abertura.
     trancarCofre();
     if (aba === 'cofre') setTimeout(function() { inputSenhaCofre.focus(); }, 50);
 
-    var ehSecundaria = (aba === 'templates' || aba === 'sugestoes' || aba === 'cofre' || aba === 'imagem');
+    var ehSecundaria = (aba === 'templates' || aba === 'sugestoes' || aba === 'cofre' || aba === 'imagem' || aba === 'transferir');
 
     // Nas secoes secundarias, esconde os botoes grandes e mostra a barra de voltar
     navPrincipal.style.display = ehSecundaria ? 'none' : 'grid';
@@ -2578,8 +2648,46 @@
     if (menuFerramentas.classList.contains('show')) carregarVersao();
   });
 
-  menuFerramentas.querySelectorAll('button').forEach(function(btn) {
+  menuFerramentas.querySelectorAll('button[data-ir]').forEach(function(btn) {
     btn.addEventListener('click', function() { mostrarAba(btn.dataset.ir); });
+  });
+  document.getElementById('btnFecharMenu').addEventListener('click', function() {
+    menuFerramentas.classList.remove('show');
+  });
+
+  // --- Copia e cola entre aparelhos (29/09/2026) ---
+  var textoTransferir = document.getElementById('textoTransferir');
+  var statusTransferir = document.getElementById('statusTransferir');
+  function chamarTransferir(acao, texto) {
+    statusTransferir.textContent = 'Aguarde...';
+    return fetch('/api/transferir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: pinAtual, acao: acao, texto: texto || '' })
+    }).then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.erro || 'Erro'); return d; }); })
+      .catch(function(e) { statusTransferir.textContent = '⚠️ ' + e.message; return null; });
+  }
+  document.getElementById('btnEnviarTransferir').addEventListener('click', function() {
+    chamarTransferir('enviar', textoTransferir.value).then(function(d) {
+      if (d) statusTransferir.textContent = '✅ Enviado. Abra "Copia e cola" no outro aparelho e toque em Receber (vale por 30 minutos).';
+    });
+  });
+  document.getElementById('btnReceberTransferir').addEventListener('click', function() {
+    chamarTransferir('receber').then(function(d) {
+      if (!d) return;
+      if (!d.texto) { statusTransferir.textContent = 'Nada guardado no momento (ou já passou dos 30 minutos).'; return; }
+      textoTransferir.value = d.texto;
+      var quando = d.data ? new Date(d.data).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+      statusTransferir.textContent = '✅ Recebido' + (quando ? ' (enviado às ' + quando + ')' : '') + '.';
+    });
+  });
+  document.getElementById('btnCopiarTransferir').addEventListener('click', function() {
+    navigator.clipboard.writeText(textoTransferir.value || '').then(function() { statusTransferir.textContent = '✅ Copiado.'; });
+  });
+  document.getElementById('btnApagarTransferir').addEventListener('click', function() {
+    chamarTransferir('apagar').then(function(d) {
+      if (d) { textoTransferir.value = ''; statusTransferir.textContent = '🗑️ Apagado.'; }
+    });
   });
 
   // Fecha o menu ao clicar fora
@@ -3163,7 +3271,45 @@
     }).join(' ');
   }
 
-  function mostrarModeloIA(ids) {
+  // Escolha da IA (29/09/2026): Automático = fila do Gemini; Claude/ChatGPT via API.
+  var provedorIA = 'auto';
+  try { provedorIA = localStorage.getItem('ortopia_provedor') || 'auto'; } catch (e) {}
+  var ultimasTentativas = [];
+  var statusIA = null;
+  var statusIACarregando = false;
+  var OPCOES_IA = [
+    ['auto', 'Automático (Gemini)'],
+    ['claude-sonnet', 'Claude Sonnet'],
+    ['claude-opus', 'Claude Opus'],
+    ['openai', 'ChatGPT']
+  ];
+  var ultimosIdsModelo = [];
+  var ultimoRefazer = null;
+
+  function carregarStatusIA() {
+    if (statusIA || statusIACarregando) return;
+    statusIACarregando = true;
+    fetch('/api/gerar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: pinAtual, modo: 'modelos' })
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      statusIA = d || {};
+      if (ultimosIdsModelo.length) mostrarModeloIA(ultimosIdsModelo, ultimoRefazer);
+    }).catch(function() {}).finally(function() { statusIACarregando = false; });
+  }
+
+  function iaDisponivel(valor) {
+    if (valor === 'auto') return true;
+    if (!statusIA) return true; // ainda carregando: deixa escolher; se faltar chave, cai no Gemini
+    if (valor === 'openai') return !!statusIA.openai;
+    return !!statusIA.claude;
+  }
+
+  function mostrarModeloIA(ids, refazer) {
+    ultimosIdsModelo = ids;
+    ultimoRefazer = refazer || null;
+    carregarStatusIA();
     ids.forEach(function(id) {
       var el = document.getElementById(id);
       if (!el) return;
@@ -3173,6 +3319,44 @@
       var forte = document.createElement('strong');
       forte.textContent = nomeModeloLegivel(ultimoModeloIA);
       el.appendChild(forte);
+
+      var falhas = (ultimasTentativas || []).filter(function(t) { return t && t.modelo !== ultimoModeloIA; });
+      if (falhas.length) {
+        var tent = document.createElement('div');
+        tent.className = 'tentativas-ia';
+        tent.textContent = '⚠️ Não usados: ' + falhas.map(function(t) { return nomeModeloLegivel(t.modelo) + ' (' + t.erro + ')'; }).join(', ');
+        el.appendChild(tent);
+      }
+
+      var box = document.createElement('div');
+      box.className = 'seletor-ia';
+      var sel = document.createElement('select');
+      OPCOES_IA.forEach(function(o) {
+        var op = document.createElement('option');
+        op.value = o[0];
+        op.textContent = o[1] + (iaDisponivel(o[0]) ? '' : ' (sem chave)');
+        op.disabled = !iaDisponivel(o[0]);
+        if (o[0] === provedorIA) op.selected = true;
+        sel.appendChild(op);
+      });
+      sel.addEventListener('change', function() {
+        provedorIA = sel.value;
+        try { localStorage.setItem('ortopia_provedor', provedorIA); } catch (e) {}
+        ids.forEach(function(outro) {
+          var s2 = document.getElementById(outro);
+          var sel2 = s2 && s2.querySelector('select');
+          if (sel2 && sel2 !== sel) sel2.value = provedorIA;
+        });
+      });
+      box.appendChild(sel);
+      if (refazer) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = '↻ Refazer com esta IA';
+        btn.addEventListener('click', refazer);
+        box.appendChild(btn);
+      }
+      el.appendChild(box);
     });
   }
 
@@ -3195,7 +3379,7 @@
     ultimoCorpoGerar = corpoTexto;
     var temDestaque = renderizarComDestaque(resultadoTexto, corpoTexto, (ultimoPayloadGerar && ultimoPayloadGerar.template) || '');
     legendaDif.classList.toggle('show', temDestaque);
-    mostrarModeloIA(['modeloIAGerar', 'modeloIAGerarMobile']);
+    mostrarModeloIA(['modeloIAGerar', 'modeloIAGerarMobile'], function() { btnGerar.click(); });
     resultadoCard.classList.add('show');
     btnCopiarLateral.textContent = 'COPIAR';
     btnCopiarLateral.classList.remove('copiado');
@@ -3205,6 +3389,7 @@
 
   function chamarApi(payload) {
     erroMsg.classList.remove('show');
+    payload.provedor = provedorIA;
     return fetch('/api/gerar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -3222,6 +3407,7 @@
           return null;
         }
         ultimoModeloIA = data.modelo || '';
+        ultimasTentativas = data.tentativas || [];
         return data.texto || '';
       });
     });
@@ -3749,7 +3935,7 @@
       avisoCardMsg.innerHTML = '';
     }
     resultadoTextoMsg.textContent = r.corpoTexto;
-    mostrarModeloIA(['modeloIAMsg', 'modeloIAMsgMobile']);
+    mostrarModeloIA(['modeloIAMsg', 'modeloIAMsgMobile'], function() { btnGerarMsg.click(); });
     resultadoCardMsg.classList.add('show');
     btnCopiarMsg.textContent = 'COPIAR';
     btnCopiarMsg.classList.remove('copiado');
@@ -3763,6 +3949,7 @@
 
   function chamarApiMsg(payload) {
     erroMsgMensagem.classList.remove('show');
+    payload.provedor = provedorIA;
     return fetch('/api/gerar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -3780,6 +3967,7 @@
           return null;
         }
         ultimoModeloIA = data.modelo || '';
+        ultimasTentativas = data.tentativas || [];
         return data.texto || '';
       });
     });
@@ -3965,6 +4153,11 @@
   });
 
   var containerProntos = document.getElementById('containerProntos');
+  document.getElementById('btnRecolherProntos').addEventListener('click', function() {
+    containerProntos.querySelectorAll('.cat-prontos.aberta').forEach(function(c) { c.classList.remove('aberta'); });
+    containerProntos.querySelectorAll('.item-pronto').forEach(function(i) { i.classList.add('item-pronto-fechado'); });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
 
   TEXTOS_PRONTOS.forEach(function(cat, catIdx) {
     var catDiv = document.createElement('div');
@@ -4454,6 +4647,8 @@
 
     function executarGeracao(payload) {
       erro.classList.remove('show');
+      payload.provedor = provedorIA;
+      payload.dataHoje = new Date().toLocaleDateString('pt-BR');
       btnGerar.disabled = true;
       btnGerar.textContent = 'Gerando...';
       resultadoDiv.classList.remove('show');
