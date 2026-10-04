@@ -466,6 +466,8 @@
     line-height: 1.4;
   }
 
+  .ia-antes { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 13px; color: var(--muted, #666); }
+  .ia-antes select { flex: 1; max-width: 340px; font-size: 13px; padding: 6px; }
   .btn-gerar {
     width: 100%;
     padding: 14px;
@@ -1661,6 +1663,10 @@
       <div class="hint" style="margin-top:0; margin-bottom:10px;">Um card por dia (ex: dia do trauma, último retorno). Pode anexar foto/PDF ou colar print (Ctrl+V) em cada um.</div>
       <div id="listaAtendimentos"></div>
       <button type="button" class="btn-add-atendimento" id="btnAddAtendimento">+ Adicionar atendimento</button>
+      <span class="label" style="margin-top:18px; display:block;">Exames anteriores</span>
+      <div class="hint" style="margin-top:0; margin-bottom:10px;">Um card por exame (data + laudo, ou foto/PDF), igual aos atendimentos. O exame de hoje continua no campo "Exame / laudo" mais abaixo.</div>
+      <div id="listaExames"></div>
+      <button type="button" class="btn-add-atendimento" id="btnAddExame">+ Adicionar exame</button>
     </div>
 
     <div class="card">
@@ -1687,6 +1693,7 @@
     </div>
 
 
+    <div class="ia-antes"><label for="provedorGerar">IA desta geração</label><select id="provedorGerar"></select></div>
     <button class="btn-gerar" id="btnGerar">Gerar prontuário</button>
     <div class="spinner" id="spinner"><span class="dot"></span> Gerando...</div>
     <div class="erro" id="erroMsg"></div>
@@ -1773,6 +1780,7 @@
       <div class="hint" id="msgHint">Nome, matrícula, idade, HD, telefone. Anticoagulante/marcapasso só se for SIM.</div>
     </div>
 
+    <div class="ia-antes"><label for="provedorMsgSel">IA desta geração</label><select id="provedorMsgSel"></select></div>
     <button class="btn-gerar" id="btnGerarMsg">Gerar mensagem</button>
     <div class="spinner" id="spinnerMsg"><span class="dot"></span> Gerando...</div>
     <div class="erro" id="erroMsgMensagem"></div>
@@ -3050,6 +3058,94 @@
   });
   adicionarCardAtendimento();
 
+  // ===== Retorno: um card por exame anterior =====
+  var listaExames = document.getElementById('listaExames');
+  var cardsExame = [];
+  var contadorExames = 0;
+
+  function numerarExames() {
+    cardsExame.forEach(function(c, i) { c.num.textContent = (i + 1) + 'º'; });
+  }
+
+  function adicionarCardExame() {
+    contadorExames++;
+    var id = 'exm' + contadorExames;
+    var card = document.createElement('div');
+    card.className = 'card-atendimento';
+    card.innerHTML =
+      '<div class="card-atendimento-topo">' +
+        '<span class="num"></span>' +
+        '<input type="text" placeholder="Data do exame (ex: 02/09)" autocomplete="off">' +
+        '<button type="button" class="remover" aria-label="Remover exame">&times;</button>' +
+      '</div>' +
+      '<div class="campo-com-upload">' +
+        '<textarea placeholder="Laudo ou achados do exame (tipo, segmento, resultado)"></textarea>' +
+        '<div class="zona-upload" id="zona_' + id + '">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>' +
+          'Anexar foto ou PDF' +
+          '<input type="file" accept="image/*,application/pdf" multiple style="display:none">' +
+        '</div>' +
+      '</div>' +
+      '<div class="lista-imagens"></div>';
+    listaExames.appendChild(card);
+    var dados = {
+      el: card,
+      num: card.querySelector('.num'),
+      data: card.querySelector('.card-atendimento-topo input'),
+      texto: card.querySelector('textarea'),
+      arquivos: criarGerenciadorImagens(card.querySelector('.zona-upload'), card.querySelector('.zona-upload input'), card.querySelector('.lista-imagens'), null)
+    };
+    card.querySelector('.remover').addEventListener('click', function() {
+      if (cardsExame.length === 1) {
+        dados.data.value = '';
+        dados.texto.value = '';
+        dados.arquivos.limpar();
+        return;
+      }
+      cardsExame.splice(cardsExame.indexOf(dados), 1);
+      card.remove();
+      numerarExames();
+    });
+    cardsExame.push(dados);
+    numerarExames();
+    return dados;
+  }
+
+  function limparCardsExame() {
+    cardsExame.forEach(function(c) { c.el.remove(); });
+    cardsExame = [];
+    adicionarCardExame();
+  }
+
+  function textoExamesAnteriores() {
+    return cardsExame.map(function(c, i) {
+      var t = c.texto.value.trim();
+      var n = c.arquivos.obter().length;
+      if (!t && !n) return '';
+      var data = c.data.value.trim();
+      return 'EXAME ' + (i + 1) + (data ? ' — ' + data : ' — data não informada') + ':\n' + (t || '(ver arquivo anexado)') +
+        (n ? '\n[' + n + ' arquivo(s) anexado(s) a este exame]' : '');
+    }).filter(Boolean).join('\n\n');
+  }
+
+  function arquivosExamesAnteriores() {
+    var todos = [];
+    cardsExame.forEach(function(c, i) {
+      var data = c.data.value.trim();
+      c.arquivos.obter().forEach(function(a) {
+        a.rotulo = 'Arquivo do exame ' + (i + 1) + (data ? ' (' + data + ')' : '') + ':';
+        todos.push(a);
+      });
+    });
+    return todos;
+  }
+
+  document.getElementById('btnAddExame').addEventListener('click', function() {
+    var novo = adicionarCardExame();
+    novo.data.focus();
+  });
+  adicionarCardExame();
+
   var tipoAtendimento = 'inicial';
   var templatesSelecionados = [];
   var subCompleto = 'trauma'; // 'trauma' ou 'cronico', só relevante quando tipoAtendimento === 'completo'
@@ -3333,8 +3429,26 @@
   }
 
   var provedorVar = document.getElementById('provedorVar');
-  function atualizarSelectVar() { preencherSelectIA(provedorVar, provedorVar.value || 'auto'); }
+  var provedorGerar = document.getElementById('provedorGerar');
+  var provedorMsgSel = document.getElementById('provedorMsgSel');
+  function atualizarSelectVar() {
+    preencherSelectIA(provedorVar, provedorVar.value || 'auto');
+    preencherSelectIA(provedorGerar, provedorGerar.value || 'auto');
+    preencherSelectIA(provedorMsgSel, provedorMsgSel.value || 'auto');
+  }
   atualizarSelectVar();
+  [provedorGerar, provedorMsgSel].forEach(function(sel) {
+    ['focus', 'mousedown', 'touchstart'].forEach(function(ev) { sel.addEventListener(ev, function() { carregarStatusIA(); }, { passive: true }); });
+  });
+  setTimeout(function() { carregarStatusIA(); }, 1500);
+  // Escolha antes de gerar: IA grátis escolhida fica até trocar; IA paga vale só para uma geração.
+  function provedorEscolhidoAntes(sel) {
+    return (provedorIA !== 'auto') ? provedorIA : (sel.value || 'auto');
+  }
+  function voltarAutomaticoSePago(sel) {
+    var o = opcoesIA().find(function(x) { return x.valor === sel.value; });
+    if (o && o.pago) sel.value = 'auto';
+  }
   provedorVar.addEventListener('change', function() { redesenharPaineisIA(); });
 
   function carregarStatusIA() {
@@ -3448,7 +3562,7 @@
 
   function chamarApi(payload) {
     erroMsg.classList.remove('show');
-    payload.provedor = provedorIA;
+    payload.provedor = provedorEscolhidoAntes(provedorGerar);
     return fetch('/api/gerar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -3469,7 +3583,7 @@
         ultimasTentativas = data.tentativas || [];
         return data.texto || '';
       });
-    }).finally(function() { provedorIA = 'auto'; });
+    }).finally(function() { provedorIA = 'auto'; voltarAutomaticoSePago(provedorGerar); });
   }
 
   var TEMPLATES_AUTOSSUFICIENTES = ['e1', 'e2', 'e3', 'e4', 'e5', 'e6', 'e7'];
@@ -3481,7 +3595,7 @@
   btnGerar.addEventListener('click', function() {
     var dadosCaso = document.getElementById('dadosCaso').value.trim();
     var atendimentoInicial = tipoAtendimento === 'retorno'
-      ? textoAtendimentosAnteriores()
+      ? [textoAtendimentosAnteriores(), textoExamesAnteriores()].filter(Boolean).join('\n\n')
       : document.getElementById('atendimentoInicial').value.trim();
     var extra = document.getElementById('extra').value.trim();
 
@@ -3515,7 +3629,7 @@
       naoDeambula: toggleNaoDeambula.checked,
       exameAmbulatorial: (tipoAtendimento === 'completo' && subCompleto === 'cronico') ? exameCasaSel : '',
       encaminhamentos: encaminhamentosSel.slice(),
-      imagens: (tipoAtendimento === 'retorno' ? arquivosAtendimentosAnteriores() : []).concat(
+      imagens: (tipoAtendimento === 'retorno' ? arquivosAtendimentosAnteriores().concat(arquivosExamesAnteriores()) : []).concat(
         imagensExame.obter().map(function(a) { if (tipoAtendimento === 'retorno') a.rotulo = 'Exame/laudo atual (retorno de hoje):'; return a; })
       )
     };
@@ -3667,6 +3781,7 @@
     limparExameCasa();
     imagensExame.limpar();
     limparCardsAtendimento();
+    limparCardsExame();
     document.getElementById('blocoRetorno').classList.add('oculto');
     resultadoCard.classList.remove('show');
     avisoCard.classList.remove('show');
@@ -4008,7 +4123,7 @@
 
   function chamarApiMsg(payload) {
     erroMsgMensagem.classList.remove('show');
-    payload.provedor = provedorIA;
+    payload.provedor = provedorEscolhidoAntes(provedorMsgSel);
     return fetch('/api/gerar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -4029,7 +4144,7 @@
         ultimasTentativas = data.tentativas || [];
         return data.texto || '';
       });
-    }).finally(function() { provedorIA = 'auto'; });
+    }).finally(function() { provedorIA = 'auto'; voltarAutomaticoSePago(provedorMsgSel); });
   }
 
   btnGerarMsg.addEventListener('click', function() {
@@ -4695,9 +4810,6 @@
     btnCopiarResultado.textContent = 'Copiar';
     resultadoDiv.appendChild(resultadoTextoDiv);
     resultadoDiv.appendChild(btnCopiarResultado);
-    resultadoDiv.classList.add('com-ia');
-    var painelModeloAvulso = document.createElement('div'); painelModeloAvulso.className = 'modelo-ia';
-    resultadoDiv.appendChild(painelModeloAvulso);
     wrap.appendChild(resultadoDiv);
 
     btnCopiarResultado.addEventListener('click', function() {
@@ -4728,9 +4840,6 @@
             return;
           }
           resultadoTextoDiv.textContent = (data.texto || '').trim();
-          registrarPainelIA(painelModeloAvulso, data.modelo, data.tentativas, function() {
-            executarGeracao(Object.assign({}, payload));
-          }, false);
           resultadoDiv.classList.add('show');
         });
       }).catch(function() {

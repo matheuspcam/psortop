@@ -87,7 +87,7 @@ export default async function handler(req, res) {
       ) }];
 
   try {
-    let texto = await chamarModelo(provedor, promptSistema, contents, ehAjuste ? 0.5 : 0.3, apiKey, res);
+    let texto = await chamarModelo(provedor, promptSistema, contents, ehAjuste ? 0.5 : 0.3, apiKey, res, undefined, ehAvulso ? listaModelosRapidos() : undefined);
     if (texto === null) return; // erro já respondido dentro de chamarGemini
 
     // Proteção extra: se o ajuste devolveu o texto praticamente idêntico ao anterior,
@@ -133,6 +133,10 @@ function posProcessarProntuario(texto, ctx) {
   t = semNegaPerdaDeConscienciaSeSincope(t);
   t = avaliacaoDeOutraEquipeSolicitada(t, fontes);
   t = removerAvisoDeLadoFalso(t, fontes);
+  t = pacienteNeutro(t);
+  t = semTceSeSemMecanismoDeRisco(t, fontes);
+  t = semImobilizacaoDeHojeNoExame(t, ctx.tipoAtendimento);
+  t = rmDaCriancaComFise(t, ehCriancaNosDados(ctx.acompanhante, fontes));
   t = exameDaTorcaoDoTornozelo(t, fontes);
   t = acompanhanteSoSeInformado(t, ctx.acompanhante, fontes);
   if (ctx.tipoAtendimento === 'inicial') t = condutaInicialSemOrientacaoDeAlta(t);
@@ -191,7 +195,54 @@ function avaliacaoDeOutraEquipeSolicitada(texto, fontes) {
 // Aviso "⚠️ Lado ... não informado" quando o médico escreveu o lado (ex: "A ESQUERDA", "MID") sai (29/09/2026).
 function removerAvisoDeLadoFalso(texto, fontes) {
   if (!/\b(direit[oa]s?|esquerd[oa]s?|bilateral|msd|mse|mid|mie)\b|(^|\s)[àa]\s*(d|e|dir|esq)\b/i.test(fontes)) return texto;
-  return String(texto).replace(/^[ \t]*⚠️[^\n]*\blado\b[^\n]*n[ãa]o informad[^\n]*\n?/gim, '');
+  return String(texto).replace(/^[ \t]*⚠️[^\n]*\blado\b[^\n]*(?:n[ãa]o (?:informad|especificad|consta|foi)|ausente|assumid|amb[íi]gu)[^\n]*\n?/gim, '');
+}
+
+// "a paciente" / "à paciente" entregam o sexo: o texto usa sempre o neutro (01/10/2026).
+function pacienteNeutro(texto) {
+  return String(texto)
+    .replace(/\bque a paciente\b/g, 'que paciente')
+    .replace(/(^|\s)[àÀ] paciente\b/g, '$1ao paciente')
+    .replace(/\bA paciente\b/g, 'Paciente')
+    .replace(/\ba paciente\b/g, 'o paciente');
+}
+
+// "Nega TCE. Nega perda de consciência." só faz sentido com queda, acidente, pancada na cabeça ou queixa neurológica (01/10/2026).
+function semTceSeSemMecanismoDeRisco(texto, fontes) {
+  if (/(queda|ca[ií]u|acidente|colis|atropel|moto|capot|altura|cabe[çc]a|cr[âa]nio|agress|espanc|politrauma|desmai|s[íi]ncope|tontura|inconsci|convuls)/i.test(fontes)) return texto;
+  return String(texto)
+    .replace(/\bNega TCE\.[ \t]*/g, '')
+    .replace(/\bNega perda de consci[êe]ncia\.[ \t]*/g, '');
+}
+
+// Imobilização feita hoje (tala, gesso, órtese) é CONDUTA; o exame físico descreve o paciente como chegou (01/10/2026).
+function semImobilizacaoDeHojeNoExame(texto, tipo) {
+  if (tipo === 'retorno') return texto;
+  const linhas = String(texto).split('\n');
+  const iEx = linhas.findIndex(l => /^\s*EXAME F[ÍI]SICO/i.test(l));
+  const iCond = linhas.findIndex(l => /^\s*CONDUTA\s*:/i.test(l));
+  if (iEx === -1 || iCond === -1) return texto;
+  const condutaTemImob = linhas.slice(iCond).some(l => /^\s*(Realizad[ao]s? imobiliza|Imobilizad[ao]|Imobiliza[çc][ãa]o)/i.test(l));
+  if (!condutaTemImob) return texto;
+  let fim = linhas.length;
+  for (let i = iEx + 1; i < linhas.length; i++) { if (linhas[i].trim() === '') { fim = i; break; } }
+  return linhas.filter((l, i) => !(i > iEx && i < fim && /^\s*(Tala|Gesso|Imobiliza|[ÓO]rtese|Tipoia|Robofoot)\b[^\n]*(instalad|colocad|em uso|[íi]ntegr|adaptad|presente)/i.test(l))).join('\n');
+}
+
+function ehCriancaNosDados(acompanhante, fontes) {
+  if (acompanhante === 'crianca') return true;
+  const anos = String(fontes).match(/\b(\d{1,2})\s*anos?\b/i);
+  if (anos && Number(anos[1]) < 18) return true;
+  return /\b\d{1,2}\s*mes(?:es)?\b/i.test(fontes);
+}
+
+// RM pedida em criança: a finalidade padrão é lesão fisária e outras lesões não vistas no RX (01/10/2026).
+function rmDaCriancaComFise(texto, ehCrianca) {
+  if (!ehCrianca) return texto;
+  return String(texto).replace(/^(\s*Solicit\w+ (?:exame de )?resson[âa]ncia magn[ée]tica(?: d[aoe]s? [^\n.]*?)?)( ambulatorialmente)?\.?[ \t]*$/gim, (m, base, amb) => {
+    if (/fis[áa]ri/i.test(m)) return m;
+    return base + (amb || '') + ' para avaliação de lesão fisária, lesões ligamentares e osteocondrais e outras lesões associadas não evidenciadas à radiografia.';
+  });
 }
 
 // Torção/entorse de tornozelo: o exame físico registra fíbula proximal e base do 5º metatarso indolores (29/09/2026).
@@ -459,7 +510,7 @@ function textoQuaseIgual(a, b) {
 }
 
 // Prioridade de qualidade em TODAS as funções, inclusive a VAR (30/09/2026).
-// Flash recentes antes dos Lite; versões 2.5 são reservas para contas com acesso legado.
+// Flash recentes antes dos Lite. Os 2.5 saíram da fila em 01/10/2026 (Google: não estão mais disponíveis para contas novas).
 // Referência de modelos/faixa gratuita: ai.google.dev/gemini-api/docs/models e /pricing.
 // É uma prioridade geral de capacidade, não um ranking de acurácia clínica.
 const MODELOS_PADRAO = [
@@ -467,9 +518,7 @@ const MODELOS_PADRAO = [
   'gemini-3.7-flash',
   'gemini-3.6-flash',
   'gemini-3.5-flash-lite',
-  'gemini-3.1-flash-lite',
-  'gemini-2.5-flash',
-  'gemini-2.5-flash-lite'
+  'gemini-3.1-flash-lite'
 ];
 const MODELOS_IMAGEM = MODELOS_PADRAO;
 
@@ -578,7 +627,7 @@ function statusModelos() {
   return { opcoes };
 }
 
-async function chamarModelo(provedor, promptSistema, contents, temperature, apiKey, res, silencioso) {
+async function chamarModelo(provedor, promptSistema, contents, temperature, apiKey, res, silencioso, modelosPadrao) {
   const escolha = modeloDoProvedor(provedor);
   if (escolha && escolha.tipo === 'gemini') {
     const texto = await chamarGemini(promptSistema, contents, temperature, apiKey, res, true, [escolha.modelo]);
@@ -589,7 +638,7 @@ async function chamarModelo(provedor, promptSistema, contents, temperature, apiK
       : await chamarOpenAI(escolha.modelo, promptSistema, contents, res);
     if (texto !== null) return texto;
   }
-  return chamarGemini(promptSistema, contents, temperature, apiKey, res, silencioso);
+  return chamarGemini(promptSistema, contents, temperature, apiKey, res, silencioso, modelosPadrao);
 }
 
 const TIPOS_IMAGEM = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -677,6 +726,13 @@ async function chamarOpenAI(modelo, promptSistema, contents, res) {
   }
 }
 
+// Textos prontos (atestado, fisioterapia, exames, lembrete): fila rápida, Lite primeiro (01/10/2026).
+function listaModelosRapidos() {
+  const base = listaModelos();
+  const rapidos = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'].filter(m => base.includes(m));
+  return rapidos.concat(base.filter(m => !rapidos.includes(m)));
+}
+
 function listaModelos() {
   const env = (process.env.GEMINI_MODELOS || '').split(',').map(m => m.trim()).filter(Boolean);
   return ordenarModelos(env.length ? env : MODELOS_PADRAO);
@@ -740,7 +796,7 @@ async function chamarGemini(promptSistema, contents, temperature, apiKey, res, s
 
     if (!resposta.ok) {
       const msg = data?.error?.message || `HTTP ${resposta.status}`;
-      ultimoErro = msg;
+      if (resposta.status !== 404 || !ultimoErro) ultimoErro = msg;
       console.error(`Gemini ${modelo} (${resposta.status}):`, msg);
       registrarTentativa(res, modelo, resposta.status === 429 ? 'cota esgotada' : resposta.status === 404 ? 'indisponível' : (resposta.status >= 500 ? 'sobrecarga' : `erro ${resposta.status}`));
 
@@ -849,6 +905,11 @@ function regrasDocumentacao() {
 - CONDUTA ESCRITA PELO MÉDICO ENTRA TODA (29/09/2026): se os dados trazem uma conduta em lista ou com marcadores (\"conduta inicial é conservadora: evitar ajoelhar..., gelo..., anti-inflamatório...\"), CADA item vira uma linha da CONDUTA, redigida no padrão, já na primeira geração. Nunca ignore uma conduta colada.
 - RETORNO: CHEGADA DE HOJE x DECISÃO DE HOJE (29/09/2026): nos dados do retorno, só é história o que descreve como o paciente CHEGOU (\"vem hoje sem tipoia\", \"refere dor\", \"sem queixas\"). Frases de decisão (\"mantenho tipoia apenas em ambientes externos\", \"ainda sem carga\", \"trabalho de ADM\", \"fisioterapia\", \"retorno em 1 mês\") são CONDUTA de hoje, mesmo sem verbo no imperativo. Em retorno de fratura em reabilitação sem ADM descrita, a linha do exame é \"Amplitude de movimento preservada dentro dos limites da reabilitação.\".
 - ENCAMINHAMENTO MARCADO É DE HOJE (29/09/2026): fisioterapia/acupuntura marcadas nos botões são conduta do atendimento ATUAL. Nunca escreva na história que um atendimento anterior encaminhou para fisioterapia se o registro dele não diz isso.
+- IMOBILIZAÇÃO DE HOJE NÃO ENTRA NO EXAME FÍSICO (01/10/2026): tala, gesso, órtese ou curativo colocados NESTE atendimento ficam só na CONDUTA. O exame físico descreve o paciente como chegou; só cita imobilização no exame se os dados disserem que ele já chegou imobilizado (ex: \"veio com tala do outro serviço\").
+- RM EM CRIANÇA (01/10/2026): quando o paciente é criança (botão de responsável/criança ou idade abaixo de 18 anos nos dados) e há ressonância magnética ambulatorial, a linha diz a finalidade: \"Solicito ressonância magnética do [segmento] ambulatorialmente para avaliação de lesão fisária, lesões ligamentares e osteocondrais e outras lesões associadas não evidenciadas à radiografia.\"
+- SEXO NEUTRO: nunca \"a paciente\" nem \"à paciente\"; com relato de responsável, \"Genitor relata que paciente apresentou...\".
+- AJUSTE \"COMPATÍVEL COM [DIAGNÓSTICO]\" (01/10/2026): acrescente SÓ o achado de dor à palpação na topografia típica (ex: lesão de Stener → dor na face ulnar da articulação metacarpofalângica do polegar). Não invente instabilidade, manobras, testes, edema ou equimose que o médico não pediu, e nunca apague linhas padrão do exame (como \"ou instabilidade grosseira\") sem instrução expressa. Se o médico disser \"não precisa de X\", X não entra.
+- EXAMES ANTERIORES NO RETORNO (01/10/2026): blocos \"EXAME n — data\" no registro anterior são exames/laudos de datas diferentes, não atendimentos. Descreva cada um em EM TEMPO, um parágrafo por exame com a data, em ordem cronológica, com números exatamente como no laudo, comparando com o exame mais recente. Não os trate como atendimentos na história.
 - TORÇÃO DO TORNOZELO (29/09/2026): em entorse/torção do tornozelo, o EXAME FÍSICO traz \"Indolor à palpação da fíbula proximal e da base do 5º metatarso.\" (no exame, nunca como \"nega\" na história), salvo dor informada nesses locais.
 - SEM LINHAS REDUNDANTES NA CONDUTA: nunca escreva duas linhas com o mesmo sentido (ex: "Reavaliação após o resultado dos exames." junto com "Orientado retorno ambulatorial com o resultado dos exames."). Quando a reavaliação é logo após o exame, no mesmo plantão, não há orientação de retorno ambulatorial.`;
 }
@@ -1599,7 +1660,7 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
       : acompanhante === 'idoso'
         ? 'por familiar/cuidador (use "filha", "filho", "cuidador(a)" ou "familiar" conforme informado)'
         : 'por acompanhante (ex: pai, mãe, familiar ou cuidador, conforme informado)';
-    partes.push(`\nHISTÓRIA RELATADA ${relator}. Quem conta a história é o acompanhante, então ELE é o sujeito do verbo: "Filha relata que a paciente prensou o 4º dedo da mão esquerda na porta do carro...". Nunca misture as duas vozes ("conforme relato da filha, paciente refere..." não faz sentido). Não use termos técnicos que o acompanhante não diria como se fossem fala dele ("trauma contuso", "entorse", "fratura") — descreva o mecanismo como foi contado. Identifique o relator na HDA/HPMA/QD, nunca no EXAME FÍSICO. Ajuste as linhas de esclarecimento/orientação conforme quem efetivamente recebeu as orientações. Não confunda relator com paciente examinado nem presuma que ambos receberam orientações.`);
+    partes.push(`\nHISTÓRIA RELATADA ${relator}. Quem conta a história é o acompanhante, então ELE é o sujeito do verbo: "Filha relata que paciente prensou o 4º dedo da mão esquerda na porta do carro...". Nunca misture as duas vozes ("conforme relato da filha, paciente refere..." não faz sentido). Não use termos técnicos que o acompanhante não diria como se fossem fala dele ("trauma contuso", "entorse", "fratura") — descreva o mecanismo como foi contado. Identifique o relator na HDA/HPMA/QD, nunca no EXAME FÍSICO. Ajuste as linhas de esclarecimento/orientação conforme quem efetivamente recebeu as orientações. Não confunda relator com paciente examinado nem presuma que ambos receberam orientações.`);
   }
 
   if (!ehRelato) {
