@@ -1682,7 +1682,7 @@
 
     <div class="card" id="blocoExames">
       <span class="label" id="labelExames">Exames</span>
-      <div class="hint" id="hintExames" style="margin-top:0; margin-bottom:10px;">Um card por exame, com data e tipo no começo (RX, TC, RM...). Os cards saem em ordem cronológica no texto; pode inserir outros a qualquer momento. Exame de hoje: escreva "hoje" na data. Opcional.</div>
+      <div class="hint" id="hintExames" style="margin-top:0; margin-bottom:10px;">Um card por exame, com data e tipo no começo (RX, TC, RM...). Os cards saem em ordem cronológica no texto; pode inserir outros a qualquer momento. Sem data = exame de hoje (vai no EM TEMPO). Opcional.</div>
       <datalist id="tiposExame"><option value="RX"><option value="TC"><option value="RM"><option value="USG"><option value="Laboratório"><option value="ECG"><option value="Eletroneuromiografia"><option value="Cultura"></datalist>
       <div id="listaExames"></div>
       <button type="button" class="btn-add-atendimento" id="btnAddExame">+ Adicionar exame</button>
@@ -3155,8 +3155,7 @@
   // Exame "de hoje": data escrita como "hoje" ou igual à data atual (DD/MM ou DD/MM/AAAA).
   function exameEhDeHoje(c) {
     var d = c.data.value.trim().toLowerCase();
-    if (!d) return false;
-    if (d === 'hoje') return true;
+    if (!d || d === 'hoje') return true; // sem data = exame de hoje
     var n = new Date(), dd = ('0' + n.getDate()).slice(-2), mm = ('0' + (n.getMonth() + 1)).slice(-2), aa = String(n.getFullYear());
     return d === dd + '/' + mm || d === dd + '/' + mm + '/' + aa || d === dd + '/' + mm + '/' + aa.slice(-2);
   }
@@ -3176,7 +3175,7 @@
       if (/^(ok|normal|sem altera[çc][õo]es?|sem achados|nada digno de nota)[.!\s]*$/i.test(t)) {
         t = 'EXAME NORMAL, sem alteração aguda (use a frase padrão de exame normal, adaptada ao exame ' + (tipo ? tipo.toUpperCase() : 'informado') + ' e ao segmento da queixa; não cite "ok").';
       }
-      return 'EXAME ' + (i + 1) + (data ? ' — ' + data : ' — data não informada') + (tipo ? ' — ' + tipo.toUpperCase() : '') + ':\n' + (t || '(ver arquivo anexado)') +
+      return 'EXAME ' + (i + 1) + (data ? ' — ' + data : ' — DE HOJE (sem data informada = exame de hoje)') + (tipo ? ' — ' + tipo.toUpperCase() : '') + ':\n' + (t || '(ver arquivo anexado)') +
         (n ? '\n[' + n + ' arquivo(s) anexado(s) a este exame]' : '');
     }).join('\n\n');
   }
