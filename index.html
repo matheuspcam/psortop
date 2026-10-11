@@ -1673,15 +1673,6 @@
       <button type="button" class="btn-add-atendimento" id="btnAddAtendimento">+ Adicionar atendimento</button>
     </div>
 
-    <div class="card oculto" id="blocoAmbColegas">
-      <details id="detAmbColegas">
-        <summary class="label" style="cursor:pointer;">Ambulatórios dos colegas</summary>
-        <div class="hint" style="margin:6px 0 10px;">Para encaminhar o retorno. "Inserir" coloca o encaminhamento nos dados de hoje; o CRM você preenche uma vez e fica salvo neste aparelho.</div>
-        <div id="listaAmbColegas"></div>
-        <button type="button" class="btn-add-atendimento" id="btnAddAmbColega">+ Adicionar colega</button>
-      </details>
-    </div>
-
     <div class="card">
       <div class="field">
         <span class="label" id="labelDados">Dados do caso</span>
@@ -1691,14 +1682,12 @@
 
     <div class="card" id="blocoExames">
       <span class="label" id="labelExames">Exames</span>
-      <div class="hint" id="hintExames" style="margin-top:0; margin-bottom:10px;">Um card por exame, com data e tipo no começo (RX, TC, RM...). Os cards saem em ordem cronológica no texto; pode inserir outros a qualquer momento. No retorno, os cards são os exames anteriores; o exame de hoje vai no campo livre mais abaixo. Opcional.</div>
+      <div class="hint" id="hintExames" style="margin-top:0; margin-bottom:10px;">Um card por exame, com data e tipo no começo (RX, TC, RM...). Os cards saem em ordem cronológica no texto; pode inserir outros a qualquer momento. No retorno, os cards são os exames anteriores; o exame de hoje vai no campo livre no fim deste card. Opcional.</div>
       <datalist id="tiposExame"><option value="RX"><option value="TC"><option value="RM"><option value="USG"><option value="Laboratório"><option value="ECG"><option value="Eletroneuromiografia"><option value="Cultura"></datalist>
       <div id="listaExames"></div>
       <button type="button" class="btn-add-atendimento" id="btnAddExame">+ Adicionar exame</button>
-    </div>
 
-    <div class="card">
-      <div class="field">
+      <div class="field" style="margin-top:16px; padding-top:14px; border-top:1px solid #e3e8e3;">
         <span class="label" id="labelExtraLivre">Exame / laudo livre (opcional)</span>
         <div class="campo-com-upload">
           <textarea id="extra" placeholder="Cole os laudos com as respectivas datas. Para comparação, inclua os achados de cada exame..."></textarea>
@@ -3169,6 +3158,9 @@
       var n = c.arquivos.obter().length;
       var data = c.data.value.trim();
       var tipo = c.tipo.value.trim();
+      if (/^(ok|normal|sem altera[çc][õo]es?|sem achados|nada digno de nota)[.!\s]*$/i.test(t)) {
+        t = 'EXAME NORMAL, sem alteração aguda (use a frase padrão de exame normal, adaptada ao exame ' + (tipo ? tipo.toUpperCase() : 'informado') + ' e ao segmento da queixa; não cite "ok").';
+      }
       return 'EXAME ' + (i + 1) + (data ? ' — ' + data : ' — data não informada') + (tipo ? ' — ' + tipo.toUpperCase() : '') + ':\n' + (t || '(ver arquivo anexado)') +
         (n ? '\n[' + n + ' arquivo(s) anexado(s) a este exame]' : '');
     }).join('\n\n');
@@ -3340,7 +3332,6 @@
       btn.classList.add('active');
       tipoAtendimento = btn.dataset.tipo;
       document.getElementById('blocoRetorno').classList.toggle('oculto', tipoAtendimento !== 'retorno');
-      document.getElementById('blocoAmbColegas').classList.toggle('oculto', tipoAtendimento !== 'retorno');
       atualizarEncaminhar();
 
       if (tipoAtendimento === 'reavaliacao') {
@@ -3882,7 +3873,6 @@
     limparCardsAtendimento();
     limparCardsExame();
     document.getElementById('blocoRetorno').classList.add('oculto');
-    document.getElementById('blocoAmbColegas').classList.add('oculto');
     resultadoCard.classList.remove('show');
     avisoCard.classList.remove('show');
     erroMsg.classList.remove('show');
@@ -4125,6 +4115,18 @@
         {
           "titulo": "Retorno Ambulatorial — Após Exame",
           "texto": "Solicito agendamento de retorno ambulatorial com ortopedista especialista neste serviço após a realização do exame solicitado nesta avaliação ou em até 7 dias, o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado, para reavaliação clínica e definição de conduta."
+        },
+        {
+          "titulo": "Retorno Ambulatorial — Ombro (Dr. Rafael Tavares)",
+          "texto": "Solicito agendamento de retorno ambulatorial com Dr. Rafael Tavares (CRM ____), ortopedista especialista em ombro, no Hospital São Luiz Guarulhos, às segundas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo."
+        },
+        {
+          "titulo": "Retorno Ambulatorial — Mão (Dr. Roberto)",
+          "texto": "Solicito agendamento de retorno ambulatorial com Dr. Roberto (CRM ____), ortopedista especialista em mão, no Hospital São Luiz Guarulhos, às sextas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo."
+        },
+        {
+          "titulo": "Retorno Ambulatorial — Coluna (Dr. Deusimar)",
+          "texto": "Solicito agendamento de retorno ambulatorial com Dr. Deusimar (CRM ____), ortopedista especialista em coluna, no Hospital São Luiz Guarulhos, às quintas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo."
         }
       ]
     },
@@ -5059,65 +5061,6 @@
     paciente: "Para o paciente (retorno via WhatsApp)"
   };
 
-
-  // ===== Ambulatórios dos colegas (aba dentro de Retorno) =====
-  (function() {
-    var PADRAO = [
-      { nome: 'Rafael Tavares', crm: '', esp: 'Ombro', dia: 'segunda-feira', periodo: 'tarde', local: 'Hospital São Luiz Guarulhos' },
-      { nome: 'Roberto', crm: '', esp: 'Mão', dia: 'sexta-feira', periodo: 'tarde', local: 'Hospital São Luiz Guarulhos' },
-      { nome: 'Deusimar', crm: '', esp: 'Coluna', dia: 'quinta-feira', periodo: 'tarde', local: 'Hospital São Luiz Guarulhos' }
-    ];
-    var CHAVE = 'ortopia:ambColegas';
-    var lista;
-    try { lista = JSON.parse(localStorage.getItem(CHAVE) || 'null'); } catch (e) { lista = null; }
-    if (!Array.isArray(lista) || !lista.length) lista = PADRAO.map(function(x) { return Object.assign({}, x); });
-    function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(lista)); } catch (e) {} }
-    var cont = document.getElementById('listaAmbColegas');
-
-    function textoEncaminhamento(c) {
-      return 'Encaminhado ao ambulatório de ' + c.esp.toLowerCase() + ' com Dr. ' + c.nome + (c.crm ? ' (CRM ' + c.crm + ')' : '') +
-        ', ' + c.dia + ' à ' + c.periodo + ', ' + c.local + '.';
-    }
-    function campo(c, chave, rotulo, largura) {
-      var i = document.createElement('input');
-      i.type = 'text'; i.value = c[chave] || ''; i.placeholder = rotulo; i.setAttribute('aria-label', rotulo);
-      i.style.cssText = 'flex:1 1 ' + largura + 'px;min-width:0;padding:6px 8px;font-size:13px;';
-      i.addEventListener('input', function() { c[chave] = i.value; salvar(); });
-      return i;
-    }
-    function desenhar() {
-      cont.textContent = '';
-      lista.forEach(function(c, idx) {
-        var linha = document.createElement('div');
-        linha.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #e3e8e3;';
-        linha.appendChild(campo(c, 'nome', 'Nome', 120));
-        linha.appendChild(campo(c, 'crm', 'CRM', 80));
-        linha.appendChild(campo(c, 'esp', 'Especialidade', 100));
-        linha.appendChild(campo(c, 'dia', 'Dia', 100));
-        linha.appendChild(campo(c, 'periodo', 'Período', 70));
-        linha.appendChild(campo(c, 'local', 'Local', 160));
-        var b1 = document.createElement('button');
-        b1.type = 'button'; b1.className = 'btn-add-atendimento'; b1.textContent = 'Inserir nos dados';
-        b1.addEventListener('click', function() {
-          var ta = document.getElementById('dadosCaso');
-          ta.value = (ta.value.trim() ? ta.value.replace(/\s+$/, '') + '\n' : '') + '[' + textoEncaminhamento(c) + ']';
-          ta.dispatchEvent(new Event('input', { bubbles: true }));
-          b1.textContent = 'Inserido ✓';
-          setTimeout(function() { b1.textContent = 'Inserir nos dados'; }, 1500);
-        });
-        var b2 = document.createElement('button');
-        b2.type = 'button'; b2.className = 'btn-add-atendimento'; b2.textContent = 'Remover';
-        b2.addEventListener('click', function() { lista.splice(idx, 1); salvar(); desenhar(); });
-        linha.appendChild(b1); linha.appendChild(b2);
-        cont.appendChild(linha);
-      });
-    }
-    document.getElementById('btnAddAmbColega').addEventListener('click', function() {
-      lista.push({ nome: '', crm: '', esp: '', dia: '', periodo: '', local: 'Hospital São Luiz Guarulhos' });
-      salvar(); desenhar();
-    });
-    desenhar();
-  })();
 
   var GRUPOS_TEMPLATES = [
     { categoria: 'Prontuário — Atendimento', chaves: ['a', 'b', 'bd', 'bg', 'bf'] },
