@@ -1682,12 +1682,12 @@
 
     <div class="card" id="blocoExames">
       <span class="label" id="labelExames">Exames</span>
-      <div class="hint" id="hintExames" style="margin-top:0; margin-bottom:10px;">Um card por exame, com data e tipo no começo (RX, TC, RM...). Os cards saem em ordem cronológica no texto; pode inserir outros a qualquer momento. No retorno, os cards são os exames anteriores; o exame de hoje vai no campo livre no fim deste card. Opcional.</div>
+      <div class="hint" id="hintExames" style="margin-top:0; margin-bottom:10px;">Um card por exame, com data e tipo no começo (RX, TC, RM...). Os cards saem em ordem cronológica no texto; pode inserir outros a qualquer momento. Exame de hoje: escreva "hoje" na data. Opcional.</div>
       <datalist id="tiposExame"><option value="RX"><option value="TC"><option value="RM"><option value="USG"><option value="Laboratório"><option value="ECG"><option value="Eletroneuromiografia"><option value="Cultura"></datalist>
       <div id="listaExames"></div>
       <button type="button" class="btn-add-atendimento" id="btnAddExame">+ Adicionar exame</button>
 
-      <div class="field" style="margin-top:16px; padding-top:14px; border-top:1px solid #e3e8e3;">
+      <div class="field" style="display:none;">
         <span class="label" id="labelExtraLivre">Exame / laudo livre (opcional)</span>
         <div class="campo-com-upload">
           <textarea id="extra" placeholder="Cole os laudos com as respectivas datas. Para comparação, inclua os achados de cada exame..."></textarea>
@@ -3152,8 +3152,23 @@
     return lista;
   }
 
-  function textoExamesAnteriores() {
-    return examesPreenchidosEmOrdem().map(function(c, i) {
+  // Exame "de hoje": data escrita como "hoje" ou igual à data atual (DD/MM ou DD/MM/AAAA).
+  function exameEhDeHoje(c) {
+    var d = c.data.value.trim().toLowerCase();
+    if (!d) return false;
+    if (d === 'hoje') return true;
+    var n = new Date(), dd = ('0' + n.getDate()).slice(-2), mm = ('0' + (n.getMonth() + 1)).slice(-2), aa = String(n.getFullYear());
+    return d === dd + '/' + mm || d === dd + '/' + mm + '/' + aa || d === dd + '/' + mm + '/' + aa.slice(-2);
+  }
+  // modo: undefined = todos; 'hoje' = só os de hoje; 'antes' = todos menos os de hoje
+  function examesFiltrados(modo) {
+    return examesPreenchidosEmOrdem().filter(function(c) {
+      return !modo || (modo === 'hoje') === exameEhDeHoje(c);
+    });
+  }
+
+  function textoExamesAnteriores(modo) {
+    return examesFiltrados(modo).map(function(c, i) {
       var t = c.texto.value.trim();
       var n = c.arquivos.obter().length;
       var data = c.data.value.trim();
@@ -3166,9 +3181,9 @@
     }).join('\n\n');
   }
 
-  function arquivosExamesAnteriores() {
+  function arquivosExamesAnteriores(modo) {
     var todos = [];
-    examesPreenchidosEmOrdem().forEach(function(c, i) {
+    examesFiltrados(modo).forEach(function(c, i) {
       var data = c.data.value.trim(), tipo = c.tipo.value.trim();
       c.arquivos.obter().forEach(function(a) {
         a.rotulo = 'Arquivo do exame ' + (i + 1) + (data ? ' (' + data + ')' : '') + (tipo ? ' — ' + tipo : '') + ':';
@@ -3653,11 +3668,12 @@
   btnGerar.addEventListener('click', function() {
     var dadosCaso = document.getElementById('dadosCaso').value.trim();
     var atendimentoInicial = tipoAtendimento === 'retorno'
-      ? [textoAtendimentosAnteriores(), textoExamesAnteriores()].filter(Boolean).join('\n\n')
+      ? [textoAtendimentosAnteriores(), textoExamesAnteriores('antes')].filter(Boolean).join('\n\n')
       : document.getElementById('atendimentoInicial').value.trim();
     var extra = document.getElementById('extra').value.trim();
     // Fora do retorno, os cards de exame (data + tipo + laudo, em ordem cronológica) entram junto do campo livre.
-    if (tipoAtendimento !== 'retorno') extra = [textoExamesAnteriores(), extra].filter(Boolean).join('\n\n');
+    // No retorno, os cards de datas anteriores vão como exames anteriores e o card de hoje ("hoje" ou a data de hoje) vira o exame atual.
+    extra = [tipoAtendimento === 'retorno' ? textoExamesAnteriores('hoje') : textoExamesAnteriores(), extra].filter(Boolean).join('\n\n');
 
     erroMsg.classList.remove('show');
 
@@ -3691,7 +3707,7 @@
       naoDeambula: toggleNaoDeambula.checked,
       exameAmbulatorial: (tipoAtendimento === 'completo' && subCompleto === 'cronico') ? exameCasaSel : '',
       encaminhamentos: encaminhamentosSel.slice(),
-      imagens: (tipoAtendimento === 'retorno' ? arquivosAtendimentosAnteriores().concat(arquivosExamesAnteriores()) : arquivosExamesAnteriores()).concat(
+      imagens: (tipoAtendimento === 'retorno' ? arquivosAtendimentosAnteriores().concat(arquivosExamesAnteriores('antes'), arquivosExamesAnteriores('hoje').map(function(a) { a.rotulo = 'Exame/laudo atual (retorno de hoje):'; return a; })) : arquivosExamesAnteriores()).concat(
         imagensExame.obter().map(function(a) { if (tipoAtendimento === 'retorno') a.rotulo = 'Exame/laudo atual (retorno de hoje):'; return a; })
       )
     };
