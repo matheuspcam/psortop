@@ -172,8 +172,14 @@
 
   .lista-ia { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
   .grupo-ia { margin: 6px 0 2px; color: var(--ink-dim); font-size: 10px; font-weight: 600; }
+  .detalhe-ia { margin-top: 6px; }
+  .detalhe-ia > summary { cursor: pointer; font-size: 11px; color: var(--ink-dim); list-style: none; padding: 2px 0; }
+  .detalhe-ia > summary::-webkit-details-marker { display: none; }
+  .detalhe-ia > summary::before { content: "▸ "; }
+  .detalhe-ia[open] > summary::before { content: "▾ "; }
+  .opcao-ia .stats-ia { display: block; font-size: 9px; font-weight: 400; opacity: .85; }
   .opcao-ia { display: flex; align-items: center; justify-content: space-between; gap: 6px;
-    width: 100%; padding: 8px; border: 1px solid #e2e5e7; border-radius: 6px;
+    width: 100%; padding: 5px 8px; border: 1px solid #e2e5e7; border-radius: 6px;
     background: #f4f5f6; color: #50585e; font: 11px var(--sans); text-align: left; cursor: pointer; }
   .opcao-ia span:first-child { min-width: 0; overflow-wrap: anywhere; }
   .opcao-ia .estado-ia { flex-shrink: 0; font-size: 9px; font-weight: 600; }
@@ -199,7 +205,7 @@
 
   .tentativas-ia { font-size: 10.5px; line-height: 1.35; margin-top: 5px; color: var(--ink-dim); }
 
-  .btn-recolher-prontos { margin-bottom: 10px; padding: 7px 12px; font-size: 13px; border: 1px solid var(--panel-border); border-radius: 8px; background: var(--panel); color: var(--ink); cursor: pointer; }
+  .btn-recolher-prontos { margin-bottom: 10px; padding: 5px 10px; font-size: 12px; font-weight: 500; letter-spacing: .02em; border: 1px solid var(--panel-border); border-radius: 6px; background: transparent; color: var(--muted, var(--ink)); cursor: pointer; }
   .btn-recolher-prontos:hover { border-color: var(--accent); color: var(--accent); }
 
   .transferir-botoes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
@@ -1395,6 +1401,7 @@
   /* Desfechos em uma linha */
   #cardModelo .tpl-grid.tpl-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
   #cardModelo .tpl-grid.tpl-grid-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  #cardModelo .tpl-grid.tpl-grid-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   #cardModelo .tpl-grid.tpl-grid-4 button { min-width: 0; padding: 10px 6px; font-size: 12.5px; }
   @media (max-width: 480px) {
     #cardModelo .tpl-grid.tpl-grid-4 { gap: 5px; }
@@ -1599,12 +1606,13 @@
         <button type="button" data-t="f" data-grupo="reavaliacao"><span class="rotulo-longo">Internação</span><span class="rotulo-curto">Internação</span></button>
       </div>
 
-      <div class="tpl-grid tpl-grid-4 tpl-grid-5 oculto" id="tplGridRetorno">
+      <div class="tpl-grid tpl-grid-4 tpl-grid-6 oculto" id="tplGridRetorno">
         <button type="button" data-t="r0" data-grupo="retorno"><span class="rotulo-longo">Pede RX — reavalia após</span><span class="rotulo-curto">Pede RX</span></button>
         <button type="button" data-t="r1" data-grupo="retorno"><span class="rotulo-longo">Mantém conservador</span><span class="rotulo-curto">Conservador</span></button>
         <button type="button" data-t="r2" data-grupo="retorno"><span class="rotulo-longo">Consolidado — liberação progressiva</span><span class="rotulo-curto">Consolidado</span></button>
         <button type="button" data-t="r3" data-grupo="retorno"><span class="rotulo-longo">Borderline — discutir</span><span class="rotulo-curto">Borderline</span></button>
         <button type="button" data-t="r4" data-grupo="retorno"><span class="rotulo-longo">Internação</span><span class="rotulo-curto">Internação</span></button>
+        <button type="button" data-t="ev" data-grupo="retorno"><span class="rotulo-longo">Evolução — internado</span><span class="rotulo-curto">Evolução</span></button>
       </div>
 
       <div id="blocoCompleto">
@@ -1663,10 +1671,15 @@
       <div class="hint" style="margin-top:0; margin-bottom:10px;">Um card por dia (ex: dia do trauma, último retorno). Pode anexar foto/PDF ou colar print (Ctrl+V) em cada um.</div>
       <div id="listaAtendimentos"></div>
       <button type="button" class="btn-add-atendimento" id="btnAddAtendimento">+ Adicionar atendimento</button>
-      <span class="label" style="margin-top:18px; display:block;">Exames anteriores</span>
-      <div class="hint" style="margin-top:0; margin-bottom:10px;">Um card por exame (data + laudo, ou foto/PDF), igual aos atendimentos. O exame de hoje continua no campo "Exame / laudo" mais abaixo.</div>
-      <div id="listaExames"></div>
-      <button type="button" class="btn-add-atendimento" id="btnAddExame">+ Adicionar exame</button>
+    </div>
+
+    <div class="card oculto" id="blocoAmbColegas">
+      <details id="detAmbColegas">
+        <summary class="label" style="cursor:pointer;">Ambulatórios dos colegas</summary>
+        <div class="hint" style="margin:6px 0 10px;">Para encaminhar o retorno. "Inserir" coloca o encaminhamento nos dados de hoje; o CRM você preenche uma vez e fica salvo neste aparelho.</div>
+        <div id="listaAmbColegas"></div>
+        <button type="button" class="btn-add-atendimento" id="btnAddAmbColega">+ Adicionar colega</button>
+      </details>
     </div>
 
     <div class="card">
@@ -1676,9 +1689,17 @@
       </div>
     </div>
 
+    <div class="card" id="blocoExames">
+      <span class="label" id="labelExames">Exames</span>
+      <div class="hint" id="hintExames" style="margin-top:0; margin-bottom:10px;">Um card por exame, com data e tipo no começo (RX, TC, RM...). Os cards saem em ordem cronológica no texto; pode inserir outros a qualquer momento. No retorno, os cards são os exames anteriores; o exame de hoje vai no campo livre mais abaixo. Opcional.</div>
+      <datalist id="tiposExame"><option value="RX"><option value="TC"><option value="RM"><option value="USG"><option value="Laboratório"><option value="ECG"><option value="Eletroneuromiografia"><option value="Cultura"></datalist>
+      <div id="listaExames"></div>
+      <button type="button" class="btn-add-atendimento" id="btnAddExame">+ Adicionar exame</button>
+    </div>
+
     <div class="card">
       <div class="field">
-        <span class="label">Exame / laudo (opcional)</span>
+        <span class="label" id="labelExtraLivre">Exame / laudo livre (opcional)</span>
         <div class="campo-com-upload">
           <textarea id="extra" placeholder="Cole os laudos com as respectivas datas. Para comparação, inclua os achados de cada exame..."></textarea>
           <div class="zona-upload" id="zonaUploadExame">
@@ -1739,7 +1760,7 @@
     <div class="hint" style="margin-bottom:12px;">
       Textos fixos para copiar direto. Os geradores marcados com <span class="tag-ia">IA</span> passam pela IA; o resto não.
     </div>
-    <button type="button" class="btn-recolher-prontos" id="btnRecolherProntos">⬆️ Recolher tudo</button>
+    <button type="button" class="btn-recolher-prontos" id="btnRecolherProntos">Recolher tudo</button>
     <div id="containerProntos"></div>
 
     <div class="card instrucoes-livres" style="margin-top:14px;">
@@ -3075,7 +3096,8 @@
     card.innerHTML =
       '<div class="card-atendimento-topo">' +
         '<span class="num"></span>' +
-        '<input type="text" placeholder="Data do exame (ex: 02/09)" autocomplete="off">' +
+        '<input type="text" placeholder="Data (ex: 02/09)" autocomplete="off">' +
+        '<input type="text" class="tipo-exame" list="tiposExame" placeholder="Tipo (RX, TC, RM...)" autocomplete="off" style="max-width:150px;">' +
         '<button type="button" class="remover" aria-label="Remover exame">&times;</button>' +
       '</div>' +
       '<div class="campo-com-upload">' +
@@ -3092,12 +3114,14 @@
       el: card,
       num: card.querySelector('.num'),
       data: card.querySelector('.card-atendimento-topo input'),
+      tipo: card.querySelector('.tipo-exame'),
       texto: card.querySelector('textarea'),
       arquivos: criarGerenciadorImagens(card.querySelector('.zona-upload'), card.querySelector('.zona-upload input'), card.querySelector('.lista-imagens'), null)
     };
     card.querySelector('.remover').addEventListener('click', function() {
       if (cardsExame.length === 1) {
         dados.data.value = '';
+        dados.tipo.value = '';
         dados.texto.value = '';
         dados.arquivos.limpar();
         return;
@@ -3117,23 +3141,45 @@
     adicionarCardExame();
   }
 
+  // Datas "dd/mm" ou "dd/mm/aa(aa)" viram número para ordenar; sem ano, vale o ano corrente (ou o anterior, se cair no futuro).
+  function dataParaOrdem(s) {
+    var m = String(s || '').match(/(\d{1,2})\s*[\/.-]\s*(\d{1,2})(?:\s*[\/.-]\s*(\d{2,4}))?/);
+    if (!m) return null;
+    var hoje = new Date(), ano = m[3] ? Number(m[3]) : hoje.getFullYear();
+    if (ano < 100) ano += 2000;
+    var d = new Date(ano, Number(m[2]) - 1, Number(m[1]));
+    if (!m[3] && d > hoje) d = new Date(ano - 1, Number(m[2]) - 1, Number(m[1]));
+    return isNaN(d.getTime()) ? null : d.getTime();
+  }
+
+  // Exames preenchidos, em ordem cronológica (só reordena se TODOS tiverem data válida; senão, mantém a ordem dos cards).
+  function examesPreenchidosEmOrdem() {
+    var lista = cardsExame.filter(function(c) { return c.texto.value.trim() || c.arquivos.obter().length; });
+    if (lista.length > 1 && lista.every(function(c) { return dataParaOrdem(c.data.value) !== null; })) {
+      lista = lista.map(function(c, i) { return { c: c, i: i }; })
+        .sort(function(a, b) { return (dataParaOrdem(a.c.data.value) - dataParaOrdem(b.c.data.value)) || (a.i - b.i); })
+        .map(function(x) { return x.c; });
+    }
+    return lista;
+  }
+
   function textoExamesAnteriores() {
-    return cardsExame.map(function(c, i) {
+    return examesPreenchidosEmOrdem().map(function(c, i) {
       var t = c.texto.value.trim();
       var n = c.arquivos.obter().length;
-      if (!t && !n) return '';
       var data = c.data.value.trim();
-      return 'EXAME ' + (i + 1) + (data ? ' — ' + data : ' — data não informada') + ':\n' + (t || '(ver arquivo anexado)') +
+      var tipo = c.tipo.value.trim();
+      return 'EXAME ' + (i + 1) + (data ? ' — ' + data : ' — data não informada') + (tipo ? ' — ' + tipo.toUpperCase() : '') + ':\n' + (t || '(ver arquivo anexado)') +
         (n ? '\n[' + n + ' arquivo(s) anexado(s) a este exame]' : '');
-    }).filter(Boolean).join('\n\n');
+    }).join('\n\n');
   }
 
   function arquivosExamesAnteriores() {
     var todos = [];
-    cardsExame.forEach(function(c, i) {
-      var data = c.data.value.trim();
+    examesPreenchidosEmOrdem().forEach(function(c, i) {
+      var data = c.data.value.trim(), tipo = c.tipo.value.trim();
       c.arquivos.obter().forEach(function(a) {
-        a.rotulo = 'Arquivo do exame ' + (i + 1) + (data ? ' (' + data + ')' : '') + ':';
+        a.rotulo = 'Arquivo do exame ' + (i + 1) + (data ? ' (' + data + ')' : '') + (tipo ? ' — ' + tipo : '') + ':';
         todos.push(a);
       });
     });
@@ -3294,6 +3340,7 @@
       btn.classList.add('active');
       tipoAtendimento = btn.dataset.tipo;
       document.getElementById('blocoRetorno').classList.toggle('oculto', tipoAtendimento !== 'retorno');
+      document.getElementById('blocoAmbColegas').classList.toggle('oculto', tipoAtendimento !== 'retorno');
       atualizarEncaminhar();
 
       if (tipoAtendimento === 'reavaliacao') {
@@ -3393,6 +3440,10 @@
   // Histórico da sessão atual (geração + cada ajuste), enviado junto com "Salvar sugestão"
   var historicoGerar = [];
   var ultimoModeloIA = '';
+  var ultimoTempoMs = 0;
+  var ajusteJaContado = false;
+  var ajustesParaReaplicar = [];
+  var provedorFixoRefazer = '';
 
   // "gemini-3.6-flash" -> "Gemini 3.6 Flash"
   function nomeModeloLegivel(codigo) {
@@ -3451,8 +3502,8 @@
   }
   provedorVar.addEventListener('change', function() { redesenharPaineisIA(); });
 
-  function carregarStatusIA() {
-    if (statusIA || statusIACarregando) return;
+  function carregarStatusIA(forcar) {
+    if ((statusIA && !forcar) || statusIACarregando) return;
     statusIACarregando = true;
     fetch('/api/gerar', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -3473,7 +3524,10 @@
     var el = painel.el; el.innerHTML = '';
     var atual = painel.imagem ? (provedorVar.value || 'auto') : painel.selecionado;
     var resumo = document.createElement('div');
-    resumo.textContent = 'Gerado com ' + nomeModeloLegivel(painel.modelo); el.appendChild(resumo);
+    resumo.textContent = 'Gerado com ' + nomeModeloLegivel(painel.modelo) + (painel.tempoMs ? ' · ' + (painel.tempoMs / 1000).toFixed(1).replace('.', ',') + ' s' : ''); el.appendChild(resumo);
+    var detalhe = document.createElement('details'); detalhe.className = 'detalhe-ia'; detalhe.open = !!painel.aberto;
+    detalhe.addEventListener('toggle', function() { painel.aberto = detalhe.open; });
+    var sumario = document.createElement('summary'); sumario.textContent = 'Trocar de IA'; detalhe.appendChild(sumario);
     var lista = document.createElement('div'); lista.className = 'lista-ia';
     var opcoes = opcoesIA().slice();
     // Retain the actual model even if its server configuration changed since this response.
@@ -3493,7 +3547,13 @@
         b.className = 'opcao-ia' + (usada ? ' usada' : falha ? ' falhou' : '') + (selecionada ? ' selecionada' : '');
         b.disabled = !o.disponivel; b.setAttribute('aria-pressed', String(selecionada));
         b.dataset.provedor = o.valor;
-        var nome = document.createElement('span'); nome.textContent = (o.pago ? '💲 ' : '') + rotuloOpcaoIA(o); b.appendChild(nome);
+        var nome = document.createElement('span'); nome.textContent = (o.pago ? '💲 ' : '') + rotuloOpcaoIA(o);
+        if (o.stats) {
+          var st = document.createElement('span'); st.className = 'stats-ia';
+          st.textContent = (o.stats.medianaMs / 1000).toFixed(1).replace('.', ',') + ' s · ' + o.stats.semAjuste + '% sem ajuste · ' + o.stats.geracoes + ' ger.';
+          nome.appendChild(st);
+        }
+        b.appendChild(nome);
         var estado = document.createElement('span'); estado.className = 'estado-ia';
         estado.textContent = selecionada && o.valor !== 'auto' ? 'Próxima' : usada ? 'Usada' : falha ? 'Falhou' : !o.disponivel ? 'Indisponível' : o.valor === 'auto' ? 'Padrão' : '';
         b.appendChild(estado);
@@ -3506,9 +3566,10 @@
         lista.appendChild(b);
       });
     });
-    el.appendChild(lista);
+    detalhe.appendChild(lista);
     var legenda = document.createElement('div'); legenda.className = 'legenda-ia';
-    legenda.textContent = 'Verde: usada · Vermelho: falhou · Azul: próxima'; el.appendChild(legenda);
+    legenda.textContent = 'Verde: usada · Vermelho: falhou · Azul: próxima · tempo e % sem ajuste: últimas 24 h'; detalhe.appendChild(legenda);
+    el.appendChild(detalhe);
     if (painel.refazer) {
       var box = document.createElement('div'); box.className = 'seletor-ia';
       var btn = document.createElement('button'); btn.type = 'button'; btn.textContent = '↻ Refazer com esta IA';
@@ -3525,8 +3586,8 @@
     paineisIA = paineisIA.filter(function(p) { return p.el !== el && p.el.isConnected; });
     if (!modelo) { el.innerHTML = ''; return; }
     var painel = { el: el, modelo: modelo, tentativas: tentativas || [], refazer: refazer,
-      imagem: !!imagem, selecionado: 'auto' };
-    paineisIA.push(painel); desenharPainelIA(painel); carregarStatusIA();
+      imagem: !!imagem, selecionado: 'auto', tempoMs: imagem ? 0 : ultimoTempoMs };
+    paineisIA.push(painel); desenharPainelIA(painel); carregarStatusIA(true);
   }
 
   function mostrarModeloIA(ids, refazer) {
@@ -3552,7 +3613,11 @@
     ultimoCorpoGerar = corpoTexto;
     var temDestaque = renderizarComDestaque(resultadoTexto, corpoTexto, (ultimoPayloadGerar && ultimoPayloadGerar.template) || '');
     legendaDif.classList.toggle('show', temDestaque);
-    mostrarModeloIA(['modeloIAGerar', 'modeloIAGerarMobile'], function() { btnGerar.click(); });
+    // "Refazer com esta IA" refaz TUDO: a geração inicial e depois cada ajuste já feito, na mesma ordem (11/10/2026).
+    mostrarModeloIA(['modeloIAGerar', 'modeloIAGerarMobile'], function() {
+      ajustesParaReaplicar = historicoGerar.filter(function(h) { return h.tipo === 'ajuste'; }).map(function(h) { return h.instrucao; });
+      btnGerar.click();
+    });
     resultadoCard.classList.add('show');
     btnCopiarLateral.textContent = 'COPIAR';
     btnCopiarLateral.classList.remove('copiado');
@@ -3562,7 +3627,8 @@
 
   function chamarApi(payload) {
     erroMsg.classList.remove('show');
-    payload.provedor = provedorEscolhidoAntes(provedorGerar);
+    payload.provedor = payload.provedorFixo || provedorEscolhidoAntes(provedorGerar);
+    delete payload.provedorFixo;
     return fetch('/api/gerar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -3580,6 +3646,7 @@
           return null;
         }
         ultimoModeloIA = data.modelo || '';
+        ultimoTempoMs = data.tempoMs || 0;
         ultimasTentativas = data.tentativas || [];
         return data.texto || '';
       });
@@ -3598,6 +3665,8 @@
       ? [textoAtendimentosAnteriores(), textoExamesAnteriores()].filter(Boolean).join('\n\n')
       : document.getElementById('atendimentoInicial').value.trim();
     var extra = document.getElementById('extra').value.trim();
+    // Fora do retorno, os cards de exame (data + tipo + laudo, em ordem cronológica) entram junto do campo livre.
+    if (tipoAtendimento !== 'retorno') extra = [textoExamesAnteriores(), extra].filter(Boolean).join('\n\n');
 
     erroMsg.classList.remove('show');
 
@@ -3612,6 +3681,8 @@
       return;
     }
 
+    var reaplicar = ajustesParaReaplicar.slice();
+    ajustesParaReaplicar = [];
     btnGerar.disabled = true;
     spinner.classList.add('show');
     resultadoCard.classList.remove('show');
@@ -3629,7 +3700,7 @@
       naoDeambula: toggleNaoDeambula.checked,
       exameAmbulatorial: (tipoAtendimento === 'completo' && subCompleto === 'cronico') ? exameCasaSel : '',
       encaminhamentos: encaminhamentosSel.slice(),
-      imagens: (tipoAtendimento === 'retorno' ? arquivosAtendimentosAnteriores().concat(arquivosExamesAnteriores()) : []).concat(
+      imagens: (tipoAtendimento === 'retorno' ? arquivosAtendimentosAnteriores().concat(arquivosExamesAnteriores()) : arquivosExamesAnteriores()).concat(
         imagensExame.obter().map(function(a) { if (tipoAtendimento === 'retorno') a.rotulo = 'Exame/laudo atual (retorno de hoje):'; return a; })
       )
     };
@@ -3653,10 +3724,14 @@
             imagensAnexadas: String((payloadGerar.imagens || []).length)
           },
           modelo: ultimoModeloIA,
+          tempoMs: ultimoTempoMs,
           saida: texto
         }];
+        ajusteJaContado = false;
+        provedorFixoRefazer = payloadGerar.provedor || '';
         renderizarResultado(texto);
         scrollSeguro(resultadoCard);
+        if (reaplicar.length) return reaplicarAjustes(reaplicar);
       }
     }).catch(function() {
       erroMsg.textContent = 'Falha de conexão. Verifique a internet e tente novamente.';
@@ -3688,9 +3763,33 @@
   var instrucaoAjusteLateral = document.getElementById('instrucaoAjusteLateral');
   var spinnerAjuste = document.getElementById('spinnerAjuste');
 
+  // Reaplica, em ordem, os ajustes já feitos (usado pelo "Refazer com esta IA"). Para no primeiro que falhar.
+  function reaplicarAjustes(lista) {
+    if (!lista.length) return Promise.resolve();
+    spinnerAjuste.classList.add('show');
+    var payloadAjuste = Object.assign({}, ultimoPayloadGerar, {
+      resultadoAnterior: ultimoTextoGerar,
+      instrucaoAjuste: lista[0],
+      provedorFixo: provedorFixoRefazer
+    });
+    return chamarApi(payloadAjuste).then(function(texto) {
+      if (texto === null || texto === undefined) return;
+      historicoGerar.push({ tipo: 'ajuste', data: agoraIso(), instrucao: lista[0], modelo: ultimoModeloIA, tempoMs: ultimoTempoMs, saida: texto });
+      renderizarResultado(texto);
+      return reaplicarAjustes(lista.slice(1));
+    }).finally(function() { spinnerAjuste.classList.remove('show'); });
+  }
+
   function executarAjuste(instrucao, botaoQueClicou) {
     if (!instrucao) return;
     if (!ultimoPayloadGerar || !ultimoTextoGerar) return;
+
+    // Mede assertividade: avisa o servidor, uma vez por geração, que este modelo precisou de ajuste.
+    if (!ajusteJaContado && historicoGerar.length && historicoGerar[0].modelo) {
+      ajusteJaContado = true;
+      fetch('/api/gerar', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: pinAtual, modo: 'desempenho', modelo: historicoGerar[0].modelo }) }).catch(function() {});
+    }
 
     btnAjustar.disabled = true;
     btnAjustarLateral.disabled = true;
@@ -3704,7 +3803,7 @@
 
     chamarApi(payloadAjuste).then(function(texto) {
       if (texto !== null && texto !== undefined) {
-        historicoGerar.push({ tipo: 'ajuste', data: agoraIso(), instrucao: instrucao, modelo: ultimoModeloIA, saida: texto });
+        historicoGerar.push({ tipo: 'ajuste', data: agoraIso(), instrucao: instrucao, modelo: ultimoModeloIA, tempoMs: ultimoTempoMs, saida: texto });
         renderizarResultado(texto);
         instrucaoAjuste.value = '';
         instrucaoAjusteLateral.value = '';
@@ -3783,6 +3882,7 @@
     limparCardsAtendimento();
     limparCardsExame();
     document.getElementById('blocoRetorno').classList.add('oculto');
+    document.getElementById('blocoAmbColegas').classList.add('oculto');
     resultadoCard.classList.remove('show');
     avisoCard.classList.remove('show');
     erroMsg.classList.remove('show');
@@ -3881,7 +3981,8 @@
     r1: "Retorno — mantém conservador",
     r2: "Retorno — consolidado / liberação progressiva",
     r3: "Retorno — borderline / discussão",
-    r4: "Retorno — internação"
+    r4: "Retorno — internação",
+    ev: "Evolução — internado"
   };
 
   var TEXTOS_PRONTOS = [
@@ -4141,6 +4242,7 @@
           return null;
         }
         ultimoModeloIA = data.modelo || '';
+        ultimoTempoMs = data.tempoMs || 0;
         ultimasTentativas = data.tentativas || [];
         return data.texto || '';
       });
@@ -4957,9 +5059,69 @@
     paciente: "Para o paciente (retorno via WhatsApp)"
   };
 
+
+  // ===== Ambulatórios dos colegas (aba dentro de Retorno) =====
+  (function() {
+    var PADRAO = [
+      { nome: 'Rafael Tavares', crm: '', esp: 'Ombro', dia: 'segunda-feira', periodo: 'tarde', local: 'Hospital São Luiz Guarulhos' },
+      { nome: 'Roberto', crm: '', esp: 'Mão', dia: 'sexta-feira', periodo: 'tarde', local: 'Hospital São Luiz Guarulhos' },
+      { nome: 'Deusimar', crm: '', esp: 'Coluna', dia: 'quinta-feira', periodo: 'tarde', local: 'Hospital São Luiz Guarulhos' }
+    ];
+    var CHAVE = 'ortopia:ambColegas';
+    var lista;
+    try { lista = JSON.parse(localStorage.getItem(CHAVE) || 'null'); } catch (e) { lista = null; }
+    if (!Array.isArray(lista) || !lista.length) lista = PADRAO.map(function(x) { return Object.assign({}, x); });
+    function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(lista)); } catch (e) {} }
+    var cont = document.getElementById('listaAmbColegas');
+
+    function textoEncaminhamento(c) {
+      return 'Encaminhado ao ambulatório de ' + c.esp.toLowerCase() + ' com Dr. ' + c.nome + (c.crm ? ' (CRM ' + c.crm + ')' : '') +
+        ', ' + c.dia + ' à ' + c.periodo + ', ' + c.local + '.';
+    }
+    function campo(c, chave, rotulo, largura) {
+      var i = document.createElement('input');
+      i.type = 'text'; i.value = c[chave] || ''; i.placeholder = rotulo; i.setAttribute('aria-label', rotulo);
+      i.style.cssText = 'flex:1 1 ' + largura + 'px;min-width:0;padding:6px 8px;font-size:13px;';
+      i.addEventListener('input', function() { c[chave] = i.value; salvar(); });
+      return i;
+    }
+    function desenhar() {
+      cont.textContent = '';
+      lista.forEach(function(c, idx) {
+        var linha = document.createElement('div');
+        linha.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #e3e8e3;';
+        linha.appendChild(campo(c, 'nome', 'Nome', 120));
+        linha.appendChild(campo(c, 'crm', 'CRM', 80));
+        linha.appendChild(campo(c, 'esp', 'Especialidade', 100));
+        linha.appendChild(campo(c, 'dia', 'Dia', 100));
+        linha.appendChild(campo(c, 'periodo', 'Período', 70));
+        linha.appendChild(campo(c, 'local', 'Local', 160));
+        var b1 = document.createElement('button');
+        b1.type = 'button'; b1.className = 'btn-add-atendimento'; b1.textContent = 'Inserir nos dados';
+        b1.addEventListener('click', function() {
+          var ta = document.getElementById('dadosCaso');
+          ta.value = (ta.value.trim() ? ta.value.replace(/\s+$/, '') + '\n' : '') + '[' + textoEncaminhamento(c) + ']';
+          ta.dispatchEvent(new Event('input', { bubbles: true }));
+          b1.textContent = 'Inserido ✓';
+          setTimeout(function() { b1.textContent = 'Inserir nos dados'; }, 1500);
+        });
+        var b2 = document.createElement('button');
+        b2.type = 'button'; b2.className = 'btn-add-atendimento'; b2.textContent = 'Remover';
+        b2.addEventListener('click', function() { lista.splice(idx, 1); salvar(); desenhar(); });
+        linha.appendChild(b1); linha.appendChild(b2);
+        cont.appendChild(linha);
+      });
+    }
+    document.getElementById('btnAddAmbColega').addEventListener('click', function() {
+      lista.push({ nome: '', crm: '', esp: '', dia: '', periodo: '', local: 'Hospital São Luiz Guarulhos' });
+      salvar(); desenhar();
+    });
+    desenhar();
+  })();
+
   var GRUPOS_TEMPLATES = [
     { categoria: 'Prontuário — Atendimento', chaves: ['a', 'b', 'bd', 'bg', 'bf'] },
-    { categoria: 'Prontuário — Retorno', chaves: ['r0', 'r1', 'r2', 'r3', 'r4'] },
+    { categoria: 'Prontuário — Retorno', chaves: ['r0', 'r1', 'r2', 'r3', 'r4', 'ev'] },
     { categoria: 'Prontuário — Reavaliação', chaves: ['c', 'd', 'g', 'f'] },
     { categoria: 'Prontuário — Crônicos', chaves: ['e1','e2','e3','e4','e5','e6','e7','e8','h'] },
     { categoria: 'Mensagens', chaves: ['chefe', 'internacao', 'paciente', 'retaguarda'], tipo: 'mensagem' }
@@ -5093,7 +5255,7 @@
     var t = '';
     historico.forEach(function(etapa, i) {
       var quando = etapa.data ? ' (' + formatarDataHora(etapa.data) + ')' : '';
-      if (etapa.modelo) quando += ' [' + etapa.modelo + ']';
+      if (etapa.modelo) quando += ' [' + etapa.modelo + (etapa.tempoMs ? ' · ' + (etapa.tempoMs / 1000).toFixed(1) + 's' : '') + ']';
       if (etapa.tipo === 'ajuste') {
         t += '--- Etapa ' + (i + 1) + ': ajuste' + quando + ' ---\n';
         t += 'Instrução de ajuste:\n' + (etapa.instrucao || '') + '\n';

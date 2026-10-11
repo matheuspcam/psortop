@@ -51,6 +51,7 @@ function limparHistorico(historico) {
       entrada: entradaLimpa,
       instrucao: cortar(etapa.instrucao),
       modelo: cortar(etapa.modelo),
+      tempoMs: Number(etapa.tempoMs) > 0 ? Math.round(Number(etapa.tempoMs)) : undefined,
       saida: cortar(etapa.saida)
     };
   });

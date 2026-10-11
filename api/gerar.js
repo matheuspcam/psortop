@@ -9,9 +9,16 @@ export default async function handler(req, res) {
     return res.status(401).json({ erro: 'PIN incorreto' });
   }
 
-  // Lista de IAs disponíveis (para o seletor ao lado do resultado).
+  // Lista de IAs disponíveis (para o seletor ao lado do resultado), com tempo e assertividade de hoje.
   if (modo === 'modelos') {
-    return res.status(200).json(statusModelos());
+    return res.status(200).json(await statusModelos());
+  }
+
+  // Aviso do site de que o médico precisou ajustar um texto gerado por este modelo (mede assertividade, 11/10/2026).
+  if (modo === 'desempenho') {
+    const m = String((req.body || {}).modelo || '').slice(0, 80);
+    if (m) await upstashSilencioso(['LPUSH', 'ortopia:ajustes:' + m, String(Date.now())], ['LTRIM', 'ortopia:ajustes:' + m, '0', '59']);
+    return res.status(200).json({ ok: true });
   }
 
   const ehAvulso = modo === 'avulso';
@@ -38,7 +45,9 @@ export default async function handler(req, res) {
       const contentsImg = [{ role: 'user', parts: montarParts(montarPromptImagem(dadosCaso), imagens) }];
       let texto = null;
       const escolhaImg = modeloDoProvedor(provedor);
-      if (escolhaImg && escolhaImg.tipo === 'claude') {
+      if (provedor === 'rapido-hoje') {
+        texto = await chamarGemini(montarPromptSistemaImagem(), contentsImg, 0.2, apiKey, res, true, await ordenarPorVelocidadeHoje(listaModelosImagem()));
+      } else if (escolhaImg && escolhaImg.tipo === 'claude') {
         texto = await chamarClaudeImagem(montarPromptSistemaImagem(), montarPromptImagem(dadosCaso), imagens, res, escolhaImg.modelo);
       } else if (escolhaImg && escolhaImg.tipo === 'openai') {
         texto = await chamarOpenAI(escolhaImg.modelo, montarPromptSistemaImagem(), contentsImg, res);
@@ -87,8 +96,10 @@ export default async function handler(req, res) {
       ) }];
 
   try {
+    const inicioGeracao = Date.now();
     let texto = await chamarModelo(provedor, promptSistema, contents, ehAjuste ? 0.5 : 0.3, apiKey, res, undefined, ehAvulso ? listaModelosRapidos() : undefined);
     if (texto === null) return; // erro já respondido dentro de chamarGemini
+    const tempoMs = Date.now() - inicioGeracao;
 
     // Proteção extra: se o ajuste devolveu o texto praticamente idêntico ao anterior,
     // a instrução foi ignorada. Tenta uma segunda vez com uma instrução ainda mais enfática.
@@ -105,13 +116,18 @@ export default async function handler(req, res) {
     }
 
     if (!ehMensagem && !ehAvulso) {
-      texto = posProcessarProntuario(texto, { tipoAtendimento, acompanhante, dadosCaso, atendimentoInicial, extra, instrucaoAjuste });
+      texto = posProcessarProntuario(texto, { tipoAtendimento, acompanhante, dadosCaso, atendimentoInicial, extra, instrucaoAjuste, exameAmbulatorial, ehAjuste, ehEvolucao: String(template || '').split('+').map(x => x.trim()).includes('ev') });
     } else texto = preposicaoDoSegmento(texto);
     if (!ehAjuste && !ehMensagem && !ehAvulso && tipoAtendimento === 'retorno') {
       texto = garantirTempoDoTrauma(texto, template, `${atendimentoInicial || ''}\n${dadosCaso || ''}`, dataHoje);
     }
 
-    return res.status(200).json({ texto: texto, modelo: (res.locals && res.locals.modeloUsado) || '', tentativas: res.locals.tentativas });
+    const modeloFinal = (res.locals && res.locals.modeloUsado) || '';
+    // Só gerações completas contam para o ranking de velocidade (ajuste e texto avulso têm outro tamanho de saída).
+    if (modeloFinal && !ehAjuste && !ehAvulso) {
+      await upstashSilencioso(['LPUSH', 'ortopia:tempos:' + modeloFinal, Date.now() + '|' + tempoMs], ['LTRIM', 'ortopia:tempos:' + modeloFinal, '0', '59']);
+    }
+    return res.status(200).json({ texto: texto, modelo: modeloFinal, tempoMs: tempoMs, tentativas: res.locals.tentativas });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ erro: 'Falha ao gerar o texto. Tente novamente.' });
@@ -124,8 +140,21 @@ function posProcessarProntuario(texto, ctx) {
   ctx = ctx || {};
   const fontes = `${ctx.dadosCaso || ''}\n${ctx.atendimentoInicial || ''}\n${ctx.instrucaoAjuste || ''}`;
   let t = String(texto || '');
+  if (ctx.ehEvolucao) {
+    // Evolução de internado: o formato é o do próprio serviço; só limpezas que não mexem na estrutura.
+    t = limparCaracteresEstranhos(t);
+    t = semMarcaDeImagemAnexada(t);
+    t = semMaterialDeSinteseNaoInformado(t, fontes);
+    t = corrigirEspanholETipos(t);
+    t = pacienteNeutro(t);
+    t = removerTelefoneSemNumero(t);
+    return t.replace(/^\s+/, '');
+  }
   t = limparCaracteresEstranhos(t);
   t = removerTextoSoltoAntesDoAP(t);
+  t = semMarcaDeImagemAnexada(t);
+  t = semMaterialDeSinteseNaoInformado(t, fontes);
+  t = semAbaulamentoSeHaEdema(t);
   t = corrigirEspanholETipos(t);
   t = siglasDosDedos(t);
   t = traumaDoSegmento(t);
@@ -145,6 +174,8 @@ function posProcessarProntuario(texto, ctx) {
   t = removerAvisosGenericos(t);
   t = juntarNegativasDaHistoria(t);
   t = removerOfertaDeRxSeRxAvaliado(t);
+  t = garantirAtestadoSeSolicitado(t, ctx);
+  t = avisarSeExameMarcadoFaltou(t, ctx);
   t = subirCondutasNovas(t);
   t = semIndicacaoPrimeiroNaConduta(t);
   t = removerTelefoneSemNumero(t);
@@ -158,6 +189,67 @@ function posProcessarProntuario(texto, ctx) {
     // Palavras em inglês / trocas já observadas nas saídas do modelo
     .replace(/\blimitations\b/gi, 'limitações')
     .replace(/fases internas/gi, 'fases iniciais');
+}
+
+// Atestado pedido nos dados (ou na instrução de ajuste) tem que aparecer na CONDUTA, mesmo que o modelo esqueça (11/10/2026).
+function garantirAtestadoSeSolicitado(texto, ctx) {
+  const t = String(texto || '');
+  if (/atestado/i.test(t)) return t;
+  const pedido = ctx.ehAjuste ? String(ctx.instrucaoAjuste || '') : String(ctx.dadosCaso || '');
+  if (!/atestado/i.test(pedido) || /(?:sem|n[ãa]o|nega|dispensa|tirar|retir\w+|remov\w+)\s+(?:o\s+)?atestado/i.test(pedido)) return t;
+  if (/atestado\s+de\s+acompanhante/i.test(pedido) && !/atestado\s+(?:m[ée]dico|trabalho)/i.test(pedido)) return t;
+  const linhas = t.split('\n');
+  const iCond = linhas.findIndex(l => /^\s*CONDUTA\s*:?\s*$/i.test(l));
+  if (iCond === -1) return t;
+  const iSem = linhas.findIndex((l, i) => i > iCond && /^\s*Sem indica[çc][ãa]o/i.test(l));
+  linhas.splice((iSem === -1 ? iCond : iSem) + 1, 0, 'Fornecido atestado médico.');
+  return linhas.join('\n');
+}
+
+// Exame ambulatorial marcado no botão (RM/USG) e ausente na conduta: avisa no topo em vez de sumir em silêncio (11/10/2026).
+function avisarSeExameMarcadoFaltou(texto, ctx) {
+  const exame = String(ctx.exameAmbulatorial || '').toUpperCase();
+  if (exame !== 'RM' && exame !== 'USG') return texto;
+  const t = String(texto || '');
+  const re = exame === 'RM' ? /resson[âa]ncia/i : /ultrassonografia|ultrassom|\bUSG\b/i;
+  const iCond = t.search(/^\s*CONDUTA\s*:?\s*$/im);
+  if (iCond === -1 || re.test(t.slice(iCond))) return t;
+  return `⚠️ ${exame} marcada no botão não entrou na conduta (use Ajustar: "solicito ${exame} de [segmento] ambulatorialmente")\n` + t;
+}
+
+// "(imagem anexada)" é só marcação da tela; nunca vai para o prontuário (11/10/2026).
+function semMarcaDeImagemAnexada(texto) {
+  return String(texto || '')
+    .replace(/[ \t]*\((?:imagem|imagens|exames?|radiografias?)\s+anexad[ao]s?\)/gi, '')
+    .replace(/[ \t]*\(anexad[ao]s?\)/gi, '');
+}
+
+// "Material de síntese" no AP só se o médico informou cirurgia/implante (11/10/2026).
+function semMaterialDeSinteseNaoInformado(texto, fontes) {
+  if (/s[íi]ntese|osteoss|placa|parafuso|haste|\bfio[s]?\b|\bpino|cirurg|operad|\bPO\b|artroplast|prótese|protese/i.test(fontes || '')) return texto;
+  return String(texto || '').split('\n').map(l => {
+    if (!/^\s*AP\s*:/i.test(l)) return l;
+    return l.replace(/,?\s*com material de s[íi]ntese\b/gi, '').replace(/\s*Antecedente cir[úu]rgico[^.]*material de s[íi]ntese[^.]*\./gi, '');
+  }).join('\n');
+}
+
+// Se há edema, "sem abaulamentos" é incoerente: o abaulamento sai da linha (11/10/2026).
+function semAbaulamentoSeHaEdema(texto) {
+  const linhas = String(texto || '').split('\n');
+  const iEx = linhas.findIndex(l => /^\s*EXAME F[ÍI]SICO/i.test(l));
+  if (iEx === -1) return texto;
+  let fim = linhas.length;
+  for (let i = iEx + 1; i < linhas.length; i++) { if (linhas[i].trim() === '') { fim = i; break; } }
+  const bloco = linhas.slice(iEx + 1, fim);
+  const haEdema = bloco.some(l => /\bedema\b/i.test(l) && !/\bsem\s+edema\b/i.test(l));
+  if (!haEdema) return texto;
+  for (let i = iEx + 1; i < fim; i++) {
+    linhas[i] = linhas[i]
+      .replace(/^(\s*)Sem abaulamentos e sem tens[ãa]o de partes moles\./i, '$1Sem tensão de partes moles.')
+      .replace(/^(\s*)Sem abaulamentos\.?\s*$/i, '')
+      .replace(/,?\s*sem abaulamentos\b/gi, '');
+  }
+  return linhas.filter((l, i) => !(i > iEx && i < fim && l.trim() === '')).join('\n');
 }
 
 // Fragmento solto antes do "AP:" (ex: "para detalhar a irradiação", pedaço de aviso quebrado) sai (29/09/2026).
@@ -233,7 +325,8 @@ function ehCriancaNosDados(acompanhante, fontes) {
   if (acompanhante === 'crianca') return true;
   const anos = String(fontes).match(/\b(\d{1,2})\s*anos?\b/i);
   if (anos && Number(anos[1]) < 18) return true;
-  return /\b\d{1,2}\s*mes(?:es)?\b/i.test(fontes);
+  // 11/10/2026: "4 meses" de evolução da lesão não é idade; só conta "X meses de idade/vida" ou "X m/o".
+  return /\b\d{1,2}\s*mes(?:es)?\s+de\s+(?:idade|vida)\b/i.test(fontes) || /\blactente\b/i.test(fontes);
 }
 
 // RM pedida em criança: a finalidade padrão é lesão fisária e outras lesões não vistas no RX (01/10/2026).
@@ -513,9 +606,9 @@ function textoQuaseIgual(a, b) {
 // Flash recentes antes dos Lite. Os 2.5 saíram da fila em 01/10/2026 (Google: não estão mais disponíveis para contas novas).
 // Referência de modelos/faixa gratuita: ai.google.dev/gemini-api/docs/models e /pricing.
 // É uma prioridade geral de capacidade, não um ranking de acurácia clínica.
+// 11/10/2026: o Google aposentou o gemini-3.7-flash (redireciona para o 3.8); saiu da fila.
 const MODELOS_PADRAO = [
   'gemini-3.8-flash',
-  'gemini-3.7-flash',
   'gemini-3.6-flash',
   'gemini-3.5-flash-lite',
   'gemini-3.1-flash-lite'
@@ -614,20 +707,84 @@ function registrarTentativa(res, modelo, erro) {
   res.locals.tentativas.push({ modelo, erro });
 }
 
-function statusModelos() {
+/* ===================== TEMPO E ASSERTIVIDADE POR MODELO (11/10/2026) ===================== */
+// Guarda no Upstash (as mesmas variáveis das sugestões) o tempo de cada geração completa e os ajustes feitos depois.
+// Tudo é "melhor esforço": sem banco ou com erro, o site funciona igual, só sem estatística.
+async function upstashSilencioso(...comandos) {
+  const url = process.env.KV_REST_API_URL, token = process.env.KV_REST_API_TOKEN;
+  if (!url || !token) return [];
+  const saidas = [];
+  for (const c of comandos) {
+    try {
+      const r = await chamarComTempo(url, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(c) }, 2500);
+      const d = await r.json().catch(() => ({}));
+      saidas.push(d.result);
+    } catch (e) { saidas.push(null); }
+  }
+  return saidas;
+}
+
+const JANELA_ESTATISTICA_MS = 24 * 60 * 60 * 1000;
+
+function medianaDe(nums) {
+  const v = nums.slice().sort((a, b) => a - b);
+  if (!v.length) return null;
+  const m = Math.floor(v.length / 2);
+  return v.length % 2 ? v[m] : Math.round((v[m - 1] + v[m]) / 2);
+}
+
+// Para cada modelo: gerações das últimas 24 h, mediana do tempo e quantas precisaram de ajuste.
+async function estatisticasDosModelos(modelos) {
+  const lista = Array.from(new Set(modelos));
+  const cmds = [];
+  lista.forEach(m => { cmds.push(['LRANGE', 'ortopia:tempos:' + m, '0', '29']); cmds.push(['LRANGE', 'ortopia:ajustes:' + m, '0', '59']); });
+  const saidas = await upstashSilencioso(...cmds);
+  const corte = Date.now() - JANELA_ESTATISTICA_MS;
+  const stats = {};
+  lista.forEach((m, i) => {
+    const tempos = (saidas[i * 2] || []).map(s => String(s).split('|').map(Number)).filter(p => p[0] >= corte && p[1] > 0);
+    const ajustes = (saidas[i * 2 + 1] || []).map(Number).filter(t => t >= corte);
+    if (!tempos.length) return;
+    stats[m] = { geracoes: tempos.length, medianaMs: medianaDe(tempos.map(p => p[1])), ajustes: ajustes.length,
+      semAjuste: Math.max(0, Math.round(100 * (1 - Math.min(ajustes.length, tempos.length) / tempos.length))) };
+  });
+  return stats;
+}
+
+// "Mais rápido hoje": ordena a fila pela mediana de tempo das últimas 24 h. Sem medição, usa a fila rápida (Lite primeiro),
+// que também gera as primeiras medições. Modelo com 5+ gerações e mais da metade precisando de ajuste vai para o fim.
+async function ordenarPorVelocidadeHoje(base) {
+  const stats = await estatisticasDosModelos(base);
+  const medidos = base.filter(m => stats[m]);
+  if (!medidos.length) {
+    const rapidos = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'].filter(m => base.includes(m));
+    return rapidos.concat(base.filter(m => !rapidos.includes(m)));
+  }
+  const ruim = m => stats[m].geracoes >= 5 && stats[m].semAjuste < 50;
+  medidos.sort((a, b) => (ruim(a) - ruim(b)) || (stats[a].medianaMs - stats[b].medianaMs));
+  return medidos.concat(base.filter(m => !stats[m]));
+}
+
+async function statusModelos() {
   const agora = Date.now();
   const situacao = m => modelosIndisponiveis.has(m) ? 'indisponível' : ((pausaAte.get(m) || 0) > agora ? 'em pausa (cota)' : 'ok');
   const gemini = ordenarModelos(listaModelos().concat(listaModelosImagem()));
   const temClaude = !!process.env.ANTHROPIC_API_KEY;
   const temOpenAI = !!(process.env.OPENAI_API_KEY && process.env.OPENAI_MODELO);
-  const opcoes = [{ valor: 'auto', rotulo: 'Automático — Gemini grátis (padrão)', pago: false, disponivel: true }]
-    .concat(gemini.map(m => ({ valor: 'gemini:' + m, modelo: m, rotulo: m + (situacao(m) === 'ok' ? '' : ` — ${situacao(m)}`), pago: false, disponivel: situacao(m) !== 'indisponível' })))
+  const stats = await estatisticasDosModelos(gemini);
+  const opcoes = [{ valor: 'auto', rotulo: 'Automático — Gemini grátis (padrão)', pago: false, disponivel: true },
+    { valor: 'rapido-hoje', rotulo: '⚡ Mais rápido hoje (pela medição das últimas 24 h)', pago: false, disponivel: true }]
+    .concat(gemini.map(m => ({ valor: 'gemini:' + m, modelo: m, rotulo: m + (situacao(m) === 'ok' ? '' : ` — ${situacao(m)}`), pago: false, disponivel: situacao(m) !== 'indisponível', stats: stats[m] || null })))
     .concat(MODELOS_CLAUDE.map(c => ({ valor: c.valor, modelo: modeloDoProvedor(c.valor).modelo, rotulo: c.rotulo + (temClaude ? '' : ' — sem chave'), pago: true, disponivel: temClaude })))
     .concat([{ valor: 'openai', modelo: (process.env.OPENAI_MODELO || '').trim(), rotulo: 'ChatGPT' + (temOpenAI ? ` (${process.env.OPENAI_MODELO})` : ' — configurar OPENAI_API_KEY e OPENAI_MODELO'), pago: true, disponivel: temOpenAI }]);
   return { opcoes };
 }
 
 async function chamarModelo(provedor, promptSistema, contents, temperature, apiKey, res, silencioso, modelosPadrao) {
+  if (provedor === 'rapido-hoje') {
+    const ordem = await ordenarPorVelocidadeHoje(modelosPadrao || listaModelos());
+    return chamarGemini(promptSistema, contents, temperature, apiKey, res, silencioso, ordem);
+  }
   const escolha = modeloDoProvedor(provedor);
   if (escolha && escolha.tipo === 'gemini') {
     const texto = await chamarGemini(promptSistema, contents, temperature, apiKey, res, true, [escolha.modelo]);
@@ -1593,6 +1750,23 @@ TEMPLATES.r4 = {
   texto: ANAMNESE_RETORNO + '\n\n' + TEMPLATES.f.texto.slice(TEMPLATES.f.texto.indexOf('CONDUTA:'))
 };
 
+TEMPLATES.ev = {
+  nome: 'Evolução — paciente internado',
+  texto: `EVOLUÇÃO DIÁRIA — PACIENTE INTERNADO (estrutura padrão, usada SOMENTE se não houver evolução anterior para copiar o formato)
+
+#[dia de internação]º DIH / #[dia]º PO de [procedimento], se houver
+HD: [diagnóstico / problema principal]
+
+S: [queixas do dia: dor, febre, náuseas, diurese, evacuação, aceitação da dieta, sono]
+O: BEG, corado, hidratado, acianótico, anictérico, afebril. Sinais vitais: [se informados].
+Segmento acometido: [curativo, ferida operatória, edema, perfusão, sensibilidade, mobilidade distal].
+Exames: [laboratoriais/imagem do dia, se informados]
+
+CONDUTA:
+- Mantém internação.
+- [analgesia, antibiótico, profilaxia TEV, curativo, fisioterapia, dieta, pendências, previsão de alta/cirurgia, conforme informado]`
+};
+
 // Converte "DD/MM" ou "DD/MM/AAAA" em Date, completando o ano pela data de hoje.
 function lerData(txt, hoje) {
   const m = String(txt).match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
@@ -1653,6 +1827,7 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
   partes.push(`TIPO DE ATENDIMENTO: ${NOMES_TIPO[tipoAtendimento] || tipoAtendimento}`);
 
   const ehRelato = templatesEscolhidos.includes('h');
+  const ehEv = templatesEscolhidos.includes('ev');
 
   if (acompanhante) {
     const relator = acompanhante === 'crianca'
@@ -1671,13 +1846,23 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
     const exame = String(exameAmbulatorial || '').toUpperCase();
     if (exame === 'RM' || exame === 'USG') {
       const nomeExame = exame === 'RM' ? 'ressonância magnética' : 'ultrassonografia';
-      partes.push(`\nEXAME AMBULATORIAL MARCADO PELO MÉDICO: ${nomeExame} do segmento acometido (com o lado, se houver). Inclua logo após "Sem indicação de procedimento..." a linha "Solicito ${nomeExame} de [segmento/lado] ambulatorialmente." seguida da linha de retorno com prazo máximo (1 semana, ou o prazo informado pelo médico).`);
+      partes.push(`\nEXAME AMBULATORIAL MARCADO PELO MÉDICO: ${nomeExame} do segmento acometido (com o lado, se houver). Esta linha é OBRIGATÓRIA mesmo que os dados digam "canetar e alta", "só medicação" ou algo parecido: o botão manda. Inclua logo após "Sem indicação de procedimento..." a linha "Solicito ${nomeExame} de [segmento/lado] ambulatorialmente." seguida da linha de retorno com prazo máximo (1 semana, ou o prazo informado pelo médico).`);
     } else {
       partes.push(`\nEXAME AMBULATORIAL: o médico NÃO marcou exame para casa. Só inclua solicitação de exame ambulatorial (e a linha de retorno após o exame) se ele tiver escrito isso nos dados; caso contrário, não inclua nenhuma dessas linhas.`);
     }
   }
 
-  if (tipoAtendimento === 'retorno' && atendimentoInicial) {
+  if (ehEv) {
+    partes.push(`\nEVOLUÇÃO DE PACIENTE INTERNADO (nota diária, NÃO é retorno ambulatorial): escreva a evolução de HOJE.
+- Se há evoluções anteriores abaixo (em "EVOLUÇÕES ANTERIORES"), elas são o MODELO DE FORMATO: copie exatamente a mesma estrutura, ordem das seções, rótulos, abreviações, pontuação, tamanho e jeito de escrever. Mude apenas o conteúdo que mudou hoje (dia de internação/PO, queixas, exame, exames, conduta). O que não foi informado como mudança, mantenha como na evolução anterior mais recente (ex.: medicações em curso), sem inventar achados novos.
+- Atualize a contagem de dias (DIH/PO) a partir da data da evolução anterior e da data de hoje, se o formato tiver isso.
+- Se NÃO há evolução anterior, use o modelo padrão de referência.
+- Não escreva "retorno ambulatorial", prazo de retorno, "alta" nem linhas de tempo desde o trauma, salvo se os dados de hoje informarem alta/planejarem alta.
+- Dados de hoje prevalecem sobre o copiado da evolução anterior.`);
+  }
+  if (tipoAtendimento === 'retorno' && atendimentoInicial && ehEv) {
+    partes.push(`\nEVOLUÇÕES ANTERIORES (copie o formato; datas e dias de internação seguem a cronologia; não são avaliação de hoje):\n${atendimentoInicial}`);
+  } else if (tipoAtendimento === 'retorno' && atendimentoInicial) {
     partes.push(`\nATENDIMENTOS PRÉVIOS (um ou mais, em datas anteriores, possivelmente de outros profissionais; resumir em ordem cronológica com as datas, sem apresentar como avaliação de hoje):\n${atendimentoInicial}`);
   }
   const encs = Array.isArray(encaminhamentos) ? encaminhamentos.filter(e => e === 'fisioterapia' || e === 'acupuntura') : [];
@@ -1688,11 +1873,11 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
   if (tipoAtendimento === 'retorno') {
     const tempo = calcularTempos(`${atendimentoInicial || ''}\n${dadosCaso || ''}`, dataHoje);
     if (tempo) partes.push(`\nTEMPO CALCULADO (já calculado a partir das datas; use estes valores, não recalcule):\n${tempo}`);
-    if (tempo && /^r/.test(templatesEscolhidos[0] || '')) {
+    if (tempo && /^r\d/.test(templatesEscolhidos[0] || '')) {
       partes.push(`\nLINHAS DE TEMPO (retorno de trauma/fratura): logo DEPOIS da história (HDA), antes do EXAME FÍSICO, deixe uma linha em branco e escreva, em CAIXA ALTA, uma linha "TEMPO DESDE O TRAUMA: X SEMANAS E Y DIAS", usando o valor do TEMPO CALCULADO da data do trauma (a mais antiga). Se houve imobilização E a data de início dela está nos registros, escreva depois "TEMPO TOTAL DE IMOBILIZAÇÃO: X SEMANAS E Y DIAS", com o valor da data em que a imobilização começou. Se não há registro de quando a imobilização começou (ex: o primeiro atendimento não imobilizou), NÃO escreva essa segunda linha e sinalize no topo "⚠️ Início da imobilização não informado". Sem imobilização, não escreva essa segunda linha. Esses tempos não entram no texto corrido da HDA.`);
     }
   }
-  if (tipoAtendimento === 'retorno' && !templatesEscolhidos.includes('r0')) {
+  if (tipoAtendimento === 'retorno' && !templatesEscolhidos.includes('r0') && !ehEv) {
     partes.push(`\nRETORNO AMBULATORIAL: na ortopedia não existe alta do seguimento. Todo retorno termina com novo retorno ambulatorial com prazo (o informado pelo médico; se não informado, sinalize no topo). Nunca escreva "alta", "alta do seguimento" ou "alta ambulatorial".`);
   }
 
@@ -1938,6 +2123,7 @@ REGRAS GERAIS:
 - Se não tiver certeza absoluta do CID-10 mais adequado, escolha o mais clinicamente apropriado e comum para aquele diagnóstico; nunca deixe o campo de CID em branco ou com placeholder
 - Não invente detalhes que não foram pedidos (lado, quantidade de sessões, etc.) além do que os exemplos já trazem como padrão — mantenha esses valores padrão dos exemplos quando não especificado
 - PEDIDO DE EXAME: o campo clínico é sempre "Hipótese diagnóstica:", nunca "Diagnóstico:" — pedido de exame investiga uma hipótese, não confirma diagnóstico. Deduza o segmento anatômico a partir da hipótese informada. Lado: use o lado marcado; se "bilateral", escreva "bilateral (esquerdo e direito)"; se sem lado, não invente lado
+- FISIOTERAPIA/ACUPUNTURA — HIPÓTESE (11/10/2026): o diagnóstico informado no atendimento de urgência é sempre hipótese. No pedido de fisioterapia/acupuntura o campo é \"Hipótese diagnóstica:\" e o texto vem como suspeita (ex: \"Hipótese diagnóstica: Suspeita de lesão de manguito rotador\"), a menos que o médico tenha escrito que o diagnóstico está confirmado por exame (ex: RM com laudo) ou seja fratura/cirurgia com data (nesse caso vale a regra de fratura abaixo)
 - FISIOTERAPIA/ACUPUNTURA: se forem pedidas as duas, gere dois pedidos completos, um abaixo do outro, separados por uma linha em branco
 - FISIOTERAPIA APÓS FRATURA/TRAUMA/CIRURGIA (29/09/2026): se o médico informar a data do trauma, da fratura ou da cirurgia, ela vai entre parênteses logo após o diagnóstico, e o tratamento informado vem depois, em caixa alta (ex: "Diagnóstico: Fratura da extremidade proximal do úmero esquerdo (04/08/2026) - TRATAMENTO INCRUENTO"; cirurgia → "- TRATAMENTO CIRÚRGICO"). Logo abaixo do diagnóstico, acrescente uma linha com o tempo corrido para o fisioterapeuta: "Em seguimento de fratura há 8 semanas." (use o TEMPO CALCULADO; para cirurgia, "Pós-operatório de 8 semanas."). Sem data informada, não escreva data nem tempo e não invente o tratamento
 - Devolva APENAS o texto final do item, pronto para copiar e colar. Sem comentários antes ou depois, sem aspas, sem markdown`;
@@ -1985,7 +2171,11 @@ ANTES DE RESPONDER, FAÇA A VARREDURA (não escreva a varredura, só use-a):
 
 O QUE ENTREGAR (português do Brasil). O médico lê no meio do plantão: seja MUITO direto, frases curtas, sem explicar o óbvio. Um emoji no início de cada seção, título e grau em **negrito** com asteriscos duplos, nenhum outro markdown, sem tabelas. Use só estes títulos, nesta ordem (pedido do médico, 29/09/2026):
 🩻 **EXAME:** uma linha: tipo, segmento, lado e incidências.
-🚨 **FRATURA / LUXAÇÃO:** o que mais importa na urgência vem primeiro. Uma linha por achado, começando pelo grau — 🔴 **ALTA**, 🟠 **MODERADA** ou 🟡 **BAIXA** —, com o osso/local exato e o que se vê em poucas palavras (ex: \"🟠 **MODERADA**: cabeça da fíbula — fragmento no ápice separado por linha lucente\"). Na dúvida entre citar um traço sutil ou omitir, CITE com 🟡 **BAIXA**. Sem fratura nem luxação: \"✅ Sem fratura ou luxação evidente.\"
+🚨 **FRATURA / LUXAÇÃO:** o que mais importa na urgência vem primeiro. Cada achado vira UM BLOCO de 3 linhas curtas, fácil de achar na correria (pedido do médico, 11/10/2026), com uma linha em branco entre blocos, neste molde exato:
+🟡 **ACHADO SUSPEITO:** fratura (ou luxação, subluxação etc.) — o grau 🔴 **ALTA**, 🟠 **MODERADA** ou 🟡 **BAIXA** vem NA FRENTE, antes de \"ACHADO SUSPEITO\", e o tipo do achado fica em poucas palavras.
+**LOCAL:** osso/região exata (ex: cabeça da fíbula, tubérculo maior do úmero).
+**MAIS DETALHES:** o que se vê, em uma ou duas frases curtas (ex: fragmento no ápice separado por linha lucente). Esta é a única linha que pode ser mais longa.
+Na dúvida entre citar um traço sutil ou omitir, CITE com 🟡 **BAIXA**. Sem fratura nem luxação: \"✅ Sem fratura ou luxação evidente.\"
 ⚡ **OUTROS ACHADOS AGUDOS:** só o que muda a conduta na urgência (derrame/lipo-hemartrose, gás, corpo estranho, lesão óssea agressiva), no máximo 3 linhas curtas com grau. Achados crônicos, degenerativos ou incidentais (artrose, osteopenia, calcificação vascular, esporão) NÃO entram. Sem nada agudo, NÃO escreva esta seção.
 🔩 **MATERIAL:** só se houver implante; uma linha com tipo, local, procedimento provável e complicação, se houver. Sem implante, NÃO escreva esta seção.
 ⚠️ **IMAGEM:** só se a qualidade ou a falta de incidência impedir avaliar uma região importante; uma linha curta. Caso contrário, NÃO escreva esta seção.
