@@ -4160,23 +4160,11 @@
         {
           "titulo": "Retorno Ambulatorial — Após Exame",
           "texto": "Solicito agendamento de retorno ambulatorial com ortopedista especialista neste serviço após a realização do exame solicitado nesta avaliação ou em até 7 dias, o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado, para reavaliação clínica e definição de conduta."
-        }
-      ]
-    },
-    {
-      "categoria": "Retornos São Luiz Guarulhos",
-      "itens": [
-        {
-          "titulo": "Retorno Ambulatorial — Ombro (Dr. Rafael Tavares)",
-          "texto": "Solicito agendamento de retorno ambulatorial com Dr. Rafael Tavares (CRM ____), ortopedista especialista em ombro, no Hospital São Luiz Guarulhos, às segundas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo."
         },
         {
-          "titulo": "Retorno Ambulatorial — Mão (Dr. Roberto)",
-          "texto": "Solicito agendamento de retorno ambulatorial com Dr. Roberto (CRM ____), ortopedista especialista em mão, no Hospital São Luiz Guarulhos, às sextas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo."
-        },
-        {
-          "titulo": "Retorno Ambulatorial — Coluna (Dr. Deusimar)",
-          "texto": "Solicito agendamento de retorno ambulatorial com Dr. Deusimar (CRM ____), ortopedista especialista em coluna, no Hospital São Luiz Guarulhos, às quintas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo."
+          "titulo": "Retornos São Luiz Guarulhos",
+          "marcarUm": true,
+          "texto": "- Solicito agendamento de retorno ambulatorial com Dr. Rafael Tavares (CRM ____), ortopedista especialista em ombro, no Hospital São Luiz Guarulhos, às segundas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo.\n\n- Solicito agendamento de retorno ambulatorial com Dr. Roberto (CRM ____), ortopedista especialista em mão, no Hospital São Luiz Guarulhos, às sextas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo.\n\n- Solicito agendamento de retorno ambulatorial com Dr. Deusimar (CRM ____), ortopedista especialista em coluna, no Hospital São Luiz Guarulhos, às quintas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo."
         }
       ]
     },
@@ -4536,7 +4524,7 @@
         ta.style.display = 'none';
 
         // Receitas: visual formatado com caixa de seleção e princípio ativo (fora do texto, nunca copiado)
-        var painelReceita = criarPainelReceita(item.texto);
+        var painelReceita = criarPainelReceita(item.texto, !!item.marcarUm);
         var editando = false;
         var btnEditar = null;
         if (painelReceita) {
@@ -4583,6 +4571,14 @@
         btnCopiar.addEventListener('click', function(e) {
           e.stopPropagation();
           var textoCopiar = painelReceita ? painelReceita.filtrar(ta.value) : ta.value;
+          if (item.marcarUm) {
+            textoCopiar = textoCopiar.replace(/^\s*-\s+/gm, '').trim();
+            if (!textoCopiar) {
+              btnCopiar.textContent = 'Marque um';
+              setTimeout(function() { btnCopiar.textContent = 'Copiar'; }, 1800);
+              return;
+            }
+          }
           copiarTextoProntuario(textoCopiar).then(function() {
             btnCopiar.textContent = 'Copiado';
             btnCopiar.classList.add('copiado');
@@ -4664,7 +4660,7 @@
     return { cabecalho: cabecalho, itens: itens };
   }
 
-  function criarPainelReceita(textoOriginal) {
+  function criarPainelReceita(textoOriginal, marcarUm) {
     var inicial = dividirBlocosReceita(textoOriginal);
     if (inicial.itens.length === 0) return null;
     var temPrincipio = inicial.itens.some(function(bloco) { return !!principioAtivo(bloco.split('\n')[0]); });
@@ -4699,7 +4695,7 @@
       }
       var multiplos = partes.itens.length > 1;
       partes.itens.forEach(function(bloco, i) {
-        if (marcados[i] === undefined) marcados[i] = true;
+        if (marcados[i] === undefined) marcados[i] = !marcarUm;
         var linhas = bloco.split('\n');
         var linha = document.createElement('div');
         linha.className = 'receita-bloco' + (marcados[i] ? '' : ' desmarcado');
@@ -4733,8 +4729,8 @@
 
     function filtrar(textoAtual) {
       var atual = dividirBlocosReceita(textoAtual);
-      var escolhidos = atual.itens.filter(function(_, i) { return marcados[i] !== false; });
-      if (escolhidos.length === atual.itens.length) return textoAtual;
+      var escolhidos = atual.itens.filter(function(_, i) { return marcarUm ? marcados[i] === true : marcados[i] !== false; });
+      if (!marcarUm && escolhidos.length === atual.itens.length) return textoAtual;
       return atual.cabecalho.concat(escolhidos).join('\n\n');
     }
 
