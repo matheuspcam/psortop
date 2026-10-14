@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ erro: 'Método não permitido' });
   }
 
-  const { pin, tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, encaminhamentos, modo, dataHoje, imagens, resultadoAnterior, instrucaoAjuste, categoria, exemplos, pedido, tipoAtestado, diasAfastamento, diagnosticoAtestado, provedor } = req.body;
+  const { pin, tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, encaminhamentos, modo, dataHoje, imagens, resultadoAnterior, instrucaoAjuste, categoria, exemplos, pedido, tipoAtestado, diasAfastamento, diagnosticoAtestado, provedor, recusaOperar } = req.body;
 
   if (!process.env.SITE_PIN || pin !== process.env.SITE_PIN) {
     return res.status(401).json({ erro: 'PIN incorreto' });
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
       : (ehMensagem ? montarPromptSistemaMensagem() : montarPromptSistema()));
 
   const contextoAjuste = ehAjuste && !ehMensagem && !ehAvulso
-    ? `CONTEXTO ORIGINAL (fonte para cronologia e autoria; não é uma nova ordem de geração):\n${montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje, encaminhamentos })}\n\n`
+    ? `CONTEXTO ORIGINAL (fonte para cronologia e autoria; não é uma nova ordem de geração):\n${montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje, encaminhamentos, recusaOperar })}\n\n`
     : '';
 
   const contents = ehAjuste
@@ -91,7 +91,7 @@ export default async function handler(req, res) {
           ? montarPromptAvulso({ categoria, exemplos, pedido, tipoAtestado, diasAfastamento, diagnosticoAtestado, dataHoje })
           : (ehMensagem
             ? montarPromptMensagem({ dadosCaso, template, dataHoje })
-            : montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje, encaminhamentos })),
+            : montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje, encaminhamentos, recusaOperar })),
         imagens
       ) }];
 
@@ -116,8 +116,8 @@ export default async function handler(req, res) {
     }
 
     if (!ehMensagem && !ehAvulso) {
-      texto = posProcessarProntuario(texto, { tipoAtendimento, acompanhante, dadosCaso, atendimentoInicial, extra, instrucaoAjuste, exameAmbulatorial, ehAjuste, ehEvolucao: String(template || '').split('+').map(x => x.trim()).includes('ev') });
-    } else texto = preposicaoDoSegmento(texto);
+      texto = posProcessarProntuario(texto, { tipoAtendimento, acompanhante, dadosCaso, atendimentoInicial, extra, instrucaoAjuste, exameAmbulatorial, ehAjuste, ehEvolucao: String(template || '').split('+').map(x => x.trim()).includes('ev'), template, recusaOperar });
+    } else texto = ehMensagem ? posProcessarMensagem(preposicaoDoSegmento(texto)) : preposicaoDoSegmento(texto);
     if (!ehAjuste && !ehMensagem && !ehAvulso && tipoAtendimento === 'retorno') {
       texto = garantirTempoDoTrauma(texto, template, `${atendimentoInicial || ''}\n${dadosCaso || ''}`, dataHoje);
     }
@@ -132,6 +132,18 @@ export default async function handler(req, res) {
     console.error(e);
     return res.status(500).json({ erro: 'Falha ao gerar o texto. Tente novamente.' });
   }
+}
+
+// Mensagens padronizadas (14/10/2026): aviso de campo faltante que já foi preenchido sai por código;
+// no informativo de internação o diagnóstico começa em minúscula (exceto sigla).
+function posProcessarMensagem(texto) {
+  let t = String(texto || '');
+  const hosp = t.match(/^[ \t]*Hospital de origem:[ \t]*(\S[^\n]*)$/im);
+  if (hosp) {
+    t = t.replace(/^[ \t]*⚠️[^\n]*hospital de origem[^\n]*\n?/gim, '');
+  }
+  t = t.replace(/^([ \t]*Diagnóstico:[ \t]*)([A-ZÁÉÍÓÚÂÊÔÃÕÇ])([a-záéíóúâêôãõç])/gm, (m, pre, a, b) => pre + a.toLowerCase() + b);
+  return t.replace(/^\s+/, '');
 }
 
 // Correções determinísticas de formatação, aplicadas sempre ao prontuário final
@@ -174,6 +186,8 @@ function posProcessarProntuario(texto, ctx) {
   t = removerAvisosGenericos(t);
   t = juntarNegativasDaHistoria(t);
   t = removerOfertaDeRxSeRxAvaliado(t);
+  t = rmSemCitarRxNaoFeito(t);
+  t = garantirRecusaDeCirurgia(t, ctx, fontes);
   t = garantirAtestadoSeSolicitado(t, ctx);
   t = avisarSeExameMarcadoFaltou(t, ctx);
   t = subirCondutasNovas(t);
@@ -323,8 +337,18 @@ function semImobilizacaoDeHojeNoExame(texto, tipo) {
 
 function ehCriancaNosDados(acompanhante, fontes) {
   if (acompanhante === 'crianca') return true;
-  const anos = String(fontes).match(/\b(\d{1,2})\s*anos?\b/i);
-  if (anos && Number(anos[1]) < 18) return true;
+  // 14/10/2026: "há cerca de 3 anos", "faz 2 anos", "por 5 anos" é TEMPO DE DOENÇA, não idade (ombro de adulto virou "lesão fisária").
+  const texto = String(fontes);
+  const reAnos = /\b(\d{1,3})\s*anos?\b/gi;
+  let m;
+  while ((m = reAnos.exec(texto)) !== null) {
+    const antes = texto.slice(Math.max(0, m.index - 30), m.index);
+    const depois = texto.slice(m.index + m[0].length, m.index + m[0].length + 25);
+    const ehTempo = /(h[aá]|faz|fazem|cerca de|aproximadamente|aprox\.?|uns|por|durante|desde|ap[óo]s|h[aá] mais de|h[aá] quase|nos? [úu]ltimos?)\s*$/i.test(antes)
+      || /^\s*(atr[aá]s|de (?:evolu|hist[óo]ria|doen[çc]a|dor|sintoma|tendin|seguimento|tratamento|fisio))/i.test(depois);
+    if (ehTempo) continue;
+    if (Number(m[1]) < 18) return true;
+  }
   // 11/10/2026: "4 meses" de evolução da lesão não é idade; só conta "X meses de idade/vida" ou "X m/o".
   return /\b\d{1,2}\s*mes(?:es)?\s+de\s+(?:idade|vida)\b/i.test(fontes) || /\blactente\b/i.test(fontes);
 }
@@ -336,6 +360,55 @@ function rmDaCriancaComFise(texto, ehCrianca) {
     if (/fis[áa]ri/i.test(m)) return m;
     return base + (amb || '') + ' para avaliação de lesão fisária, lesões ligamentares e osteocondrais e outras lesões associadas não evidenciadas à radiografia.';
   });
+}
+
+// "não evidenciadas à radiografia" só faz sentido se uma radiografia foi avaliada; com RX oferecido e recusado ou sem RX, a frase sai (14/10/2026).
+function rmSemCitarRxNaoFeito(texto) {
+  if (/^\s*Avalio radiografias?/im.test(texto)) return texto;
+  return String(texto).replace(/(\s+e outras lesões associadas) não evidenciadas à radiografia/gi, '$1');
+}
+
+// Botão "Paciente não quer operar" (14/10/2026): as frases de proteção entram por código, somando ao que o modelo já tem.
+function garantirRecusaDeCirurgia(texto, ctx, fontes) {
+  if (!ctx || ctx.recusaOperar !== true) return texto;
+  let t = String(texto);
+  const linhas = t.split('\n');
+  const iCond = linhas.findIndex(l => /^\s*CONDUTA\s*:/i.test(l));
+  if (iCond === -1) return t;
+  const corpo = linhas.slice(iCond).join('\n');
+  const familiar = !!ctx.acompanhante || /familiar|filh[oa]|espos[oa]|marido|acompanhante|respons[áa]vel|genitor|\bm[ãa]e\b|\bpai\b/i.test(fontes || '');
+  const suj = familiar ? 'Paciente e familiar' : 'Paciente';
+  const ids = String(ctx.template || '').split('+').map(x => x.trim());
+  const ehDiscussao = ids.some(x => x === 'g' || x === 'bg' || x === 'r3');
+  const jaRecusa = /(n[ãa]o (deseja|desejam|quer|querem|aceita|aceitam)[^.\n]*(cirurg|operar|interna)|nega(m)?[^.\n]*(cirurg|interna)|recus[^.\n]*(cirurg|interna))/i.test(corpo);
+  const bloco = [];
+  if (!/modalidades? de tratamento|tratamento cir[úu]rgico[^.\n]*conservador|conservador[^.\n]*cir[úu]rgico/i.test(corpo)) {
+    bloco.push('Oriento sobre a indicação de tratamento cirúrgico e sobre o tratamento conservador, bem como os riscos e benefícios envolvidos em cada uma das opções.');
+  }
+  if (!/sequelas permanentes/i.test(corpo)) {
+    bloco.push('Oriento sobre a possibilidade de sequelas permanentes ao seguir com o tratamento conservador, incluindo diminuição da amplitude de movimento, dor crônica, deformidade, má consolidação, pseudoartrose e demais possíveis sequelas.');
+  }
+  if (!jaRecusa) {
+    bloco.push(familiar
+      ? 'Paciente e familiar compreendem as orientações, porém não desejam realizar o tratamento cirúrgico neste momento, mesmo após insistência e orientação sobre a indicação cirúrgica.'
+      : 'Paciente compreende as orientações, porém não deseja realizar o tratamento cirúrgico neste momento, mesmo após insistência e orientação sobre a indicação cirúrgica.');
+  }
+  if (!/piora do progn[óo]stico/i.test(corpo)) {
+    bloco.push(`${suj} ${familiar ? 'cientes' : 'ciente'} da possibilidade de piora do prognóstico.`);
+  }
+  const telefone = (ehDiscussao && !/contato telef[ôo]nico|receber (nenhum )?(contato|telefone)/i.test(corpo))
+    ? 'Oriento o paciente a retornar ao pronto-socorro para reavaliação caso não receba contato telefônico em até 1 semana.' : null;
+
+  const ancora = (re, de) => { for (let i = de; i < linhas.length; i++) { if (re.test(linhas[i])) return i; } return -1; };
+  const reFim = /^\s*(Após esclarecimentos|Esclarecido que|Orientado quanto a sinais de alarme|Orientado retorno imediato|Orientado seguimento|Paciente (e familiar )?refere(m)? compreens|Alta da ortopedia)/i;
+  let iFim = ancora(reFim, iCond + 1);
+  if (iFim === -1) iFim = linhas.length;
+  let saida = linhas.slice(0, iFim).concat(bloco, linhas.slice(iFim));
+  if (telefone) {
+    const iInf = saida.findIndex((l, i) => i > iCond && /^\s*Informo ao paciente e ao familiar que o caso ser[áa] encaminhado/i.test(l));
+    if (iInf !== -1) saida.splice(iInf + 1, 0, telefone); else saida.push(telefone);
+  }
+  return saida.join('\n');
 }
 
 // Torção/entorse de tornozelo: o exame físico registra fíbula proximal e base do 5º metatarso indolores (29/09/2026).
@@ -1063,7 +1136,7 @@ function regrasDocumentacao() {
 - RETORNO: CHEGADA DE HOJE x DECISÃO DE HOJE (29/09/2026): nos dados do retorno, só é história o que descreve como o paciente CHEGOU (\"vem hoje sem tipoia\", \"refere dor\", \"sem queixas\"). Frases de decisão (\"mantenho tipoia apenas em ambientes externos\", \"ainda sem carga\", \"trabalho de ADM\", \"fisioterapia\", \"retorno em 1 mês\") são CONDUTA de hoje, mesmo sem verbo no imperativo. Em retorno de fratura em reabilitação sem ADM descrita, a linha do exame é \"Amplitude de movimento preservada dentro dos limites da reabilitação.\".
 - ENCAMINHAMENTO MARCADO É DE HOJE (29/09/2026): fisioterapia/acupuntura marcadas nos botões são conduta do atendimento ATUAL. Nunca escreva na história que um atendimento anterior encaminhou para fisioterapia se o registro dele não diz isso.
 - IMOBILIZAÇÃO DE HOJE NÃO ENTRA NO EXAME FÍSICO (01/10/2026): tala, gesso, órtese ou curativo colocados NESTE atendimento ficam só na CONDUTA. O exame físico descreve o paciente como chegou; só cita imobilização no exame se os dados disserem que ele já chegou imobilizado (ex: \"veio com tala do outro serviço\").
-- RM EM CRIANÇA (01/10/2026): quando o paciente é criança (botão de responsável/criança ou idade abaixo de 18 anos nos dados) e há ressonância magnética ambulatorial, a linha diz a finalidade: \"Solicito ressonância magnética do [segmento] ambulatorialmente para avaliação de lesão fisária, lesões ligamentares e osteocondrais e outras lesões associadas não evidenciadas à radiografia.\"
+- RM EM CRIANÇA (01/10/2026): quando o paciente é criança (botão de responsável/criança ou IDADE do paciente abaixo de 18 anos nos dados) e há ressonância magnética ambulatorial, a linha diz a finalidade: \"Solicito ressonância magnética do [segmento] ambulatorialmente para avaliação de lesão fisária, lesões ligamentares e osteocondrais e outras lesões associadas não evidenciadas à radiografia.\" ATENÇÃO (14/10/2026): tempo de doença NÃO é idade (\"há 3 anos\", \"faz 2 anos\", \"por 5 anos\"); sem botão de criança e sem idade menor de 18 informada, o paciente é adulto e NUNCA se escreve lesão fisária. A parte \"não evidenciadas à radiografia\" só entra se uma radiografia foi avaliada (EM TEMPO); se o RX foi oferecido e recusado ou não houve RX, termine em \"e outras lesões associadas.\"
 - SEXO NEUTRO: nunca \"a paciente\" nem \"à paciente\"; com relato de responsável, \"Genitor relata que paciente apresentou...\".
 - AJUSTE \"COMPATÍVEL COM [DIAGNÓSTICO]\" (01/10/2026): acrescente SÓ o achado de dor à palpação na topografia típica (ex: lesão de Stener → dor na face ulnar da articulação metacarpofalângica do polegar). Não invente instabilidade, manobras, testes, edema ou equimose que o médico não pediu, e nunca apague linhas padrão do exame (como \"ou instabilidade grosseira\") sem instrução expressa. Se o médico disser \"não precisa de X\", X não entra.
 - EXAMES ANTERIORES NO RETORNO (01/10/2026): blocos \"EXAME n — data\" no registro anterior são exames/laudos de datas diferentes, não atendimentos. Descreva cada um em EM TEMPO, um parágrafo por exame com a data, em ordem cronológica, com números exatamente como no laudo, comparando com o exame mais recente. Não os trate como atendimentos na história.
@@ -1808,7 +1881,7 @@ const NOMES_TIPO = {
   retorno: 'Retorno ambulatorial (paciente em seguimento, com um ou mais atendimentos prévios em outros dias; não é a reavaliação de hoje)'
 };
 
-function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje, encaminhamentos }) {
+function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje, encaminhamentos, recusaOperar }) {
   const templatesEscolhidos = String(template)
     .split('+')
     .map(t => t.trim())
@@ -1864,6 +1937,9 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
     partes.push(`\nEVOLUÇÕES ANTERIORES (copie o formato; datas e dias de internação seguem a cronologia; não são avaliação de hoje):\n${atendimentoInicial}`);
   } else if (tipoAtendimento === 'retorno' && atendimentoInicial) {
     partes.push(`\nATENDIMENTOS PRÉVIOS (um ou mais, em datas anteriores, possivelmente de outros profissionais; resumir em ordem cronológica com as datas, sem apresentar como avaliação de hoje):\n${atendimentoInicial}`);
+  }
+  if (recusaOperar === true && !ehRelato) {
+    partes.push(`\nPACIENTE NÃO QUER OPERAR (botão marcado pelo médico, 14/10/2026): acrescente à CONDUTA do modelo, SEM remover nada do que o modelo já tem, o registro de que o paciente foi orientado sobre a indicação cirúrgica, as alternativas e os riscos, e sobre a possibilidade de sequelas permanentes se seguir conservador (diminuição da amplitude de movimento, dor crônica, deformidade, má consolidação, pseudoartrose); que compreende, mas não deseja o tratamento cirúrgico neste momento, mesmo após insistência; e que está ciente da possível piora do prognóstico. Se os dados disserem que a recusa é da INTERNAÇÃO (e não da cirurgia), escreva a recusa da internação. Não invente motivo da recusa nem nome de quem decidiu.`);
   }
   const encs = Array.isArray(encaminhamentos) ? encaminhamentos.filter(e => e === 'fisioterapia' || e === 'acupuntura') : [];
   if (encs.length && !ehRelato) {
@@ -1959,7 +2035,7 @@ REGRAS OBRIGATÓRIAS:
 - Se a instrução pede para remover algo, remova completamente essa parte (a frase, o parágrafo ou a linha inteira, o que for necessário para a remoção fazer sentido, ajustando a frase adjacente se necessário para o texto continuar fluindo bem).
 - Se a instrução pede para trocar uma palavra, expressão ou atribuição de autoria (ex: trocar "por mim" por outra coisa, trocar "paciente" por "acompanhante", mudar o lado D/E), troque exatamente onde ela aparece no texto, em todas as ocorrências relevantes.
 - NUNCA ignore a instrução, nunca devolva o texto sem nenhuma alteração, e nunca devolva apenas uma cópia idêntica do texto anterior — se você fizer isso, está falhando na tarefa.
-- Fora do que foi pedido na instrução, mantenha o restante do texto exatamente como estava (mesmas frases, mesma ordem, mesmo formato), incluindo a(s) linha(s) de aviso no topo começando com "⚠️", se houver, salvo se a própria instrução pedir para alterá-las.
+- Fora do que foi pedido na instrução, mantenha o restante do texto exatamente como estava (mesmas frases, mesma ordem, mesmo formato), incluindo a(s) linha(s) de aviso no topo começando com "⚠️", se houver, salvo se a própria instrução pedir para alterá-las ou se ela RESOLVER o aviso (ex: o aviso diz que o hospital de origem não foi informado e a instrução informa o hospital): nesse caso a linha de aviso resolvida sai do texto.
 - Devolva APENAS o texto final completo, já corrigido. Sem comentários, sem explicações, sem aspas, sem markdown, sem repetir a instrução recebida.`;
 }
 
@@ -2033,9 +2109,9 @@ REGRAS DESTE MODELO (mensagem enxuta, sem palavra sobrando):
     nome: 'Solicitação de internação (informativo)',
     texto: `Use EXATAMENTE este layout, preenchendo apenas os valores. Mantenha os asteriscos do título (formatação de negrito do WhatsApp) e os nomes dos campos sem alteração:
 
-*INFORMATIVO DE SOLICITAÇÃO DE INTERNAÇÃO*
+📍 *INFORMATIVO DE SOLICITAÇÃO DE INTERNAÇÃO*
 
-Fluxo: [fluxo]
+Fluxo: 🟢 [fluxo]
 Paciente: [iniciais do paciente]
 Matrícula: [matrícula]
 Idade: [idade] anos
@@ -2051,7 +2127,7 @@ REGRAS DESTE MODELO:
 - PACIENTE: use apenas as INICIAIS do nome, separadas por ponto e espaço (ex: "João Carlos Mendes" vira "J. C. M."). Nunca escreva o nome completo neste modelo
 
 VALORES PADRÃO — esta é uma mensagem padronizada que o médico usa quase sempre da mesma forma. Use estes valores automaticamente, salvo indicação contrária explícita do médico nos dados enviados:
-- Fluxo = URGÊNCIA FLUXO COMUM
+- Fluxo = URGÊNCIA COMUM (escrito "Fluxo: 🟢 URGÊNCIA COMUM", com a bolinha verde)
 - Tempo de sala = 2h
 - CD = Internação para Tratamento Cirúrgico
 - Transferência para Hospital = HSM Tailândia
@@ -2062,7 +2138,7 @@ HOSPITAL DE ORIGEM — só pode ser um destes dois: HSM Santiago ou HSM SBC. O m
 
 CAMPOS QUE SEMPRE VARIAM E SÃO OBRIGATÓRIOS (Paciente, Matrícula, Idade, Diagnóstico): se o médico não informar algum destes, NÃO invente e NÃO escreva "NÃO INFORMADO" no corpo — deixe a linha com o campo e o rótulo, mas sem o valor (ex: "Matrícula: "), exatamente como ficaria se o médico tivesse esquecido de preencher à mão. Ao mesmo tempo, sinalize cada campo faltante em uma linha de aviso no topo, para o médico completar antes de enviar. O texto final deve parecer uma ficha preenchida manualmente com uma lacuna esquecida, não um formulário gerado por IA.
 
-Diagnóstico com precisão anatômica: inclua lateralidade (direita/esquerda) e, quando houver cirurgia prévia relacionada, cite entre parênteses o procedimento e a data no formato MM/AA (ex: "infecção relacionada ao material de síntese (PO osteossíntese patela direita – 07/26)").
+Diagnóstico começa com letra minúscula (ex: "Diagnóstico: fratura transtrocanteriana à direita"), exceto siglas. Diagnóstico com precisão anatômica: inclua lateralidade (direita/esquerda) e, quando houver cirurgia prévia relacionada, cite entre parênteses o procedimento e a data no formato MM/AA (ex: "infecção relacionada ao material de síntese (PO osteossíntese patela direita – 07/26)").
 
 Se houver múltiplos pacientes, gere um informativo separado para cada um, separados por uma linha em branco e uma linha com "———".`
   },

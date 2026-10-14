@@ -1656,6 +1656,10 @@
         <button type="button" class="exame-casa-btn" data-enc="fisioterapia">Fisioterapia</button>
         <button type="button" class="exame-casa-btn" data-enc="acupuntura">Acupuntura</button>
       </div>
+      <div class="exame-casa oculto" id="recusaBox">
+        <span>Decisão do paciente:</span>
+        <button type="button" class="exame-casa-btn" id="btnRecusaOperar">Não quer operar</button>
+      </div>
       <div class="hint" id="tplHint">Pode selecionar mais de um (ex: Fratura + Canetada Internar).</div>
     </div>
 
@@ -3281,6 +3285,7 @@
       blocoCompleto.classList.remove('oculto');
       aplicarSubCompleto();
     }
+    atualizarRecusa();
   }
 
   function aplicarSubCompleto() {
@@ -3308,6 +3313,7 @@
     } else {
       tplHint.textContent = 'Modelos prontos geram sozinhos, sem exame para casa. ✎ Outro: descreva nos dados.';
     }
+    atualizarRecusa();
   }
 
   // Fisio / acupuntura por botão (desfechos com alta ou seguimento)
@@ -3330,6 +3336,25 @@
       (tipoAtendimento === 'completo' && subCompleto !== 'relato');
     encaminharBox.classList.toggle('oculto', !mostrar);
     if (!mostrar) limparEncaminhar();
+  }
+
+  // "Paciente não quer operar" (14/10/2026): só nos desfechos conservador e discussão/borderline.
+  var recusaBox = document.getElementById('recusaBox');
+  var btnRecusaOperar = document.getElementById('btnRecusaOperar');
+  var recusaOperarSel = false;
+  var TEMPLATES_COM_RECUSA = ['d', 'g', 'bd', 'bg', 'r1', 'r3'];
+  btnRecusaOperar.addEventListener('click', function() {
+    recusaOperarSel = !recusaOperarSel;
+    btnRecusaOperar.classList.toggle('active', recusaOperarSel);
+  });
+  function limparRecusa() {
+    recusaOperarSel = false;
+    btnRecusaOperar.classList.remove('active');
+  }
+  function atualizarRecusa() {
+    var mostrar = templatesSelecionados.some(function(t) { return TEMPLATES_COM_RECUSA.indexOf(t) !== -1; });
+    recusaBox.classList.toggle('oculto', !mostrar);
+    if (!mostrar) limparRecusa();
   }
 
   subBtns.forEach(function(btn) {
@@ -3379,6 +3404,7 @@
         gridAtivo.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
         templatesSelecionados = [t];
         btn.classList.add('active');
+        atualizarRecusa();
         return;
       }
 
@@ -3706,6 +3732,7 @@
       naoDeambula: toggleNaoDeambula.checked,
       exameAmbulatorial: (tipoAtendimento === 'completo' && subCompleto === 'cronico') ? exameCasaSel : '',
       encaminhamentos: encaminhamentosSel.slice(),
+      recusaOperar: recusaOperarSel,
       imagens: (tipoAtendimento === 'retorno' ? arquivosAtendimentosAnteriores().concat(arquivosExamesAnteriores('antes'), arquivosExamesAnteriores('hoje').map(function(a) { a.rotulo = 'Exame/laudo atual (retorno de hoje):'; return a; })) : arquivosExamesAnteriores()).concat(
         imagensExame.obter().map(function(a) { if (tipoAtendimento === 'retorno') a.rotulo = 'Exame/laudo atual (retorno de hoje):'; return a; })
       )
@@ -3724,6 +3751,7 @@
             deambulacao: payloadGerar.naoDeambula ? 'não deambula' : 'deambulando',
             exameParaCasa: payloadGerar.exameAmbulatorial || 'nenhum marcado',
             encaminhar: (payloadGerar.encaminhamentos || []).join(' + ') || 'nenhum marcado',
+            decisaoDoPaciente: payloadGerar.recusaOperar ? 'não quer operar' : 'nenhuma marcada',
             atendimentoInicial: atendimentoInicial,
             dadosCaso: dadosCaso,
             exames: extra,
@@ -3908,6 +3936,8 @@
     subCompleto = 'trauma';
     limparEncaminhar();
     encaminharBox.classList.add('oculto');
+    limparRecusa();
+    recusaBox.classList.add('oculto');
     blocoInicial.classList.add('oculto');
     labelDados.textContent = 'Dados do caso';
     aplicarFiltroTemplates();
@@ -5202,6 +5232,7 @@
     deambulacao: 'Deambulação',
     exameParaCasa: 'Exame para casa (botão)',
     encaminhar: 'Encaminhar (botão)',
+    decisaoDoPaciente: 'Decisão do paciente (botão)',
     atendimentoInicial: 'Atendimento inicial',
     dadosCaso: 'Dados do caso',
     exames: 'Exames/laudo',
