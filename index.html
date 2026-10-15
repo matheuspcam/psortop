@@ -215,13 +215,13 @@
   /* Navegacao principal: dois botoes grandes */
   .nav-principal {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
     margin-bottom: 18px;
   }
 
   .nav-principal button {
-    padding: 16px 8px;
+    padding: 14px 4px;
     background: var(--panel);
     border: 1px solid var(--panel-border);
     border-radius: 12px;
@@ -868,6 +868,56 @@
     font-size: 13px;
     margin-top: 10px;
     display: none;
+  }
+
+
+  /* Torre de controle (14/10/2026) */
+  .torre-secoes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+  .torre-sec { padding: 10px 6px; background: var(--panel); border: 1px solid var(--panel-border); border-radius: 10px; color: var(--ink-dim); font-size: 13px; font-weight: 600; cursor: pointer; }
+  .torre-sec.ativa { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .torre-turnos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .torre-turnos button { padding: 10px 4px; background: #f7f9f7; border: 1px solid var(--panel-border); border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--ink-dim); cursor: pointer; }
+  .torre-turnos button.ativa { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .torre-grupo { margin-bottom: 14px; }
+  .torre-grupo > summary { cursor: pointer; font-size: 14px; font-weight: 700; padding: 10px 12px; background: var(--panel); border: 1px solid var(--panel-border); border-radius: 10px; list-style: none; display: flex; justify-content: space-between; gap: 8px; }
+  .torre-grupo > summary::-webkit-details-marker { display: none; }
+  .torre-grupo > summary .torre-cont { font-weight: 500; color: var(--ink-dim); font-size: 12px; }
+  .torre-local { font-size: 12px; font-weight: 700; color: var(--ink-dim); margin: 12px 4px 6px; text-transform: uppercase; letter-spacing: .03em; }
+  .torre-card { background: var(--panel); border: 1px solid var(--panel-border); border-left: 5px solid var(--panel-border); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+  .torre-card.cor-amarelo { background: #fff6c9; border-left-color: #e0b400; }
+  .torre-card.cor-vermelho { background: #fde3dd; border-left-color: #c0432a; }
+  .torre-card.cor-verde { background: #dff3e6; border-left-color: #1e7a5a; }
+  .torre-topo { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+  .torre-nome { font-size: 15px; font-weight: 700; word-break: break-word; }
+  .torre-num { font-size: 12px; font-weight: 600; color: var(--ink-dim); margin-left: 4px; }
+  .torre-acoes { display: flex; gap: 4px; flex: none; }
+  .torre-acoes button, .torre-mini { min-width: 36px; height: 36px; padding: 0 8px; background: rgba(255,255,255,.7); border: 1px solid var(--panel-border); border-radius: 8px; font-size: 15px; cursor: pointer; }
+  .torre-hip { font-size: 13px; margin: 6px 0 8px; color: var(--ink); }
+  .torre-aguarda label { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 14px; cursor: pointer; }
+  .torre-aguarda input[type="checkbox"] { width: 20px; height: 20px; flex: none; }
+  .torre-aguarda label.feito span { text-decoration: line-through; color: var(--ink-dim); }
+  .torre-aguarda .torre-x { margin-left: auto; border: none; background: none; color: var(--ink-dim); font-size: 16px; cursor: pointer; padding: 4px 8px; }
+  .torre-tudo { display: inline-block; font-size: 12px; font-weight: 700; color: var(--accent); margin: 2px 0 6px; }
+  .torre-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .torre-chips button { padding: 7px 10px; background: #f7f9f7; border: 1px dashed var(--panel-border); border-radius: 16px; font-size: 12px; cursor: pointer; color: var(--ink); }
+  .torre-card details > summary { font-size: 12px; font-weight: 600; color: var(--ink-dim); cursor: pointer; padding: 6px 0; }
+  .torre-card textarea { min-height: 54px; margin-top: 6px; font-size: 13px; }
+  .torre-card input[type="text"], .torre-card input[type="date"], .torre-card select { width: 100%; margin-bottom: 6px; padding: 9px 10px; font-size: 13px; border: 1px solid var(--panel-border); border-radius: 8px; background: #f7f9f7; font-family: var(--sans); color: var(--ink); }
+  .torre-botoes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .torre-botoes button { flex: 1; min-width: 110px; padding: 10px; border: 1px solid var(--panel-border); border-radius: 8px; background: #f7f9f7; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--ink); }
+  .torre-botoes button.primario { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .torre-botoes button.perigo { color: var(--danger); background: var(--danger-bg); }
+  .torre-checar { margin-top: 8px; padding: 8px 10px; background: #f1f6f3; border-radius: 8px; font-size: 13px; }
+  .torre-obs-ro { margin-top: 6px; font-size: 13px; color: var(--ink-dim); white-space: pre-wrap; }
+  .torre-dias { font-size: 12px; color: var(--danger); font-weight: 600; margin-top: 4px; }
+  .torre-toast { position: fixed; left: 12px; right: 12px; bottom: 16px; max-width: 616px; margin: 0 auto; z-index: 60; display: none; align-items: center; gap: 8px; flex-wrap: wrap; background: #1d2b26; color: #fff; padding: 12px 14px; border-radius: 12px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+  .torre-toast span { flex: 1; min-width: 140px; }
+  .torre-toast button { padding: 8px 12px; border: 1px solid rgba(255,255,255,.5); background: transparent; color: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+  @media (max-width: 480px) {
+    .nav-principal { gap: 6px; }
+    .nav-principal button { font-size: 11.5px; gap: 5px; }
+    .nav-principal button .nav-icone-img { width: 28px; height: 28px; }
   }
 
   .oculto { display: none !important; }
@@ -1559,6 +1609,10 @@
       <img class="nav-icone-img" src="data:image/png;base64,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" alt="">
       Padrão
     </button>
+    <button type="button" class="nav-btn" data-aba="torre">
+      <span class="nav-icone" aria-hidden="true">🗼</span>
+      Torre de controle
+    </button>
   </div>
 
   <div class="voltar-bar" id="voltarBar">
@@ -1889,6 +1943,12 @@
     </div>
   </div>
 
+  <div id="abaTorre" class="oculto">
+    <div class="torre-secoes" id="torreSecoes"></div>
+    <div id="torreLista"></div>
+    <div class="transferir-status" id="torreStatus"></div>
+  </div>
+
   <div id="abaImagem" class="oculto">
     <div class="card">
       <div class="hint" style="margin-top:0; margin-bottom:14px;">
@@ -2087,6 +2147,7 @@
   var abaCofre = document.getElementById('abaCofre');
   var abaImagem = document.getElementById('abaImagem');
   var abaTransferir = document.getElementById('abaTransferir');
+  var abaTorre = document.getElementById('abaTorre');
 
   var TITULOS_SECAO = {
     templates: 'Ver templates',
@@ -2635,6 +2696,7 @@
     abaCofre.classList.toggle('oculto', aba !== 'cofre');
     abaImagem.classList.toggle('oculto', aba !== 'imagem');
     abaTransferir.classList.toggle('oculto', aba !== 'transferir');
+    abaTorre.classList.toggle('oculto', aba !== 'torre');
 
     // O cofre tranca sempre que se entra ou sai dele: a senha é pedida a cada abertura.
     trancarCofre();
@@ -2653,6 +2715,7 @@
 
     if (aba === 'sugestoes') carregarSugestoesPendentes();
     if (aba === 'imagem') carregarStatusIA();
+    if (aba === 'torre') torreAbrir();
 
     // O botao "Comecar de novo" do header so aparece na aba que tem um resultado pendente
     var mostrarBtnRecomecar = (aba === btnRecomecarHeader.dataset.aba) &&
@@ -2753,6 +2816,444 @@
       menuFerramentas.classList.remove('show');
     }
   });
+
+  // --- Torre de controle (14/10/2026) ---
+  // Lista de pacientes do plantão por turno e local. Fica no servidor (api/torre.js), atrás do PIN do app.
+  // Só a Lixeira apaga sozinha (7 dias). Nome e número ficam só aqui, nunca no Notion.
+  var TORRE_LOCAIS_PADRAO = ['Hospital São Cristóvão', 'Hospital Leforte Liberdade', 'Prevent Senior Madrid', 'Hospital São Luiz Guarulhos', 'Santa Casa de São Paulo'];
+  var TORRE_PENDENCIAS = ['RX', 'RM', 'TC', 'USG', 'Exames de sangue', 'Avaliação da clínica', 'Avaliação da retaguarda/chefe', 'Vaga/internação', 'Laudo', 'Retorno', 'Outro'];
+  var TORRE_TURNOS = { '07-19': '07h–19h', '10-22': '10h–22h', '19-07': '19h–07h' };
+  var TORRE_ORDEM_TURNOS = ['19-07', '10-22', '07-19'];
+  var TORRE_DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  var TORRE_CORES = ['', 'amarelo', 'vermelho', 'verde'];
+  var torre = { itens: [], secao: 'ativo', carregado: false, editando: {}, arquivando: {}, abertos: {}, chips: {}, timers: {}, cfg: torreLerCfg() };
+
+  function torreLerCfg() {
+    try {
+      var c = JSON.parse(localStorage.getItem('torre_cfg') || '{}');
+      return { turno: c.turno || '', local: c.local || '', locais: Array.isArray(c.locais) ? c.locais : [] };
+    } catch (e) { return { turno: '', local: '', locais: [] }; }
+  }
+  function torreGravarCfg() { try { localStorage.setItem('torre_cfg', JSON.stringify(torre.cfg)); } catch (e) {} }
+  function torreEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function torreDataIso(d) { var m = d.getMonth() + 1, dia = d.getDate(); return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (dia < 10 ? '0' : '') + dia; }
+  function torreTurnoAtual() {
+    if (torre.cfg.turno && TORRE_TURNOS[torre.cfg.turno]) return torre.cfg.turno;
+    var h = new Date().getHours();
+    return (h >= 19 || h < 7) ? '19-07' : '07-19';
+  }
+  // O plantão da noite fica com a data em que começou: atendido às 02h de quinta entra em "Qua 19h–07h".
+  function torreDataDoTurno(turno) {
+    var d = new Date();
+    if (turno === '19-07' && d.getHours() < 7) d.setDate(d.getDate() - 1);
+    return torreDataIso(d);
+  }
+  function torreRotuloData(iso) {
+    var p = String(iso || '').split('-');
+    if (p.length !== 3) return 'Sem data';
+    var d = new Date(+p[0], +p[1] - 1, +p[2]);
+    return TORRE_DIAS_SEMANA[d.getDay()] + ' ' + p[2] + '/' + p[1];
+  }
+  function torreStatus(msg) { var e = document.getElementById('torreStatus'); if (e) e.textContent = msg || ''; }
+  function torreApi(corpo) {
+    return fetch('/api/torre', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({ pin: pinAtual }, corpo))
+    }).then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.erro || 'Erro'); return d; }); });
+  }
+  function torreSalvar(itens) {
+    itens = Array.isArray(itens) ? itens : [itens];
+    return torreApi({ acao: 'salvar', itens: itens }).then(function() { torreStatus(''); return true; })
+      .catch(function(e) { torreStatus('⚠️ Não salvou no servidor: ' + e.message + ' O card continua nesta tela; tente de novo.'); return false; });
+  }
+  function torreSalvarDepois(it) {
+    clearTimeout(torre.timers[it.id]);
+    torre.timers[it.id] = setTimeout(function() { torreSalvar(it); }, 700);
+  }
+  function torreCarregar() {
+    torreStatus('Carregando...');
+    return torreApi({ acao: 'listar' }).then(function(d) {
+      torre.itens = d.itens || []; torre.carregado = true; torreStatus(''); torreRender(); return true;
+    }).catch(function(e) { torreStatus('⚠️ ' + e.message); return false; });
+  }
+  function torreGarantirCarregado() { return torre.carregado ? Promise.resolve(true) : torreCarregar(); }
+  function torreAbrir() { torreCarregar(); }
+
+  function torreAchar(id) { return torre.itens.filter(function(i) { return i.id === id; })[0]; }
+  function torrePares(it) {
+    return torre.itens.filter(function(x) { return x.status === 'ativo' && x.id !== it.id && x.dataTurno === it.dataTurno && x.turno === it.turno && (x.local || '') === (it.local || ''); });
+  }
+  function torreProximaOrdem(it) {
+    var p = torrePares(it);
+    return p.length ? Math.max.apply(null, p.map(function(x) { return x.ordem || 0; })) + 10 : 10;
+  }
+  function torreNovoItem(base) {
+    var turno = torreTurnoAtual();
+    var it = Object.assign({
+      id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      nome: '', numero: '', hipotese: '', turno: turno, dataTurno: torreDataDoTurno(turno), local: torre.cfg.local || '',
+      aguarda: [], obs: '', checar: '', cor: '', status: 'ativo', statusAntes: '', ordem: 0,
+      criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), lixeiraEm: ''
+    }, base || {});
+    it.ordem = torreProximaOrdem(it);
+    return it;
+  }
+  function torreLembrarLocal(local) {
+    local = (local || '').trim();
+    if (!local || TORRE_LOCAIS_PADRAO.indexOf(local) !== -1 || torre.cfg.locais.indexOf(local) !== -1) return;
+    torre.cfg.locais.push(local); torreGravarCfg();
+  }
+  function torreLocais() {
+    var tudo = TORRE_LOCAIS_PADRAO.concat(torre.cfg.locais, torre.itens.map(function(i) { return i.local; }));
+    return tudo.filter(function(l, n) { return l && tudo.indexOf(l) === n; });
+  }
+  function torreRotuloPend(a) { return a.k === 'Outro' && a.txt ? a.txt : a.k; }
+  function torrePendente(i) { return (i.aguarda || []).some(function(a) { return !a.ok; }); }
+
+  // ---------- Desenho ----------
+  function torreCartao(i, modo) {
+    var h = '<div class="torre-card' + (i.cor ? ' cor-' + i.cor : '') + '" data-id="' + torreEsc(i.id) + '">';
+    h += '<div class="torre-topo"><div class="torre-nome">' + torreEsc(i.nome || '(sem nome)') + (i.numero ? '<span class="torre-num">Nº ' + torreEsc(i.numero) + '</span>' : '') + '</div>';
+    if (modo === 'ativo') {
+      h += '<div class="torre-acoes"><button type="button" data-torre-acao="subir" aria-label="Subir">▲</button><button type="button" data-torre-acao="descer" aria-label="Descer">▼</button>' +
+        '<button type="button" data-torre-acao="cor" aria-label="Grifar">🖍</button><button type="button" data-torre-acao="editar" aria-label="Editar">✏️</button></div>';
+    }
+    h += '</div>';
+    if (modo !== 'ativo') h += '<div class="torre-hip">' + torreEsc(torreRotuloData(i.dataTurno) + ' · ' + TORRE_TURNOS[i.turno] + (i.local ? ' · ' + i.local : '')) + '</div>';
+    if (modo === 'ativo' && torre.editando[i.id]) {
+      h += '<div style="margin-top:8px;">' +
+        '<input type="text" data-campo="nome" placeholder="Nome" value="' + torreEsc(i.nome) + '">' +
+        '<input type="text" data-campo="numero" placeholder="Número do atendimento" value="' + torreEsc(i.numero) + '">' +
+        '<input type="text" data-campo="hipotese" placeholder="Hipótese" value="' + torreEsc(i.hipotese) + '">' +
+        '<select data-campo="turno">' + Object.keys(TORRE_TURNOS).map(function(t) { return '<option value="' + t + '"' + (i.turno === t ? ' selected' : '') + '>' + TORRE_TURNOS[t] + '</option>'; }).join('') + '</select>' +
+        '<input type="date" data-campo="dataTurno" value="' + torreEsc(i.dataTurno) + '">' +
+        '<input type="text" data-campo="local" list="torreLocaisLista" placeholder="Local (escolha ou escreva)" value="' + torreEsc(i.local) + '">' +
+        '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="editar">Concluir edição</button></div></div>';
+    } else if (i.hipotese) {
+      h += '<div class="torre-hip">' + torreEsc(i.hipotese) + '</div>';
+    }
+    if ((i.aguarda || []).length) {
+      h += '<div class="torre-aguarda">';
+      i.aguarda.forEach(function(a, n) {
+        h += '<label class="' + (a.ok ? 'feito' : '') + '"><input type="checkbox" data-torre-ok="' + n + '"' + (a.ok ? ' checked' : '') + (modo === 'lixeira' ? ' disabled' : '') + '><span>' + torreEsc(torreRotuloPend(a)) + '</span>' +
+          (modo === 'ativo' ? '<button type="button" class="torre-x" data-torre-acao="rem-pend" data-n="' + n + '" aria-label="Remover pendência">✕</button>' : '') + '</label>';
+      });
+      h += '</div>';
+      if (!torrePendente(i) && modo === 'ativo') h += '<div class="torre-tudo">✅ Tudo chegou</div>';
+    }
+    if (modo === 'ativo') {
+      h += '<details data-chips="' + torreEsc(i.id) + '"' + (torre.chips[i.id] ? ' open' : '') + '><summary>＋ Pendência</summary><div class="torre-chips">' +
+        TORRE_PENDENCIAS.filter(function(p) { return p === 'Outro' || !(i.aguarda || []).some(function(a) { return a.k === p; }); })
+          .map(function(p) { return '<button type="button" data-torre-chip="' + torreEsc(p) + '">' + torreEsc(p) + '</button>'; }).join('') + '</div></details>';
+      h += '<textarea data-campo="obs" placeholder="Observações">' + torreEsc(i.obs) + '</textarea>';
+      if (torre.arquivando[i.id]) {
+        h += '<div class="torre-checar"><strong>O que quero checar depois?</strong><textarea data-campo="checar" placeholder="Ex: ver se operou, resultado da RM, evolução...">' + torreEsc(i.checar) + '</textarea>' +
+          '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="arq-ok">Arquivar</button><button type="button" data-torre-acao="arq-cancel">Cancelar</button></div></div>';
+      } else {
+        h += '<div class="torre-botoes"><button type="button" data-torre-acao="arquivar">📦 Arquivar</button><button type="button" class="perigo" data-torre-acao="apagar">🗑️ Apagar</button></div>';
+      }
+    } else if (modo === 'arquivar') {
+      if (i.obs) h += '<div class="torre-obs-ro">Obs: ' + torreEsc(i.obs) + '</div>';
+      if (i.checar) h += '<div class="torre-checar"><strong>Quero checar:</strong> ' + torreEsc(i.checar) + '</div>';
+      h += '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="copiar">📋 Copiar</button><button type="button" data-torre-acao="voltar-ativo">↩ Voltar aos ativos</button><button type="button" class="perigo" data-torre-acao="apagar">🗑️ Apagar</button></div>';
+    } else {
+      var restam = 7;
+      if (i.lixeiraEm) restam = Math.max(0, Math.ceil(7 - (Date.now() - new Date(i.lixeiraEm).getTime()) / 86400000));
+      h += '<div class="torre-dias">Apaga sozinho em ' + restam + (restam === 1 ? ' dia' : ' dias') + '</div>';
+      h += '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="restaurar">↩ Restaurar</button><button type="button" class="perigo" data-torre-acao="excluir-vez">Apagar de vez</button></div>';
+    }
+    return h + '</div>';
+  }
+
+  function torreHtmlConfig() {
+    var h = '<div class="card"><span class="label">Turno em uso</span><div class="torre-turnos">';
+    var atual = torreTurnoAtual();
+    Object.keys(TORRE_TURNOS).forEach(function(t) { h += '<button type="button" data-torre-turno="' + t + '" class="' + (atual === t ? 'ativa' : '') + '">' + TORRE_TURNOS[t] + '</button>'; });
+    h += '</div><span class="label" style="margin-top:12px;">Local de atendimento</span>' +
+      '<input type="text" id="torreLocalInput" list="torreLocaisLista" placeholder="Escolha ou escreva o local" value="' + torreEsc(torre.cfg.local) + '">' +
+      '<datalist id="torreLocaisLista">' + torreLocais().map(function(l) { return '<option value="' + torreEsc(l) + '"></option>'; }).join('') + '</datalist>' +
+      '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="novo">＋ Novo paciente</button><button type="button" data-torre-acao="atualizar">↻ Atualizar</button></div></div>';
+    return h;
+  }
+
+  function torreHtmlAtivos() {
+    var ativos = torre.itens.filter(function(i) { return i.status === 'ativo'; });
+    if (!ativos.length) return '<div class="hint">Nenhum paciente ativo. Gere um prontuário com nome e número, ou toque em "Novo paciente".</div>';
+    var grupos = {};
+    ativos.forEach(function(i) { var k = (i.dataTurno || '') + '|' + i.turno; (grupos[k] = grupos[k] || []).push(i); });
+    var chaves = Object.keys(grupos).sort(function(a, b) {
+      var A = a.split('|'), B = b.split('|');
+      if (A[0] !== B[0]) return A[0] < B[0] ? 1 : -1;
+      return TORRE_ORDEM_TURNOS.indexOf(A[1]) - TORRE_ORDEM_TURNOS.indexOf(B[1]);
+    });
+    return chaves.map(function(k, idx) {
+      var lista = grupos[k], p = k.split('|');
+      var aberto = (k in torre.abertos) ? torre.abertos[k] : (idx < 2 || lista.some(torrePendente));
+      var h = '<details class="torre-grupo" data-grupo="' + torreEsc(k) + '"' + (aberto ? ' open' : '') + '><summary><span>' + torreEsc(torreRotuloData(p[0]) + ' · ' + TORRE_TURNOS[p[1]]) + '</span><span class="torre-cont">' + lista.length + (lista.length === 1 ? ' paciente' : ' pacientes') + '</span></summary>';
+      var locais = {};
+      lista.forEach(function(i) { var l = i.local || ''; (locais[l] = locais[l] || []).push(i); });
+      Object.keys(locais).sort(function(a, b) { if (!a) return 1; if (!b) return -1; return a.localeCompare(b); }).forEach(function(l) {
+        h += '<div class="torre-local">📍 ' + torreEsc(l || 'Sem local') + '</div>';
+        locais[l].sort(function(a, b) { return (a.ordem || 0) - (b.ordem || 0); }).forEach(function(i) { h += torreCartao(i, 'ativo'); });
+      });
+      return h + '</details>';
+    }).join('');
+  }
+
+  function torreHtmlArquivar() {
+    var lista = torre.itens.filter(function(i) { return i.status === 'arquivar'; }).sort(function(a, b) { return String(b.atualizadoEm || '').localeCompare(String(a.atualizadoEm || '')); });
+    var h = '<div class="hint" style="margin-bottom:12px;">Pacientes que você quer checar depois. Copie, cole no Claude para guardar na aba VAR do Notion e depois apague o card aqui. Nada some sozinho nesta seção.</div>';
+    if (!lista.length) return h + '<div class="hint">Nada para arquivar.</div>';
+    h += '<div class="torre-botoes" style="margin:0 0 12px;"><button type="button" class="primario" data-torre-acao="copiar-todos">📋 Copiar todos</button></div>';
+    return h + lista.map(function(i) { return torreCartao(i, 'arquivar'); }).join('');
+  }
+
+  function torreHtmlLixeira() {
+    var lista = torre.itens.filter(function(i) { return i.status === 'lixeira'; }).sort(function(a, b) { return String(b.lixeiraEm || '').localeCompare(String(a.lixeiraEm || '')); });
+    var h = '<div class="hint" style="margin-bottom:12px;">Itens apagados ficam aqui por 7 dias e depois são removidos de vez do servidor. A limpeza acontece na próxima vez que a Torre for aberta ou salva.</div>';
+    if (!lista.length) return h + '<div class="hint">Lixeira vazia.</div>';
+    return h + lista.map(function(i) { return torreCartao(i, 'lixeira'); }).join('');
+  }
+
+  function torreRender() {
+    var sec = document.getElementById('torreSecoes'), lista = document.getElementById('torreLista');
+    if (!sec || !lista) return;
+    var cont = { ativo: 0, arquivar: 0, lixeira: 0 };
+    torre.itens.forEach(function(i) { cont[i.status] = (cont[i.status] || 0) + 1; });
+    sec.innerHTML = [['ativo', 'Ativos'], ['arquivar', 'A arquivar'], ['lixeira', 'Lixeira']].map(function(s) {
+      return '<button type="button" class="torre-sec' + (torre.secao === s[0] ? ' ativa' : '') + '" data-torre-sec="' + s[0] + '">' + s[1] + ' (' + (cont[s[0]] || 0) + ')</button>';
+    }).join('');
+    var h = '';
+    if (torre.secao === 'ativo') h = torreHtmlConfig() + torreHtmlAtivos();
+    else if (torre.secao === 'arquivar') h = torreHtmlArquivar();
+    else h = torreHtmlLixeira();
+    lista.innerHTML = h;
+  }
+
+  // ---------- Ações ----------
+  function torreCopiar(texto) {
+    var fallback = function() {
+      var t = document.createElement('textarea'); t.value = texto; t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (e) {} document.body.removeChild(t);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(texto).catch(function() { fallback(); });
+    fallback(); return Promise.resolve();
+  }
+  function torreTextoCopia(i) {
+    var l = [(i.nome || '(sem nome)') + (i.numero ? ' — Nº ' + i.numero : '')];
+    l.push(torreRotuloData(i.dataTurno) + ' · ' + TORRE_TURNOS[i.turno] + (i.local ? ' · ' + i.local : ''));
+    if (i.hipotese) l.push('Hipótese: ' + i.hipotese);
+    if ((i.aguarda || []).length) l.push('Aguardava: ' + i.aguarda.map(function(a) { return torreRotuloPend(a) + (a.ok ? ' (chegou)' : ' (pendente)'); }).join(', '));
+    if (i.obs) l.push('Obs: ' + i.obs);
+    if (i.checar) l.push('Quero checar: ' + i.checar);
+    return l.join('\n');
+  }
+  function torreMover(it, delta) {
+    var grupo = torrePares(it).concat([it]).sort(function(a, b) { return (a.ordem || 0) - (b.ordem || 0); });
+    var pos = grupo.indexOf(it), novo = pos + delta;
+    if (novo < 0 || novo >= grupo.length) return;
+    grupo.splice(pos, 1); grupo.splice(novo, 0, it);
+    var mudados = [];
+    grupo.forEach(function(g, n) { var o = (n + 1) * 10; if (g.ordem !== o) { g.ordem = o; mudados.push(g); } });
+    if (mudados.length) torreSalvar(mudados);
+    torreRender();
+  }
+  function torreMudarStatus(it, status) {
+    if (status === 'lixeira') { it.statusAntes = it.status; it.lixeiraEm = new Date().toISOString(); }
+    else it.lixeiraEm = '';
+    it.status = status; it.atualizadoEm = new Date().toISOString();
+    if (status === 'ativo') it.ordem = torreProximaOrdem(it);
+    torreSalvar(it); torreRender();
+  }
+
+  var abaTorreEl = document.getElementById('abaTorre');
+  abaTorreEl.addEventListener('click', function(e) {
+    var alvo = e.target.closest('[data-torre-acao],[data-torre-sec],[data-torre-turno],[data-torre-chip]');
+    if (!alvo) return;
+    if (alvo.dataset.torreSec) { torre.secao = alvo.dataset.torreSec; torreRender(); return; }
+    if (alvo.dataset.torreTurno) { torre.cfg.turno = alvo.dataset.torreTurno; torreGravarCfg(); torreRender(); return; }
+    var cartao = alvo.closest('.torre-card');
+    var it = cartao ? torreAchar(cartao.dataset.id) : null;
+    if (alvo.dataset.torreChip) {
+      if (!it) return;
+      var k = alvo.dataset.torreChip, txt = '';
+      if (k === 'Outro') { txt = (window.prompt('Aguardando o quê?') || '').trim(); if (!txt) return; }
+      it.aguarda.push({ k: k, ok: false, txt: txt }); torre.chips[it.id] = true;
+      torreSalvar(it); torreRender(); return;
+    }
+    var acao = alvo.dataset.torreAcao;
+    if (acao === 'novo') {
+      var n = torreNovoItem(); torre.itens.push(n); torre.editando[n.id] = true; torreSalvar(n); torreRender(); return;
+    }
+    if (acao === 'atualizar') { torreCarregar(); return; }
+    if (acao === 'copiar-todos') {
+      var todos = torre.itens.filter(function(i) { return i.status === 'arquivar'; });
+      torreCopiar('Torre de controle — pacientes a arquivar\n\n' + todos.map(torreTextoCopia).join('\n\n---\n\n')).then(function() { torreStatus('✅ Copiado (' + todos.length + ').'); });
+      return;
+    }
+    if (!it) return;
+    if (acao === 'copiar') { torreCopiar(torreTextoCopia(it)).then(function() { torreStatus('✅ Copiado.'); }); return; }
+    if (acao === 'subir') { torreMover(it, -1); return; }
+    if (acao === 'descer') { torreMover(it, 1); return; }
+    if (acao === 'cor') {
+      var antes = it.cor, pos = (TORRE_CORES.indexOf(it.cor) + 1) % TORRE_CORES.length;
+      it.cor = TORRE_CORES[pos];
+      if (!antes && it.cor) {
+        // Ao grifar pela primeira vez, o card sobe para o topo do seu local.
+        var pares = torrePares(it);
+        it.ordem = pares.length ? Math.min.apply(null, pares.map(function(x) { return x.ordem || 0; })) - 10 : 10;
+      }
+      torreSalvar(it); torreRender(); return;
+    }
+    if (acao === 'editar') {
+      if (torre.editando[it.id]) { delete torre.editando[it.id]; torreLembrarLocal(it.local); torreSalvar(it); }
+      else torre.editando[it.id] = true;
+      torreRender(); return;
+    }
+    if (acao === 'rem-pend') { it.aguarda.splice(+alvo.dataset.n, 1); torreSalvar(it); torreRender(); return; }
+    if (acao === 'arquivar') { torre.arquivando[it.id] = true; torreRender(); return; }
+    if (acao === 'arq-cancel') { delete torre.arquivando[it.id]; torreRender(); return; }
+    if (acao === 'arq-ok') { delete torre.arquivando[it.id]; it.statusAntes = 'ativo'; torreMudarStatus(it, 'arquivar'); return; }
+    if (acao === 'apagar') { delete torre.arquivando[it.id]; torreMudarStatus(it, 'lixeira'); return; }
+    if (acao === 'restaurar') { torreMudarStatus(it, it.statusAntes === 'arquivar' ? 'arquivar' : 'ativo'); return; }
+    if (acao === 'voltar-ativo') { torreMudarStatus(it, 'ativo'); return; }
+    if (acao === 'excluir-vez') {
+      if (!window.confirm('Apagar de vez? Não dá para desfazer.')) return;
+      torre.itens = torre.itens.filter(function(x) { return x.id !== it.id; });
+      torreApi({ acao: 'excluir', id: it.id }).catch(function(er) { torreStatus('⚠️ ' + er.message); });
+      torreRender();
+    }
+  });
+
+  abaTorreEl.addEventListener('change', function(e) {
+    var box = e.target.closest('[data-torre-ok]');
+    if (!box) return;
+    var cartao = box.closest('.torre-card'), it = cartao ? torreAchar(cartao.dataset.id) : null;
+    if (!it || !it.aguarda[+box.dataset.torreOk]) return;
+    it.aguarda[+box.dataset.torreOk].ok = box.checked;
+    torreSalvar(it); torreRender();
+  });
+
+  function torreCampo(e) {
+    var campo = e.target.dataset ? e.target.dataset.campo : '';
+    if (e.target.id === 'torreLocalInput') { torre.cfg.local = e.target.value.trim(); torreLembrarLocal(torre.cfg.local); torreGravarCfg(); return; }
+    if (!campo) return;
+    var cartao = e.target.closest('.torre-card'), it = cartao ? torreAchar(cartao.dataset.id) : null;
+    if (!it) return;
+    it[campo] = e.target.value;
+    it.atualizadoEm = new Date().toISOString();
+    torreSalvarDepois(it);
+  }
+  abaTorreEl.addEventListener('input', torreCampo);
+  abaTorreEl.addEventListener('change', torreCampo);
+  // Guarda se cada turno/chips está aberto, para a tela não fechar sozinha ao atualizar.
+  abaTorreEl.addEventListener('toggle', function(e) {
+    var d = e.target;
+    if (d.dataset && d.dataset.grupo) torre.abertos[d.dataset.grupo] = d.open;
+    if (d.dataset && d.dataset.chips) torre.chips[d.dataset.chips] = d.open;
+  }, true);
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && !abaTorreEl.classList.contains('oculto') && torre.carregado) torreCarregar();
+  });
+
+  // ---------- Entrada automática depois de gerar o prontuário ----------
+  var TORRE_NAO_NOME = /\b(DOR|QUEDA|TRAUMA|FRATUR\w*|PACIENTE|REFERE|ANOS?|HAS|DM|ENTORSE|LUXA\w*|JOELHO|OMBRO|TORNOZELO|PUNHO|M[AÃ]O|COTOVELO|QUADRIL|COLUNA|LOMBALGIA|CERVICALGIA|PE|P[ÉE]|PERNA|BRA[CÇ]O|MEMBRO|NEGA|SEM|COM)\b/i;
+  function torreExtrair(dados, textoGerado) {
+    var linhas = String(dados || '').split(/\n/).map(function(l) { return l.trim(); }).filter(Boolean);
+    var numero = '';
+    var m = String(dados || '').match(/\b\d{3,8}\s*-\s*\d{1,2}\b/);
+    if (m) numero = m[0].replace(/\s+/g, '');
+    var nome = '', linhaNome = -1;
+    if (linhas.length) {
+      var c = linhas[0].split(/[,;]|\s\d|\bmat\b/i)[0].trim();
+      var palavras = c.split(/\s+/);
+      var conectivos = /^(da|de|do|das|dos|e)$/i;
+      var ok = c.length > 3 && c.length <= 70 && palavras.length >= 2 && palavras.length <= 7 && /^[A-Za-zÀ-ÿ'.\- ]+$/.test(c) && !TORRE_NAO_NOME.test(c) &&
+        palavras.every(function(p) { return conectivos.test(p) || /^[A-ZÀ-Ý]/.test(p); });
+      if (ok) { nome = c; linhaNome = 0; }
+    }
+    var hipotese = '';
+    var hd = String(textoGerado || '').match(/^\s*(?:HD|Hipótese diagnóstica|Diagnóstico)\s*:\s*(.+)$/im);
+    if (hd) hipotese = hd[1].trim();
+    if (!hipotese) {
+      var resto = linhas.filter(function(l, n) { return n !== linhaNome && !(numero && l.replace(/\s+/g, '').indexOf(numero) !== -1 && l.length < 20); });
+      if (resto.length) hipotese = resto[resto.length - 1].slice(0, 140);
+    }
+    var conduta = String(textoGerado || '');
+    var ic = conduta.search(/CONDUTA\s*:/i);
+    if (ic !== -1) conduta = conduta.slice(ic);
+    var linhasConduta = conduta.split(/\n/).filter(function(l) { return /^\s*(solicit|aguard|pedid|agend|encaminh)/i.test(l); }).join('\n');
+    var regras = [
+      ['RX', /radiograf|raio[\s-]?x|\bRX\b/i], ['RM', /resson[âa]ncia|\bRM\b/i], ['TC', /tomografia|\bTC\b/i],
+      ['USG', /ultrass|ultrasson|\bUSG\b|ecografia/i], ['Exames de sangue', /laborator|hemograma|exames de sangue|\bPCR\b/i],
+      ['Avaliação da clínica', /cl[ií]nica m[ée]dica|avalia[çc][ãa]o da cl[ií]nica/i],
+      ['Avaliação da retaguarda/chefe', /retaguarda|chefe|discutid/i], ['Vaga/internação', /interna[çc]|vaga/i]
+    ];
+    var aguarda = [];
+    regras.forEach(function(r) { if (r[1].test(linhasConduta)) aguarda.push({ k: r[0], ok: false, txt: '' }); });
+    return { nome: nome, numero: numero, hipotese: hipotese, aguarda: aguarda };
+  }
+
+  function torreToast(msg, botoes) {
+    var t = document.getElementById('torreToast');
+    if (!t) { t = document.createElement('div'); t.id = 'torreToast'; t.className = 'torre-toast'; document.body.appendChild(t); }
+    t.innerHTML = '';
+    var s = document.createElement('span'); s.textContent = msg; t.appendChild(s);
+    (botoes || []).forEach(function(b) {
+      var bt = document.createElement('button'); bt.type = 'button'; bt.textContent = b[0];
+      bt.addEventListener('click', function() { t.style.display = 'none'; b[1](); }); t.appendChild(bt);
+    });
+    t.style.display = 'flex';
+    clearTimeout(torre.toastT);
+    torre.toastT = setTimeout(function() { t.style.display = 'none'; }, 14000);
+  }
+  function torreNorm(s) { return String(s || '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+
+  function torreCriarDeExtracao(ex) {
+    return torreGarantirCarregado().then(function(ok) {
+      if (!ok) { torreToast('Torre indisponível agora. O prontuário não foi afetado.', []); return; }
+      var igual = torre.itens.filter(function(i) {
+        if (i.status === 'lixeira') return false;
+        return (ex.numero && i.numero === ex.numero) || (!ex.numero && ex.nome && torreNorm(i.nome) === torreNorm(ex.nome));
+      })[0];
+      var ver = ['Ver na Torre', function() { torre.secao = 'ativo'; mostrarAba('torre'); }];
+      if (igual && igual.status === 'arquivar') { torreToast('Esse paciente já está em A arquivar.', [ver]); return; }
+      if (igual) {
+        if (ex.hipotese) igual.hipotese = ex.hipotese;
+        ex.aguarda.forEach(function(a) { if (!igual.aguarda.some(function(x) { return x.k === a.k; })) igual.aguarda.push(a); });
+        igual.atualizadoEm = new Date().toISOString();
+        torreSalvar(igual).then(function() { torreToast('Atualizado na Torre de controle.', [ver]); });
+        return;
+      }
+      var it = torreNovoItem({ nome: ex.nome, numero: ex.numero, hipotese: ex.hipotese, aguarda: ex.aguarda });
+      torre.itens.push(it);
+      torreLembrarLocal(it.local);
+      torreSalvar(it).then(function(salvou) {
+        if (!salvou) { torreToast('Não consegui salvar na Torre. Veja a aba e tente de novo.', [ver]); return; }
+        torreToast('Adicionado à Torre de controle.', [ver, ['Desfazer', function() {
+          torre.itens = torre.itens.filter(function(x) { return x.id !== it.id; });
+          torreApi({ acao: 'excluir', id: it.id }).catch(function() {}); torreRender();
+        }]]);
+      });
+    });
+  }
+
+  function torreAposGerar(dados, textoGerado) {
+    try {
+      var ex = torreExtrair(dados, textoGerado);
+      if (!ex.nome && !ex.numero) {
+        torreToast('Não achei nome nem número nos dados.', [['Adicionar à Torre', function() {
+          torreGarantirCarregado().then(function() {
+            var it = torreNovoItem({ hipotese: ex.hipotese, aguarda: ex.aguarda });
+            torre.itens.push(it); torre.editando[it.id] = true; torre.secao = 'ativo'; torreSalvar(it); mostrarAba('torre');
+          });
+        }]]);
+        return;
+      }
+      torreCriarDeExtracao(ex);
+    } catch (e) { /* a Torre nunca atrapalha o prontuário */ }
+  }
 
   // --- Upload de imagens (compartilhado entre prontuario e mensagens) ---
   function criarGerenciadorImagens(idZona, idInput, idLista, idAviso) {
@@ -3765,6 +4266,7 @@
         provedorFixoRefazer = payloadGerar.provedor || '';
         renderizarResultado(texto);
         scrollSeguro(resultadoCard);
+        torreAposGerar(dadosCaso, texto);
         if (reaplicar.length) return reaplicarAjustes(reaplicar);
       }
     }).catch(function() {
