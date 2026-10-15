@@ -915,6 +915,10 @@
   .torre-cores button { padding: 6px 8px; background: rgba(255,255,255,.7); border: 1px solid var(--panel-border); border-radius: 14px; font-size: 12px; color: var(--ink); cursor: pointer; }
   .torre-cores button.sel { border: 2px solid var(--ink); font-weight: 800; background: #fff; }
   .btn-torre-add { display: block; width: 100%; margin: 8px 0; padding: 10px; background: #fff; border: 1px solid var(--accent); border-radius: 8px; color: var(--accent); font-size: 13px; font-weight: 700; cursor: pointer; font-family: var(--sans); }
+  .torre-localbox { display: flex; align-items: center; gap: 6px; margin: 8px 0 10px; }
+  .torre-localbox input { flex: 1; margin: 0; padding: 9px 10px; font-size: 14px; border: 1px solid var(--panel-border); border-radius: 8px; background: #f7f9f7; font-family: var(--sans); color: var(--ink); }
+  .torre-novo-turno { margin-top: 10px; padding: 10px; background: #f1f6f3; border-radius: 8px; }
+  .torre-novo-turno select, .torre-novo-turno input { width: 100%; margin-bottom: 6px; padding: 9px 10px; font-size: 13px; border: 1px solid var(--panel-border); border-radius: 8px; background: #fff; font-family: var(--sans); color: var(--ink); }
   .torre-toast { position: fixed; left: 12px; right: 12px; bottom: 16px; max-width: 616px; margin: 0 auto; z-index: 60; display: none; align-items: center; gap: 8px; flex-wrap: wrap; background: #1d2b26; color: #fff; padding: 12px 14px; border-radius: 12px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
   .torre-toast span { flex: 1; min-width: 140px; }
   .torre-toast button { padding: 8px 12px; border: 1px solid rgba(255,255,255,.5); background: transparent; color: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
@@ -2836,13 +2840,13 @@
   var TORRE_DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   var TORRE_CORES_DEF = [['vermelho', '🔴', 'A internar'], ['amarelo', '🟡', 'A liberar'], ['marrom', '🟤', 'A canetar'], ['verde', '🟢', 'Resolvido (a arquivar)'], ['', '⚪', 'Sem cor']];
   var TORRE_RANK_COR = { '': 0, vermelho: 1, amarelo: 2, marrom: 3, verde: 4 };
-  var torre = { itens: [], secao: 'ativo', carregado: false, editando: {}, arquivando: {}, abertos: {}, chips: {}, timers: {}, cfg: torreLerCfg() };
+  var torre = { itens: [], secao: 'ativo', carregado: false, editando: {}, arquivando: {}, abertos: {}, chips: {}, timers: {}, novoTurno: false, cfg: torreLerCfg() };
 
   function torreLerCfg() {
     try {
       var c = JSON.parse(localStorage.getItem('torre_cfg') || '{}');
-      return { turno: c.turno || '', local: c.local || '', locais: Array.isArray(c.locais) ? c.locais : [] };
-    } catch (e) { return { turno: '', local: '', locais: [] }; }
+      return { turno: c.turno || '', local: c.local || '', locais: Array.isArray(c.locais) ? c.locais : [], vazios: Array.isArray(c.vazios) ? c.vazios : [] };
+    } catch (e) { return { turno: '', local: '', locais: [], vazios: [] }; }
   }
   function torreGravarCfg() { try { localStorage.setItem('torre_cfg', JSON.stringify(torre.cfg)); } catch (e) {} }
   function torreEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -2884,7 +2888,7 @@
   function torreCarregar() {
     torreStatus('Carregando...');
     return torreApi({ acao: 'listar' }).then(function(d) {
-      torre.itens = d.itens || []; torre.carregado = true; torreStatus(''); torreRender(); return true;
+      torre.itens = d.itens || []; torre.carregado = true; torreStatus(''); torreNormalizarLocais(); torreRender(); return true;
     }).catch(function(e) { torreStatus('⚠️ ' + e.message); return false; });
   }
   function torreGarantirCarregado() { return torre.carregado ? Promise.resolve(true) : torreCarregar(); }
@@ -2892,17 +2896,64 @@
 
   function torreAchar(id) { return torre.itens.filter(function(i) { return i.id === id; })[0]; }
   function torrePares(it) {
-    return torre.itens.filter(function(x) { return x.status === 'ativo' && x.id !== it.id && x.dataTurno === it.dataTurno && x.turno === it.turno && (x.local || '') === (it.local || ''); });
+    return torre.itens.filter(function(x) { return x.status === 'ativo' && x.id !== it.id && x.dataTurno === it.dataTurno && x.turno === it.turno; });
   }
   function torreProximaOrdem(it) {
     var p = torrePares(it);
     return p.length ? Math.max.apply(null, p.map(function(x) { return x.ordem || 0; })) + 10 : 10;
   }
+  // Local é do turno: vale o primeiro local preenchido entre os pacientes ativos do turno (ou do turno vazio criado à mão).
+  function torreLocalDoGrupo(data, turno) {
+    var doGrupo = torre.itens.filter(function(i) { return i.status === 'ativo' && i.dataTurno === data && i.turno === turno && (i.local || '').trim(); })
+      .sort(function(a, b) { return String(a.criadoEm || '').localeCompare(String(b.criadoEm || '')); })[0];
+    if (doGrupo) return doGrupo.local.trim();
+    var v = (torre.cfg.vazios || []).filter(function(x) { return x.dataTurno === data && x.turno === turno; })[0];
+    return v ? (v.local || '') : '';
+  }
+  function torreGrupos() {
+    var g = {};
+    torre.itens.filter(function(i) { return i.status === 'ativo'; }).forEach(function(i) { var k = (i.dataTurno || '') + '|' + i.turno; (g[k] = g[k] || { key: k, data: i.dataTurno || '', turno: i.turno, itens: [] }).itens.push(i); });
+    var vivos = (torre.cfg.vazios || []).filter(function(v) { return !g[v.dataTurno + '|' + v.turno]; });
+    if (vivos.length !== (torre.cfg.vazios || []).length) { torre.cfg.vazios = vivos; torreGravarCfg(); }
+    vivos.forEach(function(v) { var k = v.dataTurno + '|' + v.turno; g[k] = { key: k, data: v.dataTurno, turno: v.turno, itens: [] }; });
+    var lista = Object.keys(g).map(function(k) { g[k].local = torreLocalDoGrupo(g[k].data, g[k].turno); return g[k]; });
+    lista.sort(function(a, b) {
+      if (a.data !== b.data) return a.data < b.data ? 1 : -1;
+      return TORRE_ORDEM_TURNOS.indexOf(a.turno) - TORRE_ORDEM_TURNOS.indexOf(b.turno);
+    });
+    return lista;
+  }
+  function torreRotuloGrupo(g) { return torreRotuloData(g.data) + ' · ' + TORRE_TURNOS[g.turno] + (g.local ? ' · ' + g.local : ''); }
+  function torreSelectTurnos(i) {
+    var atual = (i.dataTurno || '') + '|' + i.turno;
+    var grupos = torreGrupos();
+    if (!grupos.some(function(g) { return g.key === atual; })) grupos.push({ key: atual, data: i.dataTurno, turno: i.turno, local: i.local || '' });
+    return '<select data-campo="mover">' + grupos.map(function(g) { return '<option value="' + torreEsc(g.key) + '"' + (g.key === atual ? ' selected' : '') + '>' + torreEsc(torreRotuloGrupo(g)) + '</option>'; }).join('') + '</select>';
+  }
+  function torreSetLocalGrupo(key, local) {
+    local = (local || '').trim();
+    var p = key.split('|'), mudados = [];
+    torre.itens.forEach(function(i) { if (i.status === 'ativo' && i.dataTurno === p[0] && i.turno === p[1] && (i.local || '') !== local) { i.local = local; mudados.push(i); } });
+    (torre.cfg.vazios || []).forEach(function(v) { if (v.dataTurno === p[0] && v.turno === p[1]) v.local = local; });
+    if (local) { torreLembrarLocal(local); torre.cfg.local = local; }
+    torreGravarCfg();
+    if (mudados.length) torreSalvar(mudados);
+    torreRender();
+  }
+  // Pacientes do mesmo turno passam a ter o mesmo local (vale o primeiro preenchido).
+  function torreNormalizarLocais() {
+    var mudados = [];
+    torreGrupos().forEach(function(g) {
+      if (!g.local) return;
+      g.itens.forEach(function(i) { if ((i.local || '') !== g.local) { i.local = g.local; mudados.push(i); } });
+    });
+    if (mudados.length) torreSalvar(mudados);
+  }
   function torreNovoItem(base) {
     var turno = torreTurnoAtual();
     var it = Object.assign({
       id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      nome: '', numero: '', hipotese: '', turno: turno, dataTurno: torreDataDoTurno(turno), local: torre.cfg.local || '',
+      nome: '', numero: '', hipotese: '', turno: turno, dataTurno: torreDataDoTurno(turno), local: torreLocalDoGrupo(torreDataDoTurno(turno), turno) || torre.cfg.local || '',
       aguarda: [], obs: '', checar: '', cor: '', status: 'ativo', statusAntes: '', ordem: 0,
       criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), lixeiraEm: ''
     }, base || {});
@@ -2936,9 +2987,7 @@
         '<input type="text" data-campo="nome" placeholder="Nome" value="' + torreEsc(i.nome) + '">' +
         '<input type="text" data-campo="numero" placeholder="Número do atendimento" value="' + torreEsc(i.numero) + '">' +
         '<input type="text" data-campo="hipotese" placeholder="Hipótese" value="' + torreEsc(i.hipotese) + '">' +
-        '<select data-campo="turno">' + Object.keys(TORRE_TURNOS).map(function(t) { return '<option value="' + t + '"' + (i.turno === t ? ' selected' : '') + '>' + TORRE_TURNOS[t] + '</option>'; }).join('') + '</select>' +
-        '<input type="date" data-campo="dataTurno" value="' + torreEsc(i.dataTurno) + '">' +
-        '<input type="text" data-campo="local" list="torreLocaisLista" placeholder="Local (escolha ou escreva)" value="' + torreEsc(i.local) + '">' +
+        '<span class="label">Mover para o turno</span>' + torreSelectTurnos(i) +
         '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="editar">Concluir edição</button></div></div>';
     } else if (i.hipotese) {
       h += '<div class="torre-hip">' + torreEsc(i.hipotese) + '</div>';
@@ -2983,42 +3032,38 @@
     var h = '<div class="card"><span class="label">Turno em uso</span><div class="torre-turnos">';
     var atual = torreTurnoAtual();
     Object.keys(TORRE_TURNOS).forEach(function(t) { h += '<button type="button" data-torre-turno="' + t + '" class="' + (atual === t ? 'ativa' : '') + '">' + TORRE_TURNOS[t] + '</button>'; });
-    h += '</div><span class="label" style="margin-top:12px;">Local de atendimento</span>' +
-      '<input type="text" id="torreLocalInput" list="torreLocaisLista" placeholder="Escolha ou escreva o local" value="' + torreEsc(torre.cfg.local) + '">' +
+    h += '</div>' +
       '<datalist id="torreLocaisLista">' + torreLocais().map(function(l) { return '<option value="' + torreEsc(l) + '"></option>'; }).join('') + '</datalist>' +
-      '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="novo">＋ Novo paciente</button><button type="button" data-torre-acao="atualizar">↻ Atualizar</button></div></div>';
-    return h;
+      '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="novo">＋ Novo paciente</button><button type="button" data-torre-acao="novo-turno">＋ Novo turno</button><button type="button" data-torre-acao="atualizar">↻ Atualizar</button></div>';
+    if (torre.novoTurno) {
+      h += '<div class="torre-novo-turno"><span class="label">Novo turno</span>' +
+        '<select id="torreNtTurno">' + Object.keys(TORRE_TURNOS).map(function(t) { return '<option value="' + t + '"' + (t === atual ? ' selected' : '') + '>' + TORRE_TURNOS[t] + '</option>'; }).join('') + '</select>' +
+        '<input type="date" id="torreNtData" value="' + torreEsc(torreDataDoTurno(atual)) + '">' +
+        '<input type="text" id="torreNtLocal" list="torreLocaisLista" placeholder="Local (escolha ou escreva)" value="' + torreEsc(torre.cfg.local) + '">' +
+        '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="turno-criar">Criar turno</button><button type="button" data-torre-acao="turno-cancel">Cancelar</button></div></div>';
+    }
+    return h + '</div>';
   }
 
   function torreHtmlAtivos() {
-    var ativos = torre.itens.filter(function(i) { return i.status === 'ativo'; });
-    if (!ativos.length) return '<div class="hint">Nenhum paciente ativo. Gere um prontuário com nome e número, ou toque em "Novo paciente".</div>';
-    var grupos = {};
-    ativos.forEach(function(i) { var k = (i.dataTurno || '') + '|' + i.turno; (grupos[k] = grupos[k] || []).push(i); });
-    var chaves = Object.keys(grupos).sort(function(a, b) {
-      var A = a.split('|'), B = b.split('|');
-      if (A[0] !== B[0]) return A[0] < B[0] ? 1 : -1;
-      return TORRE_ORDEM_TURNOS.indexOf(A[1]) - TORRE_ORDEM_TURNOS.indexOf(B[1]);
-    });
-    return chaves.map(function(k, idx) {
-      var lista = grupos[k], p = k.split('|');
-      var aberto = (k in torre.abertos) ? torre.abertos[k] : (idx < 2 || lista.some(torrePendente));
-      var h = '<details class="torre-grupo" data-grupo="' + torreEsc(k) + '"' + (aberto ? ' open' : '') + '><summary><span>' + torreEsc(torreRotuloData(p[0]) + ' · ' + TORRE_TURNOS[p[1]]) + '</span><span class="torre-cont">' + lista.length + (lista.length === 1 ? ' paciente' : ' pacientes') + '</span></summary>';
-      var locais = {};
-      lista.forEach(function(i) { var l = i.local || ''; (locais[l] = locais[l] || []).push(i); });
-      Object.keys(locais).sort(function(a, b) { if (!a) return 1; if (!b) return -1; return a.localeCompare(b); }).forEach(function(l) {
-        h += '<div class="torre-local">📍 ' + torreEsc(l || 'Sem local') + '</div>';
-        locais[l].sort(function(a, b) { return (TORRE_RANK_COR[a.cor || ''] - TORRE_RANK_COR[b.cor || '']) || ((a.ordem || 0) - (b.ordem || 0)); }).forEach(function(i) { h += torreCartao(i, 'ativo'); });
-      });
+    var grupos = torreGrupos();
+    if (!grupos.length) return '<div class="hint">Nenhum paciente ativo. Gere um prontuário com nome e número, ou toque em "Novo paciente".</div>';
+    return grupos.map(function(g, idx) {
+      var lista = g.itens;
+      var aberto = (g.key in torre.abertos) ? torre.abertos[g.key] : (idx < 2 || lista.some(torrePendente));
+      var h = '<details class="torre-grupo" data-grupo="' + torreEsc(g.key) + '"' + (aberto ? ' open' : '') + '><summary><span>' + torreEsc(torreRotuloData(g.data) + ' · ' + TORRE_TURNOS[g.turno]) + '</span><span class="torre-cont">' + lista.length + (lista.length === 1 ? ' paciente' : ' pacientes') + '</span></summary>';
+      h += '<div class="torre-localbox">📍 <input type="text" data-glocal="' + torreEsc(g.key) + '" list="torreLocaisLista" placeholder="Local deste turno" value="' + torreEsc(g.local) + '"></div>';
+      if (!lista.length) h += '<div class="hint">Turno sem pacientes.</div>';
+      lista.slice().sort(function(a, b) { return (TORRE_RANK_COR[a.cor || ''] - TORRE_RANK_COR[b.cor || '']) || ((a.ordem || 0) - (b.ordem || 0)); }).forEach(function(i) { h += torreCartao(i, 'ativo'); });
       return h + '</details>';
     }).join('');
   }
 
   function torreHtmlArquivar() {
     var lista = torre.itens.filter(function(i) { return i.status === 'arquivar'; }).sort(function(a, b) { return String(b.atualizadoEm || '').localeCompare(String(a.atualizadoEm || '')); });
-    var h = '<div class="hint" style="margin-bottom:12px;">Pacientes que você quer checar depois. Copie, cole no Claude para guardar na aba VAR do Notion e depois apague o card aqui. Nada some sozinho nesta seção.</div>';
+    var h = '<div class="hint" style="margin-bottom:12px;">Pacientes que você quer checar depois. Copie, cole no Claude (central 3j) para guardar na aba VAR do Notion e depois use Apagar tudo. Nada some sozinho nesta seção.</div>';
     if (!lista.length) return h + '<div class="hint">Nada para arquivar.</div>';
-    h += '<div class="torre-botoes" style="margin:0 0 12px;"><button type="button" class="primario" data-torre-acao="copiar-todos">📋 Copiar todos</button></div>';
+    h += '<div class="torre-botoes" style="margin:0 0 12px;"><button type="button" class="primario" data-torre-acao="copiar-todos">📋 Copiar todos</button><button type="button" class="perigo" data-torre-acao="apagar-tudo">🗑 Apagar tudo</button></div>';
     return h + lista.map(function(i) { return torreCartao(i, 'arquivar'); }).join('');
   }
 
@@ -3101,6 +3146,26 @@
       var n = torreNovoItem(); torre.itens.push(n); torre.editando[n.id] = true; torreSalvar(n); torreRender(); return;
     }
     if (acao === 'atualizar') { torreCarregar(); return; }
+    if (acao === 'novo-turno') { torre.novoTurno = true; torreRender(); return; }
+    if (acao === 'turno-cancel') { torre.novoTurno = false; torreRender(); return; }
+    if (acao === 'turno-criar') {
+      var nt = document.getElementById('torreNtTurno').value, nd = document.getElementById('torreNtData').value, nl = (document.getElementById('torreNtLocal').value || '').trim();
+      if (!nd) { torreStatus('Escolha a data do turno.'); return; }
+      var chave = nd + '|' + nt;
+      var existe = torreGrupos().some(function(g) { return g.key === chave; });
+      if (!existe) { torre.cfg.vazios.push({ dataTurno: nd, turno: nt, local: nl }); torreGravarCfg(); }
+      torre.novoTurno = false; torre.abertos[chave] = true;
+      if (existe && nl) torreSetLocalGrupo(chave, nl); else { if (nl) { torreLembrarLocal(nl); torre.cfg.local = nl; torreGravarCfg(); } torreRender(); }
+      return;
+    }
+    if (acao === 'apagar-tudo') {
+      var arq = torre.itens.filter(function(i) { return i.status === 'arquivar'; });
+      if (!arq.length) return;
+      if (!window.confirm('Mandar os ' + arq.length + ' pacientes de A arquivar para a Lixeira? Eles ficam lá por 7 dias.')) return;
+      arq.forEach(function(i) { i.statusAntes = 'arquivar'; i.lixeiraEm = new Date().toISOString(); i.status = 'lixeira'; i.atualizadoEm = new Date().toISOString(); });
+      for (var q = 0; q < arq.length; q += 40) torreSalvar(arq.slice(q, q + 40));
+      torreRender(); torreStatus('🗑 ' + arq.length + ' enviados para a Lixeira.'); return;
+    }
     if (acao === 'copiar-todos') {
       var todos = torre.itens.filter(function(i) { return i.status === 'arquivar'; });
       torreCopiar('Torre de controle — pacientes a arquivar\n\n' + todos.map(torreTextoCopia).join('\n\n---\n\n')).then(function() { torreStatus('✅ Copiado (' + todos.length + ').'); });
@@ -3147,7 +3212,18 @@
 
   function torreCampo(e) {
     var campo = e.target.dataset ? e.target.dataset.campo : '';
-    if (e.target.id === 'torreLocalInput') { torre.cfg.local = e.target.value.trim(); torreLembrarLocal(torre.cfg.local); torreGravarCfg(); return; }
+    if (e.target.dataset && e.target.dataset.glocal !== undefined) { if (e.type === 'change') torreSetLocalGrupo(e.target.dataset.glocal, e.target.value); return; }
+    if (campo === 'mover') {
+      if (e.type !== 'change') return;
+      var c0 = e.target.closest('.torre-card'), it0 = c0 ? torreAchar(c0.dataset.id) : null;
+      if (!it0) return;
+      var pk = e.target.value.split('|');
+      var localDestino = torreLocalDoGrupo(pk[0], pk[1]);
+      it0.dataTurno = pk[0]; it0.turno = pk[1]; it0.local = localDestino || it0.local || '';
+      it0.ordem = torreProximaOrdem(it0); it0.atualizadoEm = new Date().toISOString();
+      torre.abertos[e.target.value] = true;
+      torreSalvar(it0); torreRender(); return;
+    }
     if (!campo) return;
     var cartao = e.target.closest('.torre-card'), it = cartao ? torreAchar(cartao.dataset.id) : null;
     if (!it) return;
@@ -3269,9 +3345,9 @@
   }
   function torrePorNome(ex) {
     if (!ex.nome) return null;
-    var turno = torreTurnoAtual(), data = torreDataDoTurno(turno), local = (torre.cfg.local || '');
+    var turno = torreTurnoAtual(), data = torreDataDoTurno(turno);
     return torre.itens.filter(function(i) {
-      return i.status === 'ativo' && torreNorm(i.nome) === torreNorm(ex.nome) && i.dataTurno === data && i.turno === turno && (i.local || '') === local;
+      return i.status === 'ativo' && torreNorm(i.nome) === torreNorm(ex.nome) && i.dataTurno === data && i.turno === turno;
     })[0] || null;
   }
 
