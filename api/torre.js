@@ -9,7 +9,7 @@ const DIAS_LIXEIRA = 7;
 const MAX_ITENS = 600;
 const STATUS_VALIDOS = ['ativo', 'arquivar', 'lixeira'];
 const TURNOS_VALIDOS = ['07-19', '10-22', '19-07'];
-const CORES_VALIDAS = ['', 'amarelo', 'vermelho', 'verde'];
+const CORES_VALIDAS = ['', 'amarelo', 'vermelho', 'marrom', 'verde'];
 
 async function upstash(comando) {
   const url = process.env.KV_REST_API_URL;
