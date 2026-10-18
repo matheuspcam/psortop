@@ -43,6 +43,7 @@ function limparItem(bruto) {
     nome: texto(i.nome, 160),
     numero: texto(i.numero, 40),
     hipotese: texto(i.hipotese, 400),
+    hipSug: !!i.hipSug,
     turno: TURNOS_VALIDOS.indexOf(i.turno) !== -1 ? i.turno : '07-19',
     dataTurno: /^\d{4}-\d{2}-\d{2}$/.test(i.dataTurno || '') ? i.dataTurno : '',
     local: texto(i.local, 80),

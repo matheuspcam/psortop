@@ -919,6 +919,17 @@
   .torre-localbox input { flex: 1; margin: 0; padding: 9px 10px; font-size: 14px; border: 1px solid var(--panel-border); border-radius: 8px; background: #f7f9f7; font-family: var(--sans); color: var(--ink); }
   .torre-novo-turno { margin-top: 10px; padding: 10px; background: #f1f6f3; border-radius: 8px; }
   .torre-novo-turno select, .torre-novo-turno input { width: 100%; margin-bottom: 6px; padding: 9px 10px; font-size: 13px; border: 1px solid var(--panel-border); border-radius: 8px; background: #fff; font-family: var(--sans); color: var(--ink); }
+  .torre-legenda { font-size: 11px; color: var(--ink-dim); margin: 2px 0 6px; line-height: 1.5; }
+  .torre-nome-click { cursor: pointer; flex: 1; min-width: 0; }
+  .torre-caret { display: inline-block; width: 16px; color: var(--ink-dim); font-size: 12px; }
+  .torre-resumo { font-size: 12px; color: var(--ink-dim); margin-top: 4px; }
+  .torre-sug { font-size: 11px; font-weight: 600; color: var(--ink-dim); margin-left: 6px; font-style: italic; }
+  .torre-card.recolhido { padding: 10px 12px; }
+  #torrePainel { display: none; position: fixed; top: 12px; right: 12px; bottom: 72px; width: 360px; overflow-y: auto; z-index: 40; background: var(--bg, #f4f7f5); border: 1px solid var(--panel-border); border-radius: 14px; padding: 10px; box-shadow: 0 4px 18px rgba(0,0,0,.12); }
+  body.torre-painel-on #torrePainel { display: block; }
+  #torrePainel .torre-painel-topo { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+  #torrePainel .torre-painel-topo strong { flex: 1; font-size: 14px; }
+  #torrePainel .torre-painel-topo button { padding: 6px 10px; font-size: 12px; font-weight: 600; background: #f7f9f7; border: 1px solid var(--panel-border); border-radius: 8px; cursor: pointer; color: var(--ink); font-family: var(--sans); }
   .torre-toast { position: fixed; left: 12px; right: 12px; bottom: 16px; max-width: 616px; margin: 0 auto; z-index: 60; display: none; align-items: center; gap: 8px; flex-wrap: wrap; background: #1d2b26; color: #fff; padding: 12px 14px; border-radius: 12px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
   .torre-toast span { flex: 1; min-width: 140px; }
   .torre-toast button { padding: 8px 12px; border: 1px solid rgba(255,255,255,.5); background: transparent; color: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
@@ -1960,6 +1971,12 @@
     <div class="torre-secoes" id="torreSecoes"></div>
     <div id="torreLista"></div>
     <div class="transferir-status" id="torreStatus"></div>
+    <div class="caixa-sugerir caixa-sugerir-full" id="caixaSugerirTorre">
+      <span class="caixa-sugerir-titulo">⚠️ Sugerir mudança permanente</span>
+      <div class="caixa-sugerir-hint">Escreva sem nome nem dado de paciente. Vai para as sugestões pendentes e não altera nada agora.</div>
+      <textarea id="sugestaoMudancaTorre" placeholder="Ex: a Torre deveria avisar quando um paciente passa de 6 horas sem reavaliação..."></textarea>
+      <button type="button" class="btn-sugerir" id="btnSugerirTorre">Salvar sugestão</button>
+    </div>
   </div>
 
   <div id="abaImagem" class="oculto">
@@ -2072,11 +2089,13 @@
     telaPin.classList.add('oculto');
     telaApp.classList.remove('oculto');
     pinErro.style.display = 'none';
+    setTimeout(function() { try { torrePainelAtualizarVisibilidade(); } catch (e) {} }, 0);
   }
 
   function bloquearApp() {
     sessionStorage.removeItem('pin_ps');
     pinAtual = '';
+    try { document.body.classList.remove('torre-painel-on'); } catch (e) {}
     telaApp.classList.add('oculto');
     telaPin.classList.remove('oculto');
     inputPin.value = '';
@@ -2187,6 +2206,20 @@
 
   function textoParaColar(texto) {
     return String(texto || '').replace(/\r\n/g, '\n').replace(/\n/g, '\r\n');
+  }
+
+  // Título em maiúsculas na primeira linha de tudo que se copia dos Textos prontos (18/10/2026).
+  var TITULO_DE_COPIA = { 'Atestados': 'ATESTADO', 'Retorno': 'RETORNO', 'Evasão': 'EVASÃO' };
+  function comTituloDeCopia(titulo, texto) {
+    var t = String(texto || '');
+    if (!titulo) return t;
+    var primeira = (t.split('\n').filter(function(l) { return l.trim(); })[0] || '').trim().toUpperCase();
+    if (primeira.indexOf(titulo) === 0) return t;
+    return titulo + '\n\n' + t.replace(/^\s+/, '');
+  }
+  function tituloDeCopiaDoItem(cat, item) {
+    if (item && item.titulo === 'Tétano') return 'TÉTANO';
+    return TITULO_DE_COPIA[cat.categoria] || '';
   }
 
   function copiarTextoProntuario(texto) {
@@ -2701,6 +2734,8 @@
 
 
   function mostrarAba(aba) {
+    try { torreAbaAtual = aba; } catch (e) {}
+    setTimeout(function() { try { torrePainelAtualizarVisibilidade(); } catch (e) {} }, 0);
     abaGerar.classList.toggle('oculto', aba !== 'gerar');
     abaMensagens.classList.toggle('oculto', aba !== 'mensagens');
     abaProntos.classList.toggle('oculto', aba !== 'prontos');
@@ -2838,9 +2873,10 @@
   var TORRE_TURNOS = { '07-19': '07h–19h', '10-22': '10h–22h', '19-07': '19h–07h' };
   var TORRE_ORDEM_TURNOS = ['19-07', '10-22', '07-19'];
   var TORRE_DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-  var TORRE_CORES_DEF = [['vermelho', '🔴', 'A internar'], ['amarelo', '🟡', 'A liberar'], ['marrom', '🟤', 'A canetar'], ['verde', '🟢', 'Resolvido (a arquivar)'], ['', '⚪', 'Sem cor']];
+  var TORRE_CORES_DEF = [['vermelho', '🔴', 'Internar'], ['amarelo', '🟡', 'Reavaliar'], ['marrom', '🟤', 'De alta, canetar e fechar'], ['verde', '🟢', 'Resolvido, fechar alta após'], ['', '⚪', 'Sem cor']];
+  var TORRE_LEGENDA = '🔴 Internar · 🟡 Reavaliar · 🟤 De alta, canetar e fechar · 🟢 Resolvido, fechar alta após';
   var TORRE_RANK_COR = { '': 0, vermelho: 1, amarelo: 2, marrom: 3, verde: 4 };
-  var torre = { itens: [], secao: 'ativo', carregado: false, editando: {}, arquivando: {}, abertos: {}, chips: {}, timers: {}, novoTurno: false, cfg: torreLerCfg() };
+  var torre = { itens: [], secao: 'ativo', carregado: false, editando: {}, arquivando: {}, abertos: {}, expandidos: {}, chips: {}, timers: {}, novoTurno: false, cfg: torreLerCfg() };
 
   function torreLerCfg() {
     try {
@@ -2953,7 +2989,7 @@
     var turno = torreTurnoAtual();
     var it = Object.assign({
       id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      nome: '', numero: '', hipotese: '', turno: turno, dataTurno: torreDataDoTurno(turno), local: torreLocalDoGrupo(torreDataDoTurno(turno), turno) || torre.cfg.local || '',
+      nome: '', numero: '', hipotese: '', hipSug: false, turno: turno, dataTurno: torreDataDoTurno(turno), local: torreLocalDoGrupo(torreDataDoTurno(turno), turno) || torre.cfg.local || '',
       aguarda: [], obs: '', checar: '', cor: '', status: 'ativo', statusAntes: '', ordem: 0,
       criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(), lixeiraEm: ''
     }, base || {});
@@ -2974,23 +3010,32 @@
 
   // ---------- Desenho ----------
   function torreCartao(i, modo) {
-    var h = '<div class="torre-card' + (i.cor ? ' cor-' + i.cor : '') + '" data-id="' + torreEsc(i.id) + '">';
-    h += '<div class="torre-topo"><div class="torre-nome">' + torreEsc(i.nome || '(sem nome)') + (i.numero ? '<span class="torre-num">Nº ' + torreEsc(i.numero) + '</span>' : '') + '</div>';
+    var aberto = modo !== 'ativo' || !!torre.expandidos[i.id] || !!torre.editando[i.id] || !!torre.arquivando[i.id];
+    var h = '<div class="torre-card' + (i.cor ? ' cor-' + i.cor : '') + (aberto ? '' : ' recolhido') + '" data-id="' + torreEsc(i.id) + '">';
+    h += '<div class="torre-topo"><div class="torre-nome' + (modo === 'ativo' ? ' torre-nome-click' : '') + '"' + (modo === 'ativo' ? ' data-torre-acao="expandir"' : '') + '>' +
+      (modo === 'ativo' ? '<span class="torre-caret">' + (aberto ? '▾' : '▸') + '</span>' : '') +
+      torreEsc(i.nome || '(sem nome)') + (i.numero ? '<span class="torre-num">Nº ' + torreEsc(i.numero) + '</span>' : '') + '</div>';
     if (modo === 'ativo') {
       h += '<div class="torre-acoes"><button type="button" data-torre-acao="subir" aria-label="Subir">▲</button><button type="button" data-torre-acao="descer" aria-label="Descer">▼</button>' +
         '<button type="button" data-torre-acao="editar" aria-label="Editar">✏️</button></div>';
     }
     h += '</div>';
+    if (!aberto) {
+      if (i.hipotese) h += '<div class="torre-hip">' + torreEsc(i.hipotese) + (i.hipSug ? '<span class="torre-sug">sugerida</span>' : '') + '</div>';
+      var pend = (i.aguarda || []).filter(function(a) { return !a.ok; }).map(torreRotuloPend);
+      if ((i.aguarda || []).length) h += '<div class="torre-resumo">' + (pend.length ? '⏳ ' + torreEsc(pend.join(', ')) : '✅ Tudo chegou') + '</div>';
+      return h + '</div>';
+    }
     if (modo !== 'ativo') h += '<div class="torre-hip">' + torreEsc(torreRotuloData(i.dataTurno) + ' · ' + TORRE_TURNOS[i.turno] + (i.local ? ' · ' + i.local : '')) + '</div>';
     if (modo === 'ativo' && torre.editando[i.id]) {
       h += '<div style="margin-top:8px;">' +
         '<input type="text" data-campo="nome" placeholder="Nome" value="' + torreEsc(i.nome) + '">' +
         '<input type="text" data-campo="numero" placeholder="Número do atendimento" value="' + torreEsc(i.numero) + '">' +
-        '<input type="text" data-campo="hipotese" placeholder="Hipótese" value="' + torreEsc(i.hipotese) + '">' +
+        '<input type="text" data-campo="hipotese" placeholder="Hipótese (mecanismo -> local)" value="' + torreEsc(i.hipotese) + '">' +
         '<span class="label">Mover para o turno</span>' + torreSelectTurnos(i) +
         '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="editar">Concluir edição</button></div></div>';
     } else if (i.hipotese) {
-      h += '<div class="torre-hip">' + torreEsc(i.hipotese) + '</div>';
+      h += '<div class="torre-hip">' + torreEsc(i.hipotese) + (i.hipSug ? '<span class="torre-sug">sugerida</span>' : '') + '</div>';
     }
     if ((i.aguarda || []).length) {
       h += '<div class="torre-aguarda">';
@@ -3005,6 +3050,7 @@
       h += '<div class="torre-cores">' + TORRE_CORES_DEF.map(function(c) {
         return '<button type="button" data-torre-acao="cor" data-cor="' + c[0] + '" class="' + ((i.cor || '') === c[0] ? 'sel' : '') + '" aria-pressed="' + ((i.cor || '') === c[0]) + '">' + c[1] + ' ' + c[2] + '</button>';
       }).join('') + '</div>';
+      h += '<div class="torre-legenda">' + TORRE_LEGENDA + '</div>';
       h += '<details data-chips="' + torreEsc(i.id) + '"' + (torre.chips[i.id] ? ' open' : '') + '><summary>＋ Pendência</summary><div class="torre-chips">' +
         TORRE_PENDENCIAS.filter(function(p) { return p === 'Outro' || !(i.aguarda || []).some(function(a) { return a.k === p; }); })
           .map(function(p) { return '<button type="button" data-torre-chip="' + torreEsc(p) + '">' + torreEsc(p) + '</button>'; }).join('') + '</div></details>';
@@ -3034,7 +3080,7 @@
     Object.keys(TORRE_TURNOS).forEach(function(t) { h += '<button type="button" data-torre-turno="' + t + '" class="' + (atual === t ? 'ativa' : '') + '">' + TORRE_TURNOS[t] + '</button>'; });
     h += '</div>' +
       '<datalist id="torreLocaisLista">' + torreLocais().map(function(l) { return '<option value="' + torreEsc(l) + '"></option>'; }).join('') + '</datalist>' +
-      '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="novo">＋ Novo paciente</button><button type="button" data-torre-acao="novo-turno">＋ Novo turno</button><button type="button" data-torre-acao="atualizar">↻ Atualizar</button></div>';
+      '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="novo">＋ Novo paciente</button><button type="button" data-torre-acao="novo-turno">＋ Novo turno</button><button type="button" data-torre-acao="recolher-tudo">▸ Recolher tudo</button><button type="button" data-torre-acao="atualizar">↻ Atualizar</button></div>';
     if (torre.novoTurno) {
       h += '<div class="torre-novo-turno"><span class="label">Novo turno</span>' +
         '<select id="torreNtTurno">' + Object.keys(TORRE_TURNOS).map(function(t) { return '<option value="' + t + '"' + (t === atual ? ' selected' : '') + '>' + TORRE_TURNOS[t] + '</option>'; }).join('') + '</select>' +
@@ -3076,6 +3122,7 @@
 
   function torreRender() {
     setTimeout(torreAtualizarBotoes, 0);
+    torrePainelRender();
     var sec = document.getElementById('torreSecoes'), lista = document.getElementById('torreLista');
     if (!sec || !lista) return;
     var cont = { ativo: 0, arquivar: 0, lixeira: 0 };
@@ -3127,7 +3174,7 @@
   }
 
   var abaTorreEl = document.getElementById('abaTorre');
-  abaTorreEl.addEventListener('click', function(e) {
+  function torreClique(e) {
     var alvo = e.target.closest('[data-torre-acao],[data-torre-sec],[data-torre-turno],[data-torre-chip]');
     if (!alvo) return;
     if (alvo.dataset.torreSec) { torre.secao = alvo.dataset.torreSec; torreRender(); return; }
@@ -3146,6 +3193,7 @@
       var n = torreNovoItem(); torre.itens.push(n); torre.editando[n.id] = true; torreSalvar(n); torreRender(); return;
     }
     if (acao === 'atualizar') { torreCarregar(); return; }
+    if (acao === 'recolher-tudo') { torre.expandidos = {}; torre.editando = {}; torreRender(); return; }
     if (acao === 'novo-turno') { torre.novoTurno = true; torreRender(); return; }
     if (acao === 'turno-cancel') { torre.novoTurno = false; torreRender(); return; }
     if (acao === 'turno-criar') {
@@ -3173,6 +3221,7 @@
     }
     if (!it) return;
     if (acao === 'copiar') { torreCopiar(torreTextoCopia(it)).then(function() { torreStatus('✅ Copiado.'); }); return; }
+    if (acao === 'expandir') { if (torre.expandidos[it.id]) delete torre.expandidos[it.id]; else torre.expandidos[it.id] = true; torreRender(); return; }
     if (acao === 'subir') { torreMover(it, -1); return; }
     if (acao === 'descer') { torreMover(it, 1); return; }
     if (acao === 'cor') {
@@ -3199,16 +3248,18 @@
       torreApi({ acao: 'excluir', id: it.id }).catch(function(er) { torreStatus('⚠️ ' + er.message); });
       torreRender();
     }
-  });
+  }
+  abaTorreEl.addEventListener('click', torreClique);
 
-  abaTorreEl.addEventListener('change', function(e) {
+  function torreMarcarOk(e) {
     var box = e.target.closest('[data-torre-ok]');
     if (!box) return;
     var cartao = box.closest('.torre-card'), it = cartao ? torreAchar(cartao.dataset.id) : null;
     if (!it || !it.aguarda[+box.dataset.torreOk]) return;
     it.aguarda[+box.dataset.torreOk].ok = box.checked;
     torreSalvar(it); torreRender();
-  });
+  }
+  abaTorreEl.addEventListener('change', torreMarcarOk);
 
   function torreCampo(e) {
     var campo = e.target.dataset ? e.target.dataset.campo : '';
@@ -3228,19 +3279,52 @@
     var cartao = e.target.closest('.torre-card'), it = cartao ? torreAchar(cartao.dataset.id) : null;
     if (!it) return;
     it[campo] = e.target.value;
+    if (campo === 'hipotese') it.hipSug = false;
     it.atualizadoEm = new Date().toISOString();
     torreSalvarDepois(it);
   }
   abaTorreEl.addEventListener('input', torreCampo);
   abaTorreEl.addEventListener('change', torreCampo);
   // Guarda se cada turno/chips está aberto, para a tela não fechar sozinha ao atualizar.
-  abaTorreEl.addEventListener('toggle', function(e) {
+  function torreToggle(e) {
     var d = e.target;
     if (d.dataset && d.dataset.grupo) torre.abertos[d.dataset.grupo] = d.open;
     if (d.dataset && d.dataset.chips) torre.chips[d.dataset.chips] = d.open;
-  }, true);
+  }
+  abaTorreEl.addEventListener('toggle', torreToggle, true);
+
+  // ---------- Painel suspenso ao lado do prontuário (só em tela larga; no celular a Torre é a aba) ----------
+  var torrePainelEl = document.createElement('aside');
+  torrePainelEl.id = 'torrePainel';
+  torrePainelEl.setAttribute('aria-label', 'Torre de controle');
+  document.body.appendChild(torrePainelEl);
+  torrePainelEl.addEventListener('click', torreClique);
+  torrePainelEl.addEventListener('change', torreMarcarOk);
+  torrePainelEl.addEventListener('input', torreCampo);
+  torrePainelEl.addEventListener('change', torreCampo);
+  torrePainelEl.addEventListener('toggle', torreToggle, true);
+  var torreAbaAtual = 'gerar';
+  function torrePainelAtivo() {
+    return window.innerWidth >= 1300 && torreAbaAtual !== 'torre' && !!pinAtual;
+  }
+  function torrePainelRender() {
+    var on = torrePainelAtivo();
+    document.body.classList.toggle('torre-painel-on', on);
+    if (!on) return;
+    var foco = document.activeElement;
+    if (foco && torrePainelEl.contains(foco) && /^(INPUT|TEXTAREA|SELECT)$/.test(foco.tagName)) return;
+    var topo = '<div class="torre-painel-topo"><strong>🗼 Torre de controle</strong><button type="button" data-torre-acao="novo">＋ Novo</button><button type="button" data-torre-acao="recolher-tudo">▸ Recolher tudo</button><button type="button" data-torre-acao="atualizar">↻</button></div>';
+    var rolagem = torrePainelEl.scrollTop;
+    torrePainelEl.innerHTML = topo + (torre.carregado ? torreHtmlAtivos() : '<div class="hint">Carregando...</div>');
+    torrePainelEl.scrollTop = rolagem;
+  }
+  function torrePainelAtualizarVisibilidade() {
+    torrePainelRender();
+    if (torrePainelAtivo() && !torre.carregado) torreCarregar();
+  }
+  window.addEventListener('resize', torrePainelAtualizarVisibilidade);
   document.addEventListener('visibilitychange', function() {
-    if (!document.hidden && !abaTorreEl.classList.contains('oculto') && torre.carregado) torreCarregar();
+    if (!document.hidden && (!abaTorreEl.classList.contains('oculto') || torrePainelAtivo()) && torre.carregado) torreCarregar();
   });
 
   // ---------- Entrada automática depois de gerar o prontuário ----------
@@ -3260,6 +3344,64 @@
   function torreSoNumero(l) {
     return !l.replace(TORRE_RE_NUM, '').replace(/\b(mat(r[ií]cula)?|atend(imento)?|n[ºo°]?|pront(u[aá]rio)?)\b\.?:?/ig, '').replace(/[\s:.\-#]/g, '');
   }
+  // Hipótese sugerida: "mecanismo -> local da queixa" (18/10/2026). O médico edita se quiser.
+  var TORRE_MECANISMOS = [
+    ['Atropelamento', /atropel/i],
+    ['Acidente de moto', /acidente (?:de|com|em) moto|\bmoto\b|motociclist/i],
+    ['Acidente de carro', /acidente (?:de|com|em) (?:carro|autom[oó]vel|ve[ií]culo)|colis[ãa]o|capot/i],
+    ['Queda de altura', /queda de (?:altura|escada|laje|telhado|andaime|[a-zà-ÿ]+ metros?)|queda de \d|ca[ií]u de (?:escada|laje|telhado|andaime|[a-zà-ÿ]+ metros?)/i],
+    ['QPA', /\bqpa\b|queda (?:da|de) pr[óo]pria altura|queda do mesmo n[íi]vel|queda ao solo|queda (?:em )?(?:casa|domiciliar)|\bqueda\b(?! (?:de|da|do) (?:moto|bicicleta|bike|cavalo|patins|skate|altura|escada|laje|telhado|andaime))|ca[ií]u\b(?! (?:de|da|do) (?:moto|bicicleta|bike|cavalo|patins|skate|escada|laje|telhado|andaime))|escorreg/i],
+    ['Torcional', /tor[çc]ional|tor[çc][ãa]o|torceu|entorse|virou o|inver[sç][ãa]o/i],
+    ['Trauma direto', /trauma direto|pancada|golpe|soco|chute|agress|contus|bateu|esmag|prensou|objeto/i],
+    ['Esporte', /bicicleta|\bbike\b|patins|skate|cavalo|esporte|futebol|basquete|v[ôo]lei|corrida|jogando|academia|treino|luta\b|jiu|crossfit|t[êe]nis/i],
+    ['Atraumático', /atraum[áa]tic|sem trauma|sem hist[óo]ria de trauma|nega trauma|dor insidiosa|sem queda/i]
+  ];
+  var TORRE_SEGMENTOS = [
+    ['coluna lombar', /lombar|lombalgia|\bL[1-5]\b/i], ['coluna cervical', /cervical|cervicalgia|pesco[çc]o/i], ['coluna torácica', /tor[áa]cic|dorsal/i], ['coluna', /\bcoluna\b/i],
+    ['quadril', /quadril|\bbacia\b|virilha|trocant|colo (?:do )?f[êe]mur/i], ['coxa', /\bcoxa\b|diáfise do f[êe]mur|f[êe]mur/i],
+    ['joelho', /joelho|\bpatela\b|rotuli/i], ['perna', /\bperna\b|t[íi]bia|f[íi]bula/i],
+    ['tornozelo', /tornozelo|mal[ée]olo/i], ['pé', /\bp[ée]\b|calc[âa]neo|metatars|\bmeta\b|hálux|halux|dedo do p[ée]/i],
+    ['ombro', /ombro|clav[íi]cula|acr[ôo]mio/i], ['braço', /\bbra[çc]o\b|[úu]mero/i], ['cotovelo', /cotovelo|ol[ée]crano/i],
+    ['antebraço', /antebra[çc]o|r[áa]dio|\bulna\b/i], ['punho', /punho|escafoide|carpo/i], ['mão', /\bm[ãa]o\b|polegar|dedo da m[ãa]o|metacarp/i],
+    ['costelas', /costela|t[óo]rax/i], ['crânio', /\bTCE\b|cr[âa]nio|cabe[çc]a/i]
+  ];
+  function torreLadoPerto(t, idx, tam) {
+    var trecho = t.slice(idx, idx + tam + 28);
+    var m = trecho.match(/\b(direit[oa]|esquerd[oa]|bilateral)\b|\b([DE])\b(?![a-zà-ÿ])/);
+    if (!m) return '';
+    if (m[1]) return /bilateral/i.test(m[1]) ? 'bilateral' : (/^d/i.test(m[1]) ? 'direito' : 'esquerdo');
+    return m[2] === 'D' ? 'direito' : 'esquerdo';
+  }
+  function torreHipoteseSugerida(dados, textoGerado) {
+    var d = String(dados || ''), g = String(textoGerado || '');
+    var iq = g.search(/^\s*(?:QD|HDA|HPMA)\s*:/im), qd = iq === -1 ? '' : g.slice(iq).split(/EXAME F[ÍI]SICO|EM TEMPO|CONDUTA/i)[0];
+    var base = d + '\n' + qd;
+    var mec = '';
+    var melhor = Infinity;
+    TORRE_MECANISMOS.forEach(function(m) {
+      var r = base.match(m[1]);
+      if (r && r.index < melhor) { melhor = r.index; mec = m[0]; }
+    });
+    // Torção explícita vence "queda" genérica quando aparecem juntas (ex.: "caiu e torceu o tornozelo").
+    if (mec === 'QPA' && /tor[çc]ional|tor[çc][ãa]o|torceu|entorse/i.test(base) && !/queda (?:da|de) pr[óo]pria altura|\bqpa\b/i.test(base)) mec = 'Torcional';
+    // Local: prefere a queixa do prontuário gerado (QD), depois os dados.
+    var fontes = [qd, d];
+    var local = '';
+    for (var f = 0; f < fontes.length && !local; f++) {
+      var t = fontes[f], pos = Infinity, seg = null, idx = 0;
+      TORRE_SEGMENTOS.forEach(function(sg) {
+        var r = t.match(sg[1]);
+        if (r && r.index < pos) { pos = r.index; seg = sg[0]; idx = r.index; }
+      });
+      if (seg) {
+        var lado = /^coluna/.test(seg) ? '' : torreLadoPerto(t, idx, 16);
+        local = seg + (lado ? ' ' + lado : '');
+      }
+    }
+    if (!mec && !local) return '';
+    return mec && local ? mec + ' -> ' + local : (mec || local);
+  }
+
   function torreExtrair(dados, textoGerado) {
     var linhas = String(dados || '').split(/\n/).map(function(l) { return l.trim(); }).filter(Boolean);
     var numero = '', nome = '', hipotese = '';
@@ -3298,7 +3440,10 @@
       linhas.forEach(function(l, k) { if (!usadas[k] && !(TORRE_RE_NUM.test(l) && torreSoNumero(l))) sobras.push(l); });
     }
     if (nome) nome = torreCapitalizar(nome);
-    if (sobras.length) hipotese = sobras[0].slice(0, 140);
+    var hipSug = false;
+    hipotese = torreHipoteseSugerida(dados, textoGerado);
+    if (hipotese) hipSug = true;
+    else if (sobras.length) hipotese = sobras[0].slice(0, 140);
     if (!hipotese) {
       var hd = String(textoGerado || '').match(/^\s*(?:HD|Hipótese diagnóstica|Diagnóstico)\s*:\s*(.+)$/im);
       if (hd) hipotese = hd[1].trim().slice(0, 140);
@@ -3315,12 +3460,12 @@
     ];
     var aguarda = [];
     regras.forEach(function(r) { if (r[1].test(linhasConduta)) aguarda.push({ k: r[0], ok: false, txt: '' }); });
-    if (/reaval/i.test(String(dados || '')) || /reaval/i.test(linhasConduta)) {
+    if (/reaval/i.test(conduta)) {
       var pos = -1;
       aguarda.forEach(function(a, q) { if (a.k === 'Exames de sangue') pos = q; });
       aguarda.splice(pos + 1, 0, { k: 'Reavaliação', ok: false, txt: '' });
     }
-    return { nome: nome, numero: numero, hipotese: hipotese, aguarda: aguarda };
+    return { nome: nome, numero: numero, hipotese: hipotese, hipSug: hipSug, aguarda: aguarda };
   }
 
   function torreToast(msg, botoes, fixo) {
@@ -3352,7 +3497,7 @@
   }
 
   function torreAtualizarItem(igual, ex) {
-    if (ex.hipotese) igual.hipotese = ex.hipotese;
+    if (ex.hipotese && !igual.hipotese) { igual.hipotese = ex.hipotese; igual.hipSug = !!ex.hipSug; }
     if (ex.nome && !igual.nome) igual.nome = ex.nome;
     if (ex.numero && !igual.numero) igual.numero = ex.numero;
     ex.aguarda.forEach(function(a) { if (!igual.aguarda.some(function(x) { return x.k === a.k; })) igual.aguarda.push(a); });
@@ -3360,7 +3505,7 @@
     return torreSalvar(igual);
   }
   function torreNovoDeExtracao(ex, ver) {
-    var it = torreNovoItem({ nome: ex.nome, numero: ex.numero, hipotese: ex.hipotese, aguarda: ex.aguarda });
+    var it = torreNovoItem({ nome: ex.nome, numero: ex.numero, hipotese: ex.hipotese, hipSug: !!ex.hipSug, aguarda: ex.aguarda });
     torre.itens.push(it);
     torreLembrarLocal(it.local);
     torreSalvar(it).then(function(salvou) {
@@ -3422,7 +3567,7 @@
     var d = torreDadosAtuais(b.dataset.torreAdd), ex = torreExtrair(d.dados, d.texto);
     if (!ex.nome && !ex.numero) {
       torreGarantirCarregado().then(function() {
-        var it = torreNovoItem({ hipotese: ex.hipotese, aguarda: ex.aguarda });
+        var it = torreNovoItem({ hipotese: ex.hipotese, hipSug: !!ex.hipSug, aguarda: ex.aguarda });
         torre.itens.push(it); torre.editando[it.id] = true; torre.secao = 'ativo'; torreSalvar(it).then(function() { mostrarAba('torre'); });
       });
       return;
@@ -4582,6 +4727,29 @@
     });
   });
 
+  var btnSugerirTorre = document.getElementById('btnSugerirTorre');
+  var sugestaoMudancaTorre = document.getElementById('sugestaoMudancaTorre');
+  btnSugerirTorre.addEventListener('click', function() {
+    var observacao = sugestaoMudancaTorre.value.trim();
+    if (!observacao) return;
+    btnSugerirTorre.disabled = true;
+    fetch('/api/sugestoes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: pinAtual, aba: 'Torre de controle', template: '', resultadoGerado: '', observacao: observacao })
+    }).then(function(resp) {
+      return resp.json().then(function(data) {
+        if (!resp.ok) { torreStatus('⚠️ ' + (data.erro || 'Erro ao salvar a sugestão.')); return; }
+        sugestaoMudancaTorre.value = '';
+        btnSugerirTorre.textContent = 'Salvo!';
+        btnSugerirTorre.classList.add('salvo');
+        setTimeout(function() { btnSugerirTorre.textContent = 'Salvar sugestão'; btnSugerirTorre.classList.remove('salvo'); }, 2000);
+      });
+    }).catch(function() {
+      torreStatus('⚠️ Falha de conexão ao salvar a sugestão.');
+    }).finally(function() { btnSugerirTorre.disabled = false; });
+  });
+
   function resetarGerar() {
     document.getElementById('dadosCaso').value = '';
     document.getElementById('atendimentoInicial').value = '';
@@ -4842,7 +5010,7 @@
         {
           "titulo": "Retornos São Luiz Guarulhos",
           "marcarUm": true,
-          "texto": "- Solicito agendamento de retorno ambulatorial com Dr. Rafael Tavares (CRM ____), ortopedista especialista em ombro, no Hospital São Luiz Guarulhos, às segundas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo.\n\n- Solicito agendamento de retorno ambulatorial com Dr. Roberto (CRM ____), ortopedista especialista em mão, no Hospital São Luiz Guarulhos, às sextas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo.\n\n- Solicito agendamento de retorno ambulatorial com Dr. Deusimar (CRM ____), ortopedista especialista em coluna, no Hospital São Luiz Guarulhos, às quintas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo."
+          "texto": "- Solicito agendamento de retorno ambulatorial com Dr. Rafael Tavares (CRM 226008/SP), ortopedista especialista em ombro, no Hospital São Luiz Guarulhos, às segundas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo.\n\n- Solicito agendamento de retorno ambulatorial com Dr. Roberto (CRM ____), ortopedista especialista em mão, no Hospital São Luiz Guarulhos, às sextas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo.\n\n- Solicito agendamento de retorno ambulatorial com Dr. Deusimar (CRM ____), ortopedista especialista em coluna, no Hospital São Luiz Guarulhos, às quintas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo."
         }
       ]
     },
@@ -5258,7 +5426,7 @@
               return;
             }
           }
-          copiarTextoProntuario(textoCopiar).then(function() {
+          copiarTextoProntuario(comTituloDeCopia(tituloDeCopiaDoItem(cat, item), textoCopiar)).then(function() {
             btnCopiar.textContent = 'Copiado';
             btnCopiar.classList.add('copiado');
             setTimeout(function() {
@@ -5475,7 +5643,7 @@
     });
 
     btnCopiar.addEventListener('click', function() {
-      copiarTextoProntuario(resultadoTexto.textContent).then(function() {
+      copiarTextoProntuario(comTituloDeCopia('RETORNO', resultadoTexto.textContent)).then(function() {
         btnCopiar.textContent = 'Copiado';
         setTimeout(function() { btnCopiar.textContent = 'Copiar'; }, 1800);
       });
@@ -5642,7 +5810,7 @@
     wrap.appendChild(resultadoDiv);
 
     btnCopiarResultado.addEventListener('click', function() {
-      copiarTextoProntuario(resultadoTextoDiv.textContent).then(function() {
+      copiarTextoProntuario(comTituloDeCopia(TITULO_DE_COPIA[cat.categoria] || '', resultadoTextoDiv.textContent)).then(function() {
         btnCopiarResultado.textContent = 'Copiado';
         setTimeout(function() { btnCopiarResultado.textContent = 'Copiar'; }, 1800);
       });
