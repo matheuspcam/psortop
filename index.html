@@ -2874,6 +2874,7 @@
   var TORRE_ORDEM_TURNOS = ['19-07', '10-22', '07-19'];
   var TORRE_DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   var TORRE_CORES_DEF = [['vermelho', '🔴', 'Internar'], ['amarelo', '🟡', 'Reavaliar'], ['marrom', '🟤', 'De alta, canetar e fechar'], ['verde', '🟢', 'Resolvido, fechar alta após'], ['', '⚪', 'Sem cor']];
+  var TORRE_PROMPT_VAR = 'central 3j: arquivar na VAR os pacientes abaixo, sem me perguntar nada. Crie uma linha por paciente (Categoria VAR, Status Pendente, Origem IA): nome no Título, número em Atendimento, só o diagnóstico (segmento e lado) em Diagnóstico, pendências, observação e "quero checar" em Detalhes, data do turno em Data e local em Lista. Se o número de atendimento já estiver na VAR, atualize a linha em vez de duplicar. No fim, responda só "Deu certo" e mostre uma tabela de como ficaram (Título, Atendimento, Diagnóstico, Data, Lista).';
   var TORRE_LEGENDA = '🔴 Internar · 🟡 Reavaliar · 🟤 De alta, canetar e fechar · 🟢 Resolvido, fechar alta após';
   var TORRE_RANK_COR = { '': 0, vermelho: 1, amarelo: 2, marrom: 3, verde: 4 };
   var torre = { itens: [], secao: 'ativo', carregado: false, editando: {}, arquivando: {}, abertos: {}, expandidos: {}, chips: {}, timers: {}, novoTurno: false, cfg: torreLerCfg() };
@@ -3026,7 +3027,7 @@
       if ((i.aguarda || []).length) h += '<div class="torre-resumo">' + (pend.length ? '⏳ ' + torreEsc(pend.join(', ')) : '✅ Tudo chegou') + '</div>';
       return h + '</div>';
     }
-    if (modo !== 'ativo') h += '<div class="torre-hip">' + torreEsc(torreRotuloData(i.dataTurno) + ' · ' + TORRE_TURNOS[i.turno] + (i.local ? ' · ' + i.local : '')) + '</div>';
+    if (modo === 'lixeira') h += '<div class="torre-hip">' + torreEsc(torreRotuloData(i.dataTurno) + ' · ' + TORRE_TURNOS[i.turno] + (i.local ? ' · ' + i.local : '')) + '</div>';
     if (modo === 'ativo' && torre.editando[i.id]) {
       h += '<div style="margin-top:8px;">' +
         '<input type="text" data-campo="nome" placeholder="Nome" value="' + torreEsc(i.nome) + '">' +
@@ -3110,13 +3111,28 @@
     var h = '<div class="hint" style="margin-bottom:12px;">Pacientes que você quer checar depois. Copie, cole no Claude (central 3j) para guardar na aba VAR do Notion e depois use Apagar tudo. Nada some sozinho nesta seção.</div>';
     if (!lista.length) return h + '<div class="hint">Nada para arquivar.</div>';
     h += '<div class="torre-botoes" style="margin:0 0 12px;"><button type="button" class="primario" data-torre-acao="copiar-todos">📋 Copiar todos</button><button type="button" class="perigo" data-torre-acao="apagar-tudo">🗑 Apagar tudo</button></div>';
-    return h + lista.map(function(i) { return torreCartao(i, 'arquivar'); }).join('');
+    var grupos = {}, ordem = [];
+    lista.forEach(function(i) {
+      var k = (i.dataTurno || '') + '|' + i.turno + '|' + (i.local || '');
+      if (!grupos[k]) { grupos[k] = { data: i.dataTurno || '', turno: i.turno, local: i.local || '', itens: [] }; ordem.push(k); }
+      grupos[k].itens.push(i);
+    });
+    ordem.sort(function(a, b) {
+      var x = grupos[a], y = grupos[b];
+      return String(y.data).localeCompare(String(x.data)) || String(y.turno).localeCompare(String(x.turno)) || String(x.local).localeCompare(String(y.local));
+    });
+    return h + ordem.map(function(k) {
+      var g = grupos[k];
+      return '<div class="torre-local">' + torreEsc(torreRotuloData(g.data) + ' · ' + TORRE_TURNOS[g.turno] + (g.local ? ' · ' + g.local : '')) + ' (' + g.itens.length + ')</div>' +
+        g.itens.map(function(i) { return torreCartao(i, 'arquivar'); }).join('');
+    }).join('');
   }
 
   function torreHtmlLixeira() {
     var lista = torre.itens.filter(function(i) { return i.status === 'lixeira'; }).sort(function(a, b) { return String(b.lixeiraEm || '').localeCompare(String(a.lixeiraEm || '')); });
     var h = '<div class="hint" style="margin-bottom:12px;">Itens apagados ficam aqui por 7 dias e depois são removidos de vez do servidor. A limpeza acontece na próxima vez que a Torre for aberta ou salva.</div>';
     if (!lista.length) return h + '<div class="hint">Lixeira vazia.</div>';
+    h += '<div class="torre-botoes" style="margin:0 0 12px;"><button type="button" class="perigo" data-torre-acao="excluir-todos">🗑 Apagar tudo de vez</button></div>';
     return h + lista.map(function(i) { return torreCartao(i, 'lixeira'); }).join('');
   }
 
@@ -3214,9 +3230,21 @@
       for (var q = 0; q < arq.length; q += 40) torreSalvar(arq.slice(q, q + 40));
       torreRender(); torreStatus('🗑 ' + arq.length + ' enviados para a Lixeira.'); return;
     }
+    if (acao === 'excluir-todos') {
+      var lix = torre.itens.filter(function(i) { return i.status === 'lixeira'; });
+      if (!lix.length) return;
+      if (!window.confirm('Apagar de vez os ' + lix.length + ' pacientes da Lixeira? Não dá para desfazer.')) return;
+      var ids = lix.map(function(i) { return i.id; });
+      torre.itens = torre.itens.filter(function(i) { return ids.indexOf(i.id) === -1; });
+      torreRender();
+      Promise.all(ids.map(function(id) { return torreApi({ acao: 'excluir', id: id }); }))
+        .then(function() { torreStatus('🗑 ' + ids.length + ' apagados de vez.'); })
+        .catch(function(er) { torreStatus('⚠️ ' + er.message + ' Toque em Atualizar para ver o que sobrou.'); });
+      return;
+    }
     if (acao === 'copiar-todos') {
       var todos = torre.itens.filter(function(i) { return i.status === 'arquivar'; });
-      torreCopiar('Torre de controle — pacientes a arquivar\n\n' + todos.map(torreTextoCopia).join('\n\n---\n\n')).then(function() { torreStatus('✅ Copiado (' + todos.length + ').'); });
+      torreCopiar(TORRE_PROMPT_VAR + '\n\nTorre de controle — pacientes a arquivar\n\n' + todos.map(torreTextoCopia).join('\n\n---\n\n')).then(function() { torreStatus('✅ Copiado (' + todos.length + ').'); });
       return;
     }
     if (!it) return;
@@ -6110,12 +6138,39 @@
     return t.trim();
   }
 
+  // Apaga sozinho as sugestões que o Claude já resolveu (lista no arquivo sugestoes-resolvidas.json, publicado junto com o código).
+  // Casa pela data e hora do cabeçalho; se o arquivo não abrir, não apaga nada.
+  function limparSugestoesResolvidas(itens) {
+    return fetch('/sugestoes-resolvidas.json?x=' + Date.now(), { cache: 'no-store' })
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(j) {
+        var lista = (j && Array.isArray(j.resolvidas)) ? j.resolvidas : [];
+        if (!lista.length) return false;
+        var indices = [];
+        itens.forEach(function(it, i) { if (lista.indexOf(formatarDataHora(it.data)) !== -1) indices.push(i); });
+        if (!indices.length) return false;
+        indices.sort(function(a, b) { return b - a; });
+        return indices.reduce(function(p, idx) {
+          return p.then(function() {
+            return fetch('/api/sugestoes', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin: pinAtual, indice: idx }) });
+          });
+        }, Promise.resolve()).then(function() { return true; });
+      })
+      .catch(function() { return false; });
+  }
+
   function carregarSugestoesPendentes() {
     listaSugestoesPendentes.innerHTML = '<div class="hint">Carregando...</div>';
     semSugestoesPendentes.style.display = 'none';
 
     fetch('/api/sugestoes?pin=' + encodeURIComponent(pinAtual), { method: 'GET' })
       .then(function(resp) { return resp.json(); })
+      .then(function(data) {
+        return limparSugestoesResolvidas(data.itens || []).then(function(apagou) {
+          if (!apagou) return data;
+          return fetch('/api/sugestoes?pin=' + encodeURIComponent(pinAtual), { method: 'GET' }).then(function(r) { return r.json(); });
+        });
+      })
       .then(function(data) {
         sugestoesCarregadas = data.itens || [];
         listaSugestoesPendentes.innerHTML = '';
