@@ -185,6 +185,8 @@ function posProcessarProntuario(texto, ctx) {
   if (ctx.tipoAtendimento === 'inicial') t = condutaInicialSemOrientacaoDeAlta(t);
   t = removerNegaTraumaSeHouveTrauma(t);
   t = separarNegativasDaHistoria(t);
+  t = garantirNegaTrauma(t, fontes);
+  t = almofadaParaControleAlgico(t);
   t = removerAvisosGenericos(t);
   t = juntarNegativasDaHistoria(t);
   t = removerOfertaDeRxSeRxAvaliado(t);
@@ -192,6 +194,7 @@ function posProcessarProntuario(texto, ctx) {
   t = garantirRecusaDeCirurgia(t, ctx, fontes);
   t = garantirAtestadoSeSolicitado(t, ctx);
   t = robofootERMPorDor(t, ctx, fontes);
+  t = retornoClinicoERadiologico(t);
   t = avisarSeExameMarcadoFaltou(t, ctx);
   t = subirCondutasNovas(t);
   t = semIndicacaoPrimeiroNaConduta(t);
@@ -542,6 +545,43 @@ function robofootERMPorDor(texto, ctx, fontes) {
   const temRetorno = saida.some((l, i) => i > iCond && /retorno ambulatorial|seguimento ambulatorial/i.test(l));
   if (!temRetorno) saida.splice(posRM + 1, 0, 'Orientado retorno ambulatorial após a realização do exame ou em até 1 semana, o que ocorrer primeiro, mesmo que o exame ainda não tenha sido realizado.');
   return saida.join('\n');
+}
+
+// Sem trauma nos dados: a história sempre diz "Nega trauma." (18/10/2026, 2ª leva).
+const RE_SEM_TRAUMA = /\b(?:neg(?:a|ando|ou)\s+(?:hist[óo]ria\s+de\s+)?traumas?|sem\s+(?:hist[óo]ria\s+de\s+)?traumas?(?![a-zà-ÿ])|atraum[áa]tic\w*|n[ãa]o\s+(?:teve|houve|sofreu|lembra\s+de)\s+(?:nenhum\s+)?trauma)/gi;
+function garantirNegaTrauma(texto, fontes) {
+  const f = String(fontes || '');
+  if (!RE_SEM_TRAUMA.test(f)) { RE_SEM_TRAUMA.lastIndex = 0; return texto; }
+  RE_SEM_TRAUMA.lastIndex = 0;
+  const fSemNeg = f.replace(RE_SEM_TRAUMA, ' ').replace(/nega\s+(?:TCE|queda)[^\n.]*/gi, ' ');
+  if (/(queda|caiu|trauma (direto|torcional|contuso)|tor[çc][aã]o|torceu|entorse|acidente|agress|prens|atropel|colis[aã]o|pancada|bateu|esmag|chute)/i.test(fSemNeg)) return texto;
+  let t = String(texto || '');
+  if (/neg(?:a|ando)\s+(?:hist[óo]ria\s+de\s+)?traumas?/i.test(t)) return t;
+  const linhas = t.split('\n');
+  const iH = linhas.findIndex(l => /^\s*(QD|HDA|HPMA)\s*:/i.test(l));
+  if (iH === -1) return t;
+  let fim = linhas.length;
+  for (let i = iH + 1; i < linhas.length; i++) { if (linhas[i].trim() === '' || /^\s*(EXAME|EM TEMPO|CONDUTA)\b/i.test(linhas[i])) { fim = i; break; } }
+  for (let i = iH; i < fim; i++) {
+    linhas[i] = linhas[i].replace(/,?\s*sem\s+(?:hist[óo]ria\s+de\s+)?traumas?(?:\s+associados?)?(?=[,.;])/gi, '');
+  }
+  const iNeg = (() => { for (let i = iH; i < fim; i++) { if (/^\s*Nega\b/.test(linhas[i])) return i; } return -1; })();
+  if (iNeg !== -1) linhas[iNeg] = linhas[iNeg].replace(/^(\s*)Nega\b/, '$1Nega trauma. Nega');
+  else linhas.splice(fim, 0, 'Nega trauma.');
+  return linhas.join('\n');
+}
+
+// Almofada na ortopedia é para dor sacral/coccígea: nunca "para hemorroida" (18/10/2026, 2ª leva).
+function almofadaParaControleAlgico(texto) {
+  return String(texto || '').replace(/almofada(?:\s+(?:do\s+tipo|tipo|de|para|pra|anti))?[\s-]*hemorr?[oó]id\w*/gi, 'almofada para controle álgico');
+}
+
+// Com exame de imagem no plano, o retorno é para reavaliação clínica e radiológica (18/10/2026, 2ª leva).
+function retornoClinicoERadiologico(texto) {
+  const t = String(texto || '');
+  const temImagem = /^\s*Avalio\s+(?:a\s+)?(?:radiograf|tomograf|resson|ultrass|RX|TC|RM|USG)/im.test(t) || /Solicit\w*\s+(?:RX|RM|TC|radiograf|tomograf|resson)/i.test(t);
+  if (!temImagem) return t;
+  return t.split('\n').map(l => (/retorno/i.test(l) && !/imediato/i.test(l)) ? l.replace(/reavalia[çc][ãa]o cl[íi]nica(?!\s+e\s+radiol)/i, 'reavaliação clínica e radiológica') : l).join('\n');
 }
 
 // Pedido de exame só com a sigla, sem segmento e sem lado (18/10/2026): "Solicito RX.", "Solicito RM ambulatorialmente.", "Solicito RX e TC.".
@@ -1280,7 +1320,11 @@ function regrasDocumentacao() {
 - QD DO TRAUMA TORCIONAL NO PÉ/TORNOZELO (18/10/2026): o mecanismo vem primeiro, com o segmento do trauma, e a dor depois: "trauma torcional do tornozelo esquerdo há 3 horas evoluindo com dor na base do 5º metatarso esquerdo." Quando os dados dizem só "torcional" e a dor é na base do 5º metatarso ou no maléolo lateral, o segmento do trauma é o tornozelo, com o lado informado. Não escreva "com histórico de trauma torcional".
 - INDOLOR DA TORÇÃO (18/10/2026): em trauma torcional de tornozelo ou pé, o exame traz uma linha "Indolor à palpação de ..." só com as estruturas SEM dor (fíbula proximal, base do 5º metatarso e tornozelo), tirando as que o médico informou como dolorosas. Nunca a mesma estrutura como dolorosa e indolor.
 - CICATRIZ DE CIRURGIA PRÉVIA (18/10/2026): se os dados informam cirurgia prévia no segmento da queixa (ex: LCA, osteossíntese, artroplastia), o EXAME FÍSICO traz, logo após a linha das lesões cutâneas: "Ferida operatória prévia em bom aspecto, sem deiscência, sinais flogísticos ou demais sinais de alarme." Se os dados descreverem outro aspecto (deiscência, secreção, hiperemia), use o descrito.
-- GLOSSÁRIO (18/10/2026): "meta" = metatarso; "rx", "rm" e "tc" ficam como siglas.`;
+- GLOSSÁRIO (18/10/2026): "meta" = metatarso; "rx", "rm" e "tc" ficam como siglas.
+- TRAUMA SEMPRE CLARO NA HISTÓRIA (18/10/2026, 2ª leva): no PS de ortopedia, toda história deixa claro se houve trauma. Se os dados dizem que não houve ("nega trauma", "sem trauma", "atraumático"), escreva "Nega trauma." na linha das negativas da história (ex: "Nega trauma. Nega dor em outras topografias. Nega demais queixas associadas."). Nunca deixe só "sem trauma associado" no meio da frase. Se houve trauma, descreva o mecanismo como informado.
+- ALMOFADA (18/10/2026, 2ª leva): na ortopedia a almofada (tipo "de hemorroida") é para dor sacral/coccígea. Escreva sempre "Indicado uso de almofada para controle álgico."; nunca cite hemorroida.
+- RX PEDIDO ANTES E SEM COMENTÁRIO = NORMAL (18/10/2026, 2ª leva): na reavaliação, liberação ou retorno, se o atendimento anterior pediu RX e o médico não comentou o resultado nem colou laudo dele, o RX está normal e entra no EM TEMPO com a frase padrão de radiografia normal do segmento. Se outro exame de imagem do mesmo segmento (TC, RM) tem achado, o RX entra na MESMA frase, com o mesmo achado: "Avalio radiografia e tomografia computadorizada de [segmento], evidenciando [achado do laudo]...". Se o médico comentar o RX, vale o que ele disse.
+- RETORNO CLÍNICO E RADIOLÓGICO (18/10/2026, 2ª leva): quando houver exame de imagem no plano (avaliado no EM TEMPO ou solicitado na CONDUTA), a linha de retorno diz "para reavaliação clínica e radiológica" (ex: "Orientado retorno ambulatorial em 2 semanas para reavaliação clínica e radiológica.").`;
 }
 
 function montarPromptSistema() {

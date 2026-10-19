@@ -925,7 +925,20 @@
   .torre-resumo { font-size: 12px; color: var(--ink-dim); margin-top: 4px; }
   .torre-sug { font-size: 11px; font-weight: 600; color: var(--ink-dim); margin-left: 6px; font-style: italic; }
   .torre-card.recolhido { padding: 10px 12px; }
-  #torrePainel { display: none; position: fixed; top: 12px; right: 12px; bottom: 72px; width: 360px; overflow-y: auto; z-index: 40; background: var(--bg, #f4f7f5); border: 1px solid var(--panel-border); border-radius: 14px; padding: 10px; box-shadow: 0 4px 18px rgba(0,0,0,.12); }
+  body.torre-painel-on { justify-content: flex-start; padding-left: max(16px, calc((100vw - 1004px) / 2)); }
+  #torrePainel { left: calc(max(16px, calc((100vw - 1004px) / 2)) + 664px); width: 340px; }
+  #torrePainelAba { display: none; position: fixed; right: 0; top: 40%; z-index: 40; padding: 12px 8px; background: var(--panel); border: 1px solid var(--panel-border); border-right: none; border-radius: 12px 0 0 12px; box-shadow: 0 2px 10px rgba(0,0,0,.12); cursor: pointer; font-size: 12px; font-weight: 700; color: var(--accent); writing-mode: vertical-rl; font-family: var(--sans); }
+  body.torre-painel-min #torrePainelAba { display: block; }
+  .torre-painel-cab { position: relative; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 12px 4px; margin-bottom: 8px; background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px; color: var(--ink-dim); font-size: 13px; font-weight: 600; cursor: pointer; }
+  .torre-painel-cab svg { width: 34px; height: 34px; }
+  .torre-painel-cab .torre-min { position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border: 1px solid var(--panel-border); border-radius: 8px; background: #f7f9f7; font-size: 18px; line-height: 1; cursor: pointer; color: var(--ink); }
+  .torre-ordem { width: auto !important; min-width: 44px; height: 36px; margin: 0 !important; padding: 0 6px !important; font-size: 14px !important; font-weight: 700; text-align: center; border: 1px solid var(--panel-border); border-radius: 8px; background: rgba(255,255,255,.7) !important; }
+  .torre-corbtn { font-size: 16px !important; }
+  .torre-cores-pop { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
+  .torre-cores-pop button { text-align: left; padding: 8px 10px; background: rgba(255,255,255,.85); border: 1px solid var(--panel-border); border-radius: 8px; font-size: 13px; cursor: pointer; color: var(--ink); }
+  .torre-cores-pop button.sel { border: 2px solid var(--ink); font-weight: 700; }
+  .torre-obs-resumo { font-size: 12px; color: var(--ink); margin-top: 4px; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  #torrePainel { display: none; position: fixed; top: 12px; bottom: 72px; overflow-y: auto; z-index: 40; background: var(--bg, #f4f7f5); border: 1px solid var(--panel-border); border-radius: 14px; padding: 10px; box-shadow: 0 4px 18px rgba(0,0,0,.12); }
   body.torre-painel-on #torrePainel { display: block; }
   #torrePainel .torre-painel-topo { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
   #torrePainel .torre-painel-topo strong { flex: 1; font-size: 14px; }
@@ -2869,7 +2882,10 @@
   // Lista de pacientes do plantão por turno e local. Fica no servidor (api/torre.js), atrás do PIN do app.
   // Só a Lixeira apaga sozinha (7 dias). Nome e número ficam só aqui, nunca no Notion.
   var TORRE_LOCAIS_PADRAO = ['HSM Santiago', 'São Luiz Guarulhos'];
-  var TORRE_PENDENCIAS = ['RX', 'RM', 'TC', 'USG', 'Exames de sangue', 'Reavaliação', 'Avaliação da clínica', 'Avaliação da retaguarda/chefe', 'Vaga/internação', 'Laudo', 'Retorno', 'Outro'];
+  var TORRE_PENDENCIAS = ['RX', 'TC', 'USG', 'labs', 'Reavaliação', 'Aval Clínica', 'Aval Retaguarda', 'Vaga/internação', 'Outro'];
+  // Nomes antigos (até 18/10/2026) trocados nos cards existentes; RM, Retorno e Laudo saíram (RM é só para casa; retorno já está na cor).
+  var TORRE_PEND_RENOMEAR = { 'Exames de sangue': 'labs', 'Avaliação da clínica': 'Aval Clínica', 'Avaliação da retaguarda/chefe': 'Aval Retaguarda' };
+  var TORRE_PEND_FORA = ['RM', 'Retorno', 'Laudo'];
   var TORRE_TURNOS = { '07-19': '07h–19h', '10-22': '10h–22h', '19-07': '19h–07h' };
   var TORRE_ORDEM_TURNOS = ['19-07', '10-22', '07-19'];
   var TORRE_DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -2877,7 +2893,7 @@
   var TORRE_PROMPT_VAR = 'central 3j: arquivar na VAR os pacientes abaixo, sem me perguntar nada. Crie uma linha por paciente (Categoria VAR, Status Pendente, Origem IA): nome no Título, número em Atendimento, só o diagnóstico (segmento e lado) em Diagnóstico, pendências, observação e "quero checar" em Detalhes, data do turno em Data e local em Lista. Se o número de atendimento já estiver na VAR, atualize a linha em vez de duplicar. No fim, responda só "Deu certo" e mostre uma tabela de como ficaram (Título, Atendimento, Diagnóstico, Data, Lista).';
   var TORRE_LEGENDA = '🔴 Internar · 🟡 Reavaliar · 🟤 De alta, canetar e fechar · 🟢 Resolvido, fechar alta após';
   var TORRE_RANK_COR = { '': 0, vermelho: 1, amarelo: 2, marrom: 3, verde: 4 };
-  var torre = { itens: [], secao: 'ativo', carregado: false, editando: {}, arquivando: {}, abertos: {}, expandidos: {}, chips: {}, timers: {}, novoTurno: false, cfg: torreLerCfg() };
+  var torre = { itens: [], secao: 'ativo', carregado: false, editando: {}, arquivando: {}, abertos: {}, expandidos: {}, corAberta: {}, chips: {}, timers: {}, novoTurno: false, cfg: torreLerCfg() };
 
   function torreLerCfg() {
     try {
@@ -2925,8 +2941,23 @@
   function torreCarregar() {
     torreStatus('Carregando...');
     return torreApi({ acao: 'listar' }).then(function(d) {
-      torre.itens = d.itens || []; torre.carregado = true; torreStatus(''); torreNormalizarLocais(); torreRender(); return true;
+      torre.itens = d.itens || []; torre.carregado = true; torreStatus(''); torreNormalizarLocais(); torreMigrarPendencias(); torreRender(); return true;
     }).catch(function(e) { torreStatus('⚠️ ' + e.message); return false; });
+  }
+  function torreMigrarPendencias() {
+    var mudados = [];
+    torre.itens.forEach(function(i) {
+      var antes = JSON.stringify(i.aguarda || []);
+      var nova = [];
+      (i.aguarda || []).forEach(function(a) {
+        if (TORRE_PEND_FORA.indexOf(a.k) !== -1) return;
+        var k = TORRE_PEND_RENOMEAR[a.k] || a.k;
+        if (k !== 'Outro' && nova.some(function(x) { return x.k === k; })) return;
+        nova.push({ k: k, ok: !!a.ok, txt: a.txt || '' });
+      });
+      if (JSON.stringify(nova) !== antes) { i.aguarda = nova; mudados.push(i); }
+    });
+    for (var q = 0; q < mudados.length; q += 40) torreSalvar(mudados.slice(q, q + 40));
   }
   function torreGarantirCarregado() { return torre.carregado ? Promise.resolve(true) : torreCarregar(); }
   function torreAbrir() { torreCarregar(); }
@@ -3010,21 +3041,50 @@
   function torrePendente(i) { return (i.aguarda || []).some(function(a) { return !a.ok; }); }
 
   // ---------- Desenho ----------
+  function torreGrupoCor(i) {
+    return torrePares(i).filter(function(x) { return (x.cor || '') === (i.cor || ''); }).concat([i]).sort(function(a, b) { return (a.ordem || 0) - (b.ordem || 0); });
+  }
+  function torreMoverPara(it, pos) {
+    var grupo = torreGrupoCor(it);
+    var atual = grupo.indexOf(it);
+    if (pos < 0 || pos >= grupo.length || pos === atual) return;
+    grupo.splice(atual, 1); grupo.splice(pos, 0, it);
+    var mudados = [];
+    grupo.forEach(function(g, n) { var o = (n + 1) * 10; if (g.ordem !== o) { g.ordem = o; mudados.push(g); } });
+    if (mudados.length) torreSalvar(mudados);
+    torreRender();
+  }
+  function torreEstado(i, modo) {
+    if (modo !== 'ativo') return 'aberto';
+    if (torre.editando[i.id] || torre.arquivando[i.id] || torre.expandidos[i.id]) return 'aberto';
+    return torre.cfg.padrao === 'nome' ? 'nome' : 'resumo';
+  }
   function torreCartao(i, modo) {
-    var aberto = modo !== 'ativo' || !!torre.expandidos[i.id] || !!torre.editando[i.id] || !!torre.arquivando[i.id];
+    var estado = torreEstado(i, modo), aberto = estado === 'aberto';
     var h = '<div class="torre-card' + (i.cor ? ' cor-' + i.cor : '') + (aberto ? '' : ' recolhido') + '" data-id="' + torreEsc(i.id) + '">';
     h += '<div class="torre-topo"><div class="torre-nome' + (modo === 'ativo' ? ' torre-nome-click' : '') + '"' + (modo === 'ativo' ? ' data-torre-acao="expandir"' : '') + '>' +
       (modo === 'ativo' ? '<span class="torre-caret">' + (aberto ? '▾' : '▸') + '</span>' : '') +
       torreEsc(i.nome || '(sem nome)') + (i.numero ? '<span class="torre-num">Nº ' + torreEsc(i.numero) + '</span>' : '') + '</div>';
     if (modo === 'ativo') {
-      h += '<div class="torre-acoes"><button type="button" data-torre-acao="subir" aria-label="Subir">▲</button><button type="button" data-torre-acao="descer" aria-label="Descer">▼</button>' +
+      var grupo = torreGrupoCor(i), pos = grupo.indexOf(i);
+      var corDef = TORRE_CORES_DEF.filter(function(c) { return c[0] === (i.cor || ''); })[0] || TORRE_CORES_DEF[TORRE_CORES_DEF.length - 1];
+      h += '<div class="torre-acoes">' +
+        '<select class="torre-ordem" data-campo="posicao" aria-label="Posição na cor">' + grupo.map(function(x, n) { return '<option value="' + n + '"' + (n === pos ? ' selected' : '') + '>' + (n + 1) + '</option>'; }).join('') + '</select>' +
+        '<button type="button" class="torre-corbtn" data-torre-acao="cor-abrir" aria-label="Cor: ' + torreEsc(corDef[2]) + '" title="' + torreEsc(corDef[2]) + '">' + corDef[1] + '</button>' +
         '<button type="button" data-torre-acao="editar" aria-label="Editar">✏️</button></div>';
     }
     h += '</div>';
-    if (!aberto) {
+    if (modo === 'ativo' && torre.corAberta[i.id]) {
+      h += '<div class="torre-cores-pop">' + TORRE_CORES_DEF.map(function(c) {
+        return '<button type="button" data-torre-acao="cor" data-cor="' + c[0] + '" class="' + ((i.cor || '') === c[0] ? 'sel' : '') + '">' + c[1] + ' ' + torreEsc(c[2]) + '</button>';
+      }).join('') + '</div>';
+    }
+    if (estado === 'nome') return h + '</div>';
+    if (estado === 'resumo') {
       if (i.hipotese) h += '<div class="torre-hip">' + torreEsc(i.hipotese) + (i.hipSug ? '<span class="torre-sug">sugerida</span>' : '') + '</div>';
       var pend = (i.aguarda || []).filter(function(a) { return !a.ok; }).map(torreRotuloPend);
       if ((i.aguarda || []).length) h += '<div class="torre-resumo">' + (pend.length ? '⏳ ' + torreEsc(pend.join(', ')) : '✅ Tudo chegou') + '</div>';
+      if (i.obs) h += '<div class="torre-obs-resumo">📝 ' + torreEsc(i.obs) + '</div>';
       return h + '</div>';
     }
     if (modo === 'lixeira') h += '<div class="torre-hip">' + torreEsc(torreRotuloData(i.dataTurno) + ' · ' + TORRE_TURNOS[i.turno] + (i.local ? ' · ' + i.local : '')) + '</div>';
@@ -3048,10 +3108,6 @@
       if (!torrePendente(i) && modo === 'ativo') h += '<div class="torre-tudo">✅ Tudo chegou</div>';
     }
     if (modo === 'ativo') {
-      h += '<div class="torre-cores">' + TORRE_CORES_DEF.map(function(c) {
-        return '<button type="button" data-torre-acao="cor" data-cor="' + c[0] + '" class="' + ((i.cor || '') === c[0] ? 'sel' : '') + '" aria-pressed="' + ((i.cor || '') === c[0]) + '">' + c[1] + ' ' + c[2] + '</button>';
-      }).join('') + '</div>';
-      h += '<div class="torre-legenda">' + TORRE_LEGENDA + '</div>';
       h += '<details data-chips="' + torreEsc(i.id) + '"' + (torre.chips[i.id] ? ' open' : '') + '><summary>＋ Pendência</summary><div class="torre-chips">' +
         TORRE_PENDENCIAS.filter(function(p) { return p === 'Outro' || !(i.aguarda || []).some(function(a) { return a.k === p; }); })
           .map(function(p) { return '<button type="button" data-torre-chip="' + torreEsc(p) + '">' + torreEsc(p) + '</button>'; }).join('') + '</div></details>';
@@ -3081,7 +3137,7 @@
     Object.keys(TORRE_TURNOS).forEach(function(t) { h += '<button type="button" data-torre-turno="' + t + '" class="' + (atual === t ? 'ativa' : '') + '">' + TORRE_TURNOS[t] + '</button>'; });
     h += '</div>' +
       '<datalist id="torreLocaisLista">' + torreLocais().map(function(l) { return '<option value="' + torreEsc(l) + '"></option>'; }).join('') + '</datalist>' +
-      '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="novo">＋ Novo paciente</button><button type="button" data-torre-acao="novo-turno">＋ Novo turno</button><button type="button" data-torre-acao="recolher-tudo">▸ Recolher tudo</button><button type="button" data-torre-acao="atualizar">↻ Atualizar</button></div>';
+      '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="novo">＋ Novo paciente</button><button type="button" data-torre-acao="novo-turno">＋ Novo turno</button><button type="button" data-torre-acao="padrao-nome">Só nomes</button><button type="button" data-torre-acao="padrao-resumo">Resumos</button><button type="button" data-torre-acao="atualizar">↻ Atualizar</button></div>';
     if (torre.novoTurno) {
       h += '<div class="torre-novo-turno"><span class="label">Novo turno</span>' +
         '<select id="torreNtTurno">' + Object.keys(TORRE_TURNOS).map(function(t) { return '<option value="' + t + '"' + (t === atual ? ' selected' : '') + '>' + TORRE_TURNOS[t] + '</option>'; }).join('') + '</select>' +
@@ -3209,7 +3265,12 @@
       var n = torreNovoItem(); torre.itens.push(n); torre.editando[n.id] = true; torreSalvar(n); torreRender(); return;
     }
     if (acao === 'atualizar') { torreCarregar(); return; }
-    if (acao === 'recolher-tudo') { torre.expandidos = {}; torre.editando = {}; torreRender(); return; }
+    if (acao === 'abrir-aba') { torre.secao = 'ativo'; mostrarAba('torre'); return; }
+    if (acao === 'recolher-tudo' || acao === 'padrao-nome' || acao === 'padrao-resumo') {
+      torre.cfg.padrao = acao === 'padrao-nome' ? 'nome' : 'resumo'; torreGravarCfg();
+      torre.expandidos = {}; torre.editando = {}; torre.corAberta = {}; torreRender(); return;
+    }
+    if (acao === 'painel-min') { torre.cfg.painelMin = true; torreGravarCfg(); torrePainelAtualizarVisibilidade(); return; }
     if (acao === 'novo-turno') { torre.novoTurno = true; torreRender(); return; }
     if (acao === 'turno-cancel') { torre.novoTurno = false; torreRender(); return; }
     if (acao === 'turno-criar') {
@@ -3249,12 +3310,14 @@
     }
     if (!it) return;
     if (acao === 'copiar') { torreCopiar(torreTextoCopia(it)).then(function() { torreStatus('✅ Copiado.'); }); return; }
+    if (acao === 'cor-abrir') { if (torre.corAberta[it.id]) delete torre.corAberta[it.id]; else torre.corAberta[it.id] = true; torreRender(); return; }
     if (acao === 'expandir') { if (torre.expandidos[it.id]) delete torre.expandidos[it.id]; else torre.expandidos[it.id] = true; torreRender(); return; }
     if (acao === 'subir') { torreMover(it, -1); return; }
     if (acao === 'descer') { torreMover(it, 1); return; }
     if (acao === 'cor') {
       var nova = alvo.dataset.cor || '';
-      if ((it.cor || '') === nova) return;
+      delete torre.corAberta[it.id];
+      if ((it.cor || '') === nova) { torreRender(); return; }
       it.cor = nova; it.ordem = torreProximaOrdem(it); it.atualizadoEm = new Date().toISOString();
       torreSalvar(it); torreRender(); return;
     }
@@ -3292,6 +3355,12 @@
   function torreCampo(e) {
     var campo = e.target.dataset ? e.target.dataset.campo : '';
     if (e.target.dataset && e.target.dataset.glocal !== undefined) { if (e.type === 'change') torreSetLocalGrupo(e.target.dataset.glocal, e.target.value); return; }
+    if (campo === 'posicao') {
+      if (e.type !== 'change') return;
+      var cp = e.target.closest('.torre-card'), itp = cp ? torreAchar(cp.dataset.id) : null;
+      if (itp) torreMoverPara(itp, +e.target.value);
+      return;
+    }
     if (campo === 'mover') {
       if (e.type !== 'change') return;
       var c0 = e.target.closest('.torre-card'), it0 = c0 ? torreAchar(c0.dataset.id) : null;
@@ -3333,15 +3402,33 @@
   torrePainelEl.addEventListener('toggle', torreToggle, true);
   var torreAbaAtual = 'gerar';
   function torrePainelAtivo() {
-    return window.innerWidth >= 1300 && torreAbaAtual !== 'torre' && !!pinAtual;
+    return torrePainelCabe() && !torre.cfg.painelMin;
+  }
+  function torrePainelCabe() {
+    return window.innerWidth >= 1180 && torreAbaAtual !== 'torre' && !!pinAtual;
+  }
+  var torrePainelAbaEl = document.createElement('button');
+  torrePainelAbaEl.type = 'button';
+  torrePainelAbaEl.id = 'torrePainelAba';
+  torrePainelAbaEl.textContent = '🗼 Torre';
+  torrePainelAbaEl.setAttribute('aria-label', 'Abrir o painel da Torre de controle');
+  document.body.appendChild(torrePainelAbaEl);
+  torrePainelAbaEl.addEventListener('click', function() { torre.cfg.painelMin = false; torreGravarCfg(); torrePainelAtualizarVisibilidade(); });
+  function torreIconeSvg() {
+    var svg = document.querySelector('.nav-btn[data-aba="torre"] svg');
+    return svg ? svg.outerHTML : '🗼';
   }
   function torrePainelRender() {
     var on = torrePainelAtivo();
     document.body.classList.toggle('torre-painel-on', on);
+    document.body.classList.toggle('torre-painel-min', torrePainelCabe() && !!torre.cfg.painelMin);
+    try { ajustarLarguraTopo(); } catch (e) {}
     if (!on) return;
     var foco = document.activeElement;
     if (foco && torrePainelEl.contains(foco) && /^(INPUT|TEXTAREA|SELECT)$/.test(foco.tagName)) return;
-    var topo = '<div class="torre-painel-topo"><strong>🗼 Torre de controle</strong><button type="button" data-torre-acao="novo">＋ Novo</button><button type="button" data-torre-acao="recolher-tudo">▸ Recolher tudo</button><button type="button" data-torre-acao="atualizar">↻</button></div>';
+    var topo = '<div class="torre-painel-cab" data-torre-acao="abrir-aba" title="Abrir a aba Torre de controle">' + torreIconeSvg() + '<span>Torre de controle</span>' +
+      '<button type="button" class="torre-min" data-torre-acao="painel-min" aria-label="Minimizar o painel">–</button></div>' +
+      '<div class="torre-painel-topo"><button type="button" data-torre-acao="novo">＋ Novo</button><button type="button" data-torre-acao="padrao-nome">Só nomes</button><button type="button" data-torre-acao="padrao-resumo">Resumos</button><button type="button" data-torre-acao="atualizar">↻</button></div>';
     var rolagem = torrePainelEl.scrollTop;
     torrePainelEl.innerHTML = topo + (torre.carregado ? torreHtmlAtivos() : '<div class="hint">Carregando...</div>');
     torrePainelEl.scrollTop = rolagem;
@@ -3481,16 +3568,16 @@
     if (ic !== -1) conduta = conduta.slice(ic);
     var linhasConduta = conduta.split(/\n/).filter(function(l) { return /^\s*(solicit|aguard|pedid|agend|encaminh)/i.test(l); }).join('\n');
     var regras = [
-      ['RX', /radiograf|raio[\s-]?x|\bRX\b/i], ['RM', /resson[âa]ncia|\bRM\b/i], ['TC', /tomografia|\bTC\b/i],
-      ['USG', /ultrass|ultrasson|\bUSG\b|ecografia/i], ['Exames de sangue', /laborator|hemograma|exames de sangue|\bPCR\b/i],
-      ['Avaliação da clínica', /cl[ií]nica m[ée]dica|avalia[çc][ãa]o da cl[ií]nica/i],
-      ['Avaliação da retaguarda/chefe', /retaguarda|chefe|discutid/i], ['Vaga/internação', /interna[çc]|vaga/i]
+      ['RX', /radiograf|raio[\s-]?x|\bRX\b/i], ['TC', /tomografia|\bTC\b/i],
+      ['USG', /ultrass|ultrasson|\bUSG\b|ecografia/i], ['labs', /laborator|hemograma|exames de sangue|\bPCR\b|\blabs?\b/i],
+      ['Aval Clínica', /cl[ií]nica m[ée]dica|avalia[çc][ãa]o da cl[ií]nica/i],
+      ['Aval Retaguarda', /retaguarda|chefe|discutid/i], ['Vaga/internação', /interna[çc]|vaga/i]
     ];
     var aguarda = [];
     regras.forEach(function(r) { if (r[1].test(linhasConduta)) aguarda.push({ k: r[0], ok: false, txt: '' }); });
     if (/reaval/i.test(conduta)) {
       var pos = -1;
-      aguarda.forEach(function(a, q) { if (a.k === 'Exames de sangue') pos = q; });
+      aguarda.forEach(function(a, q) { if (a.k === 'labs') pos = q; });
       aguarda.splice(pos + 1, 0, { k: 'Reavaliação', ok: false, txt: '' });
     }
     return { nome: nome, numero: numero, hipotese: hipotese, hipSug: hipSug, aguarda: aguarda };
@@ -5038,7 +5125,7 @@
         {
           "titulo": "Retornos São Luiz Guarulhos",
           "marcarUm": true,
-          "texto": "- Solicito agendamento de retorno ambulatorial com Dr. Rafael Tavares (CRM 226008/SP), ortopedista especialista em ombro, no Hospital São Luiz Guarulhos, às segundas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo.\n\n- Solicito agendamento de retorno ambulatorial com Dr. Roberto (CRM ____), ortopedista especialista em mão, no Hospital São Luiz Guarulhos, às sextas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo.\n\n- Solicito agendamento de retorno ambulatorial com Dr. Deusimar (CRM ____), ortopedista especialista em coluna, no Hospital São Luiz Guarulhos, às quintas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo."
+          "texto": "- Solicito agendamento de retorno ambulatorial com Dr. Rafael Tavares Correa (CRM 226008/SP, RQE 138699), ortopedista do grupo de ombro, no Hospital São Luiz Guarulhos, às segundas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo.\n\n- Solicito agendamento de retorno ambulatorial com Dr. Roberto Nakasato De Almeida (CRM 285688/SP, RQE 148882), ortopedista do grupo de mão, no Hospital São Luiz Guarulhos, às sextas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo.\n\n- Solicito agendamento de retorno ambulatorial com Dr. Deusimar Cristian Dos Santos Gomez (CRM 225732), ortopedista do grupo de coluna, no Hospital São Luiz Guarulhos, às quintas-feiras à tarde, para reavaliação clínica e acompanhamento evolutivo."
         }
       ]
     },
