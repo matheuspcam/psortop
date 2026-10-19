@@ -927,8 +927,12 @@
   .torre-card.recolhido { padding: 10px 12px; }
   body.torre-painel-on { justify-content: flex-start; padding-left: max(16px, calc((100vw - 1004px) / 2)); }
   #torrePainel { left: calc(max(16px, calc((100vw - 1004px) / 2)) + 664px); width: 340px; }
-  #torrePainelAba { display: none; position: fixed; right: 0; top: 40%; z-index: 40; padding: 12px 8px; background: var(--panel); border: 1px solid var(--panel-border); border-right: none; border-radius: 12px 0 0 12px; box-shadow: 0 2px 10px rgba(0,0,0,.12); cursor: pointer; font-size: 12px; font-weight: 700; color: var(--accent); writing-mode: vertical-rl; font-family: var(--sans); }
-  body.torre-painel-min #torrePainelAba { display: block; }
+  /* O formulário vai para a esquerda, mas o resultado gerado fica onde sempre esteve (centralizado). */
+  body.torre-painel-on .resultado.show { margin-left: calc((100% - min(1100px, calc(100vw - 64px))) / 2 + 182px); }
+  #torrePainelAba { display: none; position: fixed; right: 12px; top: 12px; z-index: 40; flex-direction: column; align-items: center; gap: 7px; padding: 12px 10px; background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.12); cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-dim); font-family: var(--sans); }
+  #torrePainelAba svg { width: 34px; height: 34px; }
+  #torrePainelAba:hover { border-color: var(--accent); color: var(--ink); }
+  body.torre-painel-min #torrePainelAba { display: flex; }
   .torre-painel-cab { position: relative; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 12px 4px; margin-bottom: 8px; background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px; color: var(--ink-dim); font-size: 13px; font-weight: 600; cursor: pointer; }
   .torre-painel-cab svg { width: 34px; height: 34px; }
   .torre-painel-cab .torre-min { position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border: 1px solid var(--panel-border); border-radius: 8px; background: #f7f9f7; font-size: 18px; line-height: 1; cursor: pointer; color: var(--ink); }
@@ -940,7 +944,7 @@
   .torre-obs-resumo { font-size: 12px; color: var(--ink); margin-top: 4px; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   #torrePainel { display: none; position: fixed; top: 12px; bottom: 72px; overflow-y: auto; z-index: 40; background: var(--bg, #f4f7f5); border: 1px solid var(--panel-border); border-radius: 14px; padding: 10px; box-shadow: 0 4px 18px rgba(0,0,0,.12); }
   body.torre-painel-on #torrePainel { display: block; }
-  #torrePainel .torre-painel-topo { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+  #torrePainel .torre-painel-topo { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
   #torrePainel .torre-painel-topo strong { flex: 1; font-size: 14px; }
   #torrePainel .torre-painel-topo button { padding: 6px 10px; font-size: 12px; font-weight: 600; background: #f7f9f7; border: 1px solid var(--panel-border); border-radius: 8px; cursor: pointer; color: var(--ink); font-family: var(--sans); }
   .torre-toast { position: fixed; left: 12px; right: 12px; bottom: 16px; max-width: 616px; margin: 0 auto; z-index: 60; display: none; align-items: center; gap: 8px; flex-wrap: wrap; background: #1d2b26; color: #fff; padding: 12px 14px; border-radius: 12px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
@@ -2936,10 +2940,10 @@
   }
   function torreSalvarDepois(it) {
     clearTimeout(torre.timers[it.id]);
-    torre.timers[it.id] = setTimeout(function() { torreSalvar(it); }, 700);
+    torre.timers[it.id] = setTimeout(function() { delete torre.timers[it.id]; torreSalvar(it); }, 700);
   }
-  function torreCarregar() {
-    torreStatus('Carregando...');
+  function torreCarregar(silencioso) {
+    if (!silencioso) torreStatus('Carregando...');
     return torreApi({ acao: 'listar' }).then(function(d) {
       torre.itens = d.itens || []; torre.carregado = true; torreStatus(''); torreNormalizarLocais(); torreMigrarPendencias(); torreRender(); return true;
     }).catch(function(e) { torreStatus('⚠️ ' + e.message); return false; });
@@ -3055,7 +3059,7 @@
     torreRender();
   }
   function torreEstado(i, modo) {
-    if (modo !== 'ativo') return 'aberto';
+    if (modo !== 'ativo' || !torre.renderPainel) return 'aberto';
     if (torre.editando[i.id] || torre.arquivando[i.id] || torre.expandidos[i.id]) return 'aberto';
     return torre.cfg.padrao === 'nome' ? 'nome' : 'resumo';
   }
@@ -3063,7 +3067,7 @@
     var estado = torreEstado(i, modo), aberto = estado === 'aberto';
     var h = '<div class="torre-card' + (i.cor ? ' cor-' + i.cor : '') + (aberto ? '' : ' recolhido') + '" data-id="' + torreEsc(i.id) + '">';
     h += '<div class="torre-topo"><div class="torre-nome' + (modo === 'ativo' ? ' torre-nome-click' : '') + '"' + (modo === 'ativo' ? ' data-torre-acao="expandir"' : '') + '>' +
-      (modo === 'ativo' ? '<span class="torre-caret">' + (aberto ? '▾' : '▸') + '</span>' : '') +
+      (modo === 'ativo' && torre.renderPainel ? '<span class="torre-caret">' + (aberto ? '▾' : '▸') + '</span>' : '') +
       torreEsc(i.nome || '(sem nome)') + (i.numero ? '<span class="torre-num">Nº ' + torreEsc(i.numero) + '</span>' : '') + '</div>';
     if (modo === 'ativo') {
       var grupo = torreGrupoCor(i), pos = grupo.indexOf(i);
@@ -3093,8 +3097,7 @@
         '<input type="text" data-campo="nome" placeholder="Nome" value="' + torreEsc(i.nome) + '">' +
         '<input type="text" data-campo="numero" placeholder="Número do atendimento" value="' + torreEsc(i.numero) + '">' +
         '<input type="text" data-campo="hipotese" placeholder="Hipótese (mecanismo -> local)" value="' + torreEsc(i.hipotese) + '">' +
-        '<span class="label">Mover para o turno</span>' + torreSelectTurnos(i) +
-        '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="editar">Concluir edição</button></div></div>';
+        '<span class="label">Mover para o turno</span>' + torreSelectTurnos(i) + '</div>';
     } else if (i.hipotese) {
       h += '<div class="torre-hip">' + torreEsc(i.hipotese) + (i.hipSug ? '<span class="torre-sug">sugerida</span>' : '') + '</div>';
     }
@@ -3112,6 +3115,7 @@
         TORRE_PENDENCIAS.filter(function(p) { return p === 'Outro' || !(i.aguarda || []).some(function(a) { return a.k === p; }); })
           .map(function(p) { return '<button type="button" data-torre-chip="' + torreEsc(p) + '">' + torreEsc(p) + '</button>'; }).join('') + '</div></details>';
       h += '<textarea data-campo="obs" placeholder="Observações">' + torreEsc(i.obs) + '</textarea>';
+      if (torre.editando[i.id]) h += '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="editar">Concluir edição</button></div>';
       if (torre.arquivando[i.id]) {
         h += '<div class="torre-checar"><strong>O que quero checar depois?</strong><textarea data-campo="checar" placeholder="Ex: ver se operou, resultado da RM, evolução...">' + torreEsc(i.checar) + '</textarea>' +
           '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="arq-ok">Arquivar</button><button type="button" data-torre-acao="arq-cancel">Cancelar</button></div></div>';
@@ -3137,7 +3141,7 @@
     Object.keys(TORRE_TURNOS).forEach(function(t) { h += '<button type="button" data-torre-turno="' + t + '" class="' + (atual === t ? 'ativa' : '') + '">' + TORRE_TURNOS[t] + '</button>'; });
     h += '</div>' +
       '<datalist id="torreLocaisLista">' + torreLocais().map(function(l) { return '<option value="' + torreEsc(l) + '"></option>'; }).join('') + '</datalist>' +
-      '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="novo">＋ Novo paciente</button><button type="button" data-torre-acao="novo-turno">＋ Novo turno</button><button type="button" data-torre-acao="padrao-nome">Só nomes</button><button type="button" data-torre-acao="padrao-resumo">Resumos</button><button type="button" data-torre-acao="atualizar">↻ Atualizar</button></div>';
+      '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="novo">＋ Novo paciente</button><button type="button" data-torre-acao="novo-turno">＋ Novo turno</button></div>';
     if (torre.novoTurno) {
       h += '<div class="torre-novo-turno"><span class="label">Novo turno</span>' +
         '<select id="torreNtTurno">' + Object.keys(TORRE_TURNOS).map(function(t) { return '<option value="' + t + '"' + (t === atual ? ' selected' : '') + '>' + TORRE_TURNOS[t] + '</option>'; }).join('') + '</select>' +
@@ -3311,6 +3315,7 @@
     if (!it) return;
     if (acao === 'copiar') { torreCopiar(torreTextoCopia(it)).then(function() { torreStatus('✅ Copiado.'); }); return; }
     if (acao === 'cor-abrir') { if (torre.corAberta[it.id]) delete torre.corAberta[it.id]; else torre.corAberta[it.id] = true; torreRender(); return; }
+    if (acao === 'expandir' && !torrePainelEl.contains(alvo)) return;
     if (acao === 'expandir') { if (torre.expandidos[it.id]) delete torre.expandidos[it.id]; else torre.expandidos[it.id] = true; torreRender(); return; }
     if (acao === 'subir') { torreMover(it, -1); return; }
     if (acao === 'descer') { torreMover(it, 1); return; }
@@ -3358,6 +3363,7 @@
     if (campo === 'posicao') {
       if (e.type !== 'change') return;
       var cp = e.target.closest('.torre-card'), itp = cp ? torreAchar(cp.dataset.id) : null;
+      try { e.target.blur(); } catch (er) {}
       if (itp) torreMoverPara(itp, +e.target.value);
       return;
     }
@@ -3410,7 +3416,7 @@
   var torrePainelAbaEl = document.createElement('button');
   torrePainelAbaEl.type = 'button';
   torrePainelAbaEl.id = 'torrePainelAba';
-  torrePainelAbaEl.textContent = '🗼 Torre';
+  torrePainelAbaEl.innerHTML = torreIconeSvg() + '<span>Torre de controle</span>';
   torrePainelAbaEl.setAttribute('aria-label', 'Abrir o painel da Torre de controle');
   document.body.appendChild(torrePainelAbaEl);
   torrePainelAbaEl.addEventListener('click', function() { torre.cfg.painelMin = false; torreGravarCfg(); torrePainelAtualizarVisibilidade(); });
@@ -3425,12 +3431,13 @@
     try { ajustarLarguraTopo(); } catch (e) {}
     if (!on) return;
     var foco = document.activeElement;
-    if (foco && torrePainelEl.contains(foco) && /^(INPUT|TEXTAREA|SELECT)$/.test(foco.tagName)) return;
+    if (foco && torrePainelEl.contains(foco) && /^(INPUT|TEXTAREA)$/.test(foco.tagName)) return;
     var topo = '<div class="torre-painel-cab" data-torre-acao="abrir-aba" title="Abrir a aba Torre de controle">' + torreIconeSvg() + '<span>Torre de controle</span>' +
       '<button type="button" class="torre-min" data-torre-acao="painel-min" aria-label="Minimizar o painel">–</button></div>' +
-      '<div class="torre-painel-topo"><button type="button" data-torre-acao="novo">＋ Novo</button><button type="button" data-torre-acao="padrao-nome">Só nomes</button><button type="button" data-torre-acao="padrao-resumo">Resumos</button><button type="button" data-torre-acao="atualizar">↻</button></div>';
+      '<div class="torre-painel-topo"><button type="button" data-torre-acao="novo">＋ Novo</button><button type="button" data-torre-acao="padrao-nome">Só nomes</button><button type="button" data-torre-acao="padrao-resumo">Resumos</button></div>';
     var rolagem = torrePainelEl.scrollTop;
-    torrePainelEl.innerHTML = topo + (torre.carregado ? torreHtmlAtivos() : '<div class="hint">Carregando...</div>');
+    torre.renderPainel = true;
+    try { torrePainelEl.innerHTML = topo + (torre.carregado ? torreHtmlAtivos() : '<div class="hint">Carregando...</div>'); } finally { torre.renderPainel = false; }
     torrePainelEl.scrollTop = rolagem;
   }
   function torrePainelAtualizarVisibilidade() {
@@ -3438,8 +3445,21 @@
     if (torrePainelAtivo() && !torre.carregado) torreCarregar();
   }
   window.addEventListener('resize', torrePainelAtualizarVisibilidade);
+  // Sincroniza sozinha com o servidor a cada 30 s enquanto a aba ou o painel estão visíveis (sem atrapalhar quem está digitando ou editando).
+  function torreOcupado() {
+    var f = document.activeElement;
+    if (f && (abaTorreEl.contains(f) || torrePainelEl.contains(f)) && /^(INPUT|TEXTAREA|SELECT)$/.test(f.tagName)) return true;
+    if (Object.keys(torre.editando).length || Object.keys(torre.arquivando).length) return true;
+    return Object.keys(torre.timers).length > 0;
+  }
+  setInterval(function() {
+    if (document.hidden || !torre.carregado || !pinAtual) return;
+    if (abaTorreEl.classList.contains('oculto') && !torrePainelAtivo()) return;
+    if (torreOcupado()) return;
+    torreCarregar(true);
+  }, 30000);
   document.addEventListener('visibilitychange', function() {
-    if (!document.hidden && (!abaTorreEl.classList.contains('oculto') || torrePainelAtivo()) && torre.carregado) torreCarregar();
+    if (!document.hidden && (!abaTorreEl.classList.contains('oculto') || torrePainelAtivo()) && torre.carregado && !torreOcupado()) torreCarregar(true);
   });
 
   // ---------- Entrada automática depois de gerar o prontuário ----------
