@@ -138,6 +138,9 @@
   }
   .menu-ferramentas button[data-ir] + button[data-ir] { border-top: 1px solid var(--panel-border); }
   .menu-ferramentas button .menu-emoji { font-size: 18px; width: 24px; text-align: center; }
+  /* Ícones desenhados (SVG) no lugar de emoji: aparecem iguais em qualquer computador (24/10/2026). */
+  .menu-ferramentas .menu-emoji { display: inline-flex; align-items: center; justify-content: center; color: var(--accent); }
+  .menu-ferramentas .menu-icone { width: 20px; height: 20px; }
   .menu-ferramentas button[data-ir]:hover { background: var(--accent-dim); color: var(--accent); }
   .menu-ferramentas button[data-ir]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   .menu-ferramentas .menu-versao { margin-top: 0; padding: 11px 4px 6px; border-top: 1px solid var(--panel-border); }
@@ -926,7 +929,8 @@
   .torre-sug { font-size: 11px; font-weight: 600; color: var(--ink-dim); margin-left: 6px; font-style: italic; }
   .torre-card.recolhido { padding: 10px 12px; }
   body.torre-painel-on { justify-content: flex-start; padding-left: max(16px, calc((100vw - 1004px) / 2)); }
-  #torrePainel { left: calc(max(16px, calc((100vw - 1004px) / 2)) + 664px); width: 340px; }
+  /* Painel colado na borda direita, na mesma distância do botão minimizado (24/10/2026). */
+  #torrePainel { right: 12px; left: auto; width: 340px; }
   /* O formulário vai para a esquerda, mas o resultado gerado fica onde sempre esteve (centralizado). */
   body.torre-painel-on .resultado.show { margin-left: calc((100% - min(1100px, calc(100vw - 64px))) / 2 + 182px); }
   #torrePainelAba { display: none; position: fixed; right: 12px; top: 12px; z-index: 40; flex-direction: column; align-items: center; gap: 7px; padding: 12px 10px; background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.12); cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-dim); font-family: var(--sans); }
@@ -947,6 +951,29 @@
   #torrePainel .torre-painel-topo { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
   #torrePainel .torre-painel-topo strong { flex: 1; font-size: 14px; }
   #torrePainel .torre-painel-topo button { padding: 6px 10px; font-size: 12px; font-weight: 600; background: #f7f9f7; border: 1px solid var(--panel-border); border-radius: 8px; cursor: pointer; color: var(--ink); font-family: var(--sans); }
+  /* Painel suspenso mais compacto, para caber mais nomes (24/10/2026). */
+  #torrePainel .torre-grupo { margin-bottom: 8px; }
+  #torrePainel .torre-grupo > summary { padding: 6px 10px; font-size: 13px; }
+  #torrePainel .torre-localbox { margin: 4px 0 6px; }
+  #torrePainel .torre-localbox input { padding: 5px 8px; font-size: 12px; }
+  #torrePainel .torre-card { padding: 5px 8px; margin-bottom: 4px; border-left-width: 4px; border-radius: 8px; }
+  #torrePainel .torre-card.recolhido { padding: 4px 8px; }
+  #torrePainel .torre-topo { gap: 4px; }
+  #torrePainel .torre-nome { font-size: 13px; line-height: 1.25; }
+  #torrePainel .torre-num { font-size: 11px; }
+  #torrePainel .torre-acoes { gap: 3px; }
+  #torrePainel .torre-acoes button, #torrePainel .torre-ordem { min-width: 28px; height: 26px !important; padding: 0 5px !important; font-size: 12px !important; border-radius: 6px; }
+  #torrePainel .torre-card .torre-hip { font-size: 12px; margin: 2px 0 1px; }
+  #torrePainel .torre-resumo, #torrePainel .torre-obs-resumo { font-size: 11.5px; margin-top: 1px; }
+  #torrePainel .torre-sug { font-size: 10px; }
+  .torre-dia > summary { font-size: 15px; }
+  .torre-subgrupo { margin: 8px 0 12px; }
+  .torre-subgrupo .torre-localbox { margin: 4px 0 8px; }
+  .torre-subgrupo .torre-localbox .torre-cont { flex: none; font-size: 12px; color: var(--ink-dim); font-weight: 600; }
+  .torre-arq-dia { font-size: 14px; font-weight: 700; padding: 8px 12px; margin: 14px 0 4px; background: var(--panel); border: 1px solid var(--panel-border); border-radius: 10px; }
+  .torre-imprimir { margin-top: 10px; padding: 10px; background: #f1f6f3; border-radius: 8px; }
+  .torre-imprimir label { display: inline-flex; align-items: center; gap: 6px; margin: 4px 12px 4px 0; font-size: 13px; cursor: pointer; }
+  .torre-imprimir input { width: 16px; height: 16px; accent-color: var(--accent); }
   .torre-toast { position: fixed; left: 12px; right: 12px; bottom: 16px; max-width: 616px; margin: 0 auto; z-index: 60; display: none; align-items: center; gap: 8px; flex-wrap: wrap; background: #1d2b26; color: #fff; padding: 12px 14px; border-radius: 12px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
   .torre-toast span { flex: 1; min-width: 140px; }
   .torre-toast button { padding: 8px 12px; border: 1px solid rgba(255,255,255,.5); background: transparent; color: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
@@ -1449,7 +1476,7 @@
   #cardModelo .tpl-grid button { text-align: center; font-weight: 500; min-height: 46px; }
   #cardModelo .tpl-grid button.active { box-shadow: inset 0 0 0 1px var(--accent), 0 3px 10px rgba(30, 122, 90, 0.14); font-weight: 700; }
   #cardModelo .tpl-grid button.tpl-outro { border-style: dashed; }
-  .completo-sub-btn { font-weight: 600 !important; }
+  .completo-sub-btn, .evol-sub-btn { font-weight: 600 !important; }
   #blocoCompleto > .tpl-grid:first-child { grid-template-columns: repeat(3, 1fr); }
 
   .exame-casa { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 11.5px; color: var(--ink-dim); }
@@ -1622,11 +1649,11 @@
     </button>
 
     <div class="menu-ferramentas" id="menuFerramentas">
-      <button type="button" data-ir="cofre"><span class="menu-emoji">🔐</span>Senhas e links</button>
-      <button type="button" data-ir="sugestoes"><span class="menu-emoji">📝</span>Sugestões pendentes</button>
-      <button type="button" data-ir="templates"><span class="menu-emoji">📄</span>Ver templates</button>
-      <button type="button" data-ir="imagem"><span class="menu-emoji">🩻</span>VAR</button>
-      <button type="button" data-ir="transferir"><span class="menu-emoji">📋</span>Copia e cola</button>
+      <button type="button" data-ir="cofre"><span class="menu-emoji"><svg class="menu-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="16" r="1.2"/></svg></span>Senhas e links</button>
+      <button type="button" data-ir="sugestoes"><span class="menu-emoji"><svg class="menu-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>Sugestões pendentes</button>
+      <button type="button" data-ir="templates"><span class="menu-emoji"><svg class="menu-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></span>Ver templates</button>
+      <button type="button" data-ir="imagem"><span class="menu-emoji"><svg class="menu-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 6v12M9 8h6M8.5 11h7M9 14h6"/></svg></span>VAR</button>
+      <button type="button" data-ir="transferir"><span class="menu-emoji"><svg class="menu-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6"/></svg></span>Copia e cola</button>
       <div class="menu-versao" id="menuVersao">Última atualização: carregando...</div>
     </div>
   </header>
@@ -1664,7 +1691,7 @@
         <button type="button" class="tipo-btn active" data-tipo="inicial"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="rotulo-longo">Atendimento inicial</span><span class="rotulo-curto">Inicial</span></button>
         <button type="button" class="tipo-btn" data-tipo="reavaliacao"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg><span class="rotulo-longo">Reavaliação</span><span class="rotulo-curto">Reavaliação</span></button>
         <button type="button" class="tipo-btn" data-tipo="completo"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg><span class="rotulo-longo">Atendimento completo</span><span class="rotulo-curto">Completo</span></button>
-        <button type="button" class="tipo-btn" data-tipo="retorno"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><span class="rotulo-longo">Retorno ambulatorial</span><span class="rotulo-curto">Retorno</span></button>
+        <button type="button" class="tipo-btn" data-tipo="retorno"><svg class="opc-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><span class="rotulo-longo">Evolução</span><span class="rotulo-curto">Evolução</span></button>
       </div>
 
       <div class="toggles-paciente">
@@ -1697,13 +1724,19 @@
         <button type="button" data-t="f" data-grupo="reavaliacao"><span class="rotulo-longo">Internação</span><span class="rotulo-curto">Internação</span></button>
       </div>
 
-      <div class="tpl-grid tpl-grid-4 tpl-grid-6 oculto" id="tplGridRetorno">
+      <div class="tpl-grid oculto" id="evolSub">
+        <button type="button" class="evol-sub-btn active" data-evol="amb">Ambulatório</button>
+        <button type="button" class="evol-sub-btn" data-evol="pso">PSO</button>
+        <button type="button" class="evol-sub-btn" data-evol="internado">Internado</button>
+      </div>
+
+      <div class="tpl-grid tpl-grid-4 tpl-grid-6 oculto" id="tplGridRetorno" style="margin-top:8px;">
         <button type="button" data-t="r0" data-grupo="retorno"><span class="rotulo-longo">Pede RX — reavalia após</span><span class="rotulo-curto">Pede RX</span></button>
         <button type="button" data-t="r1" data-grupo="retorno"><span class="rotulo-longo">Mantém conservador</span><span class="rotulo-curto">Conservador</span></button>
         <button type="button" data-t="r2" data-grupo="retorno"><span class="rotulo-longo">Consolidado — liberação progressiva</span><span class="rotulo-curto">Consolidado</span></button>
         <button type="button" data-t="r3" data-grupo="retorno"><span class="rotulo-longo">Borderline — discutir</span><span class="rotulo-curto">Borderline</span></button>
         <button type="button" data-t="r4" data-grupo="retorno"><span class="rotulo-longo">Internação</span><span class="rotulo-curto">Internação</span></button>
-        <button type="button" data-t="ev" data-grupo="retorno"><span class="rotulo-longo">Evolução — internado</span><span class="rotulo-curto">Evolução</span></button>
+        <button type="button" data-t="ev" data-grupo="retorno"><span class="rotulo-longo">Evolução — internado</span><span class="rotulo-curto">Internado</span></button>
       </div>
 
       <div id="blocoCompleto">
@@ -2902,7 +2935,7 @@
   function torreLerCfg() {
     try {
       var c = JSON.parse(localStorage.getItem('torre_cfg') || '{}');
-      return { turno: c.turno || '', local: c.local || '', locais: Array.isArray(c.locais) ? c.locais : [], vazios: Array.isArray(c.vazios) ? c.vazios : [] };
+      return { turno: c.turno || '', local: c.local || '', locais: Array.isArray(c.locais) ? c.locais : [], vazios: Array.isArray(c.vazios) ? c.vazios : [], padrao: c.padrao || '', painelMin: !!c.painelMin, imprimir: c.imprimir || null };
     } catch (e) { return { turno: '', local: '', locais: [], vazios: [] }; }
   }
   function torreGravarCfg() { try { localStorage.setItem('torre_cfg', JSON.stringify(torre.cfg)); } catch (e) {} }
@@ -3096,7 +3129,7 @@
       h += '<div style="margin-top:8px;">' +
         '<input type="text" data-campo="nome" placeholder="Nome" value="' + torreEsc(i.nome) + '">' +
         '<input type="text" data-campo="numero" placeholder="Número do atendimento" value="' + torreEsc(i.numero) + '">' +
-        '<input type="text" data-campo="hipotese" placeholder="Hipótese (mecanismo -> local)" value="' + torreEsc(i.hipotese) + '">' +
+        '<input type="text" data-campo="hipotese" placeholder="Hipótese (trauma: mecanismo -> local; crônico: diagnóstico)" value="' + torreEsc(i.hipotese) + '">' +
         '<span class="label">Mover para o turno</span>' + torreSelectTurnos(i) + '</div>';
     } else if (i.hipotese) {
       h += '<div class="torre-hip">' + torreEsc(i.hipotese) + (i.hipSug ? '<span class="torre-sug">sugerida</span>' : '') + '</div>';
@@ -3141,7 +3174,8 @@
     Object.keys(TORRE_TURNOS).forEach(function(t) { h += '<button type="button" data-torre-turno="' + t + '" class="' + (atual === t ? 'ativa' : '') + '">' + TORRE_TURNOS[t] + '</button>'; });
     h += '</div>' +
       '<datalist id="torreLocaisLista">' + torreLocais().map(function(l) { return '<option value="' + torreEsc(l) + '"></option>'; }).join('') + '</datalist>' +
-      '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="novo">＋ Novo paciente</button><button type="button" data-torre-acao="novo-turno">＋ Novo turno</button></div>';
+      '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="novo">＋ Novo paciente</button><button type="button" data-torre-acao="novo-turno">＋ Novo turno</button><button type="button" data-torre-acao="imprimir-abrir">🖨 Imprimir</button></div>';
+    if (torre.imprimindo) h += torreHtmlImprimir();
     if (torre.novoTurno) {
       h += '<div class="torre-novo-turno"><span class="label">Novo turno</span>' +
         '<select id="torreNtTurno">' + Object.keys(TORRE_TURNOS).map(function(t) { return '<option value="' + t + '"' + (t === atual ? ' selected' : '') + '>' + TORRE_TURNOS[t] + '</option>'; }).join('') + '</select>' +
@@ -3152,16 +3186,55 @@
     return h + '</div>';
   }
 
+  function torreOrdenarCartoes(lista) {
+    return lista.slice().sort(function(a, b) { return (TORRE_RANK_COR[a.cor || ''] - TORRE_RANK_COR[b.cor || '']) || ((a.ordem || 0) - (b.ordem || 0)); });
+  }
+  // Agrupa grupos/itens por data (mais recente primeiro) e, dentro da data, por local (24/10/2026).
+  function torrePorDataELocal(itens, chaveData, chaveLocal) {
+    var dias = {}, ordem = [];
+    itens.forEach(function(x) {
+      var d = chaveData(x) || '';
+      if (!dias[d]) { dias[d] = []; ordem.push(d); }
+      dias[d].push(x);
+    });
+    ordem.sort(function(a, b) { return a === b ? 0 : (a < b ? 1 : -1); });
+    return ordem.map(function(d) {
+      var lista = dias[d].slice().sort(function(x, y) {
+        var lx = (chaveLocal(x) || '').toLowerCase(), ly = (chaveLocal(y) || '').toLowerCase();
+        if (lx !== ly) { if (!lx) return 1; if (!ly) return -1; return lx < ly ? -1 : 1; }
+        return TORRE_ORDEM_TURNOS.indexOf(x.turno) - TORRE_ORDEM_TURNOS.indexOf(y.turno);
+      });
+      return { data: d, itens: lista };
+    });
+  }
+
   function torreHtmlAtivos() {
     var grupos = torreGrupos();
     if (!grupos.length) return '<div class="hint">Nenhum paciente ativo. Gere um prontuário com nome e número, ou toque em "Novo paciente".</div>';
-    return grupos.map(function(g, idx) {
-      var lista = g.itens;
-      var aberto = (g.key in torre.abertos) ? torre.abertos[g.key] : (idx < 2 || lista.some(torrePendente));
-      var h = '<details class="torre-grupo" data-grupo="' + torreEsc(g.key) + '"' + (aberto ? ' open' : '') + '><summary><span>' + torreEsc(torreRotuloData(g.data) + ' · ' + TORRE_TURNOS[g.turno]) + '</span><span class="torre-cont">' + lista.length + (lista.length === 1 ? ' paciente' : ' pacientes') + '</span></summary>';
-      h += '<div class="torre-localbox">📍 <input type="text" data-glocal="' + torreEsc(g.key) + '" list="torreLocaisLista" placeholder="Local deste turno" value="' + torreEsc(g.local) + '"></div>';
-      if (!lista.length) h += '<div class="hint">Turno sem pacientes.</div>';
-      lista.slice().sort(function(a, b) { return (TORRE_RANK_COR[a.cor || ''] - TORRE_RANK_COR[b.cor || '']) || ((a.ordem || 0) - (b.ordem || 0)); }).forEach(function(i) { h += torreCartao(i, 'ativo'); });
+    if (torre.renderPainel) {
+      // Painel suspenso: continua por turno (sem mudança).
+      return grupos.map(function(g, idx) {
+        var lista = g.itens;
+        var aberto = (g.key in torre.abertos) ? torre.abertos[g.key] : (idx < 2 || lista.some(torrePendente));
+        var h = '<details class="torre-grupo" data-grupo="' + torreEsc(g.key) + '"' + (aberto ? ' open' : '') + '><summary><span>' + torreEsc(torreRotuloData(g.data) + ' · ' + TORRE_TURNOS[g.turno]) + '</span><span class="torre-cont">' + lista.length + (lista.length === 1 ? ' paciente' : ' pacientes') + '</span></summary>';
+        h += '<div class="torre-localbox">📍 <input type="text" data-glocal="' + torreEsc(g.key) + '" list="torreLocaisLista" placeholder="Local deste turno" value="' + torreEsc(g.local) + '"></div>';
+        if (!lista.length) h += '<div class="hint">Turno sem pacientes.</div>';
+        torreOrdenarCartoes(lista).forEach(function(i) { h += torreCartao(i, 'ativo'); });
+        return h + '</details>';
+      }).join('');
+    }
+    // Aba Torre: primeiro a data, dentro dela o local (24/10/2026).
+    return torrePorDataELocal(grupos, function(g) { return g.data; }, function(g) { return g.local; }).map(function(dia, idx) {
+      var total = dia.itens.reduce(function(n, g) { return n + g.itens.length; }, 0);
+      var chave = 'dia:' + dia.data;
+      var aberto = (chave in torre.abertos) ? torre.abertos[chave] : (idx < 2 || dia.itens.some(function(g) { return g.itens.some(torrePendente); }));
+      var h = '<details class="torre-grupo torre-dia" data-grupo="' + torreEsc(chave) + '"' + (aberto ? ' open' : '') + '><summary><span>' + torreEsc(torreRotuloData(dia.data)) + '</span><span class="torre-cont">' + total + (total === 1 ? ' paciente' : ' pacientes') + '</span></summary>';
+      dia.itens.forEach(function(g) {
+        h += '<div class="torre-subgrupo"><div class="torre-localbox">📍 <input type="text" data-glocal="' + torreEsc(g.key) + '" list="torreLocaisLista" placeholder="Local deste turno" value="' + torreEsc(g.local) + '"><span class="torre-cont">' + torreEsc(TORRE_TURNOS[g.turno]) + ' · ' + g.itens.length + '</span></div>';
+        if (!g.itens.length) h += '<div class="hint">Turno sem pacientes.</div>';
+        torreOrdenarCartoes(g.itens).forEach(function(i) { h += torreCartao(i, 'ativo'); });
+        h += '</div>';
+      });
       return h + '</details>';
     }).join('');
   }
@@ -3170,22 +3243,83 @@
     var lista = torre.itens.filter(function(i) { return i.status === 'arquivar'; }).sort(function(a, b) { return String(b.atualizadoEm || '').localeCompare(String(a.atualizadoEm || '')); });
     var h = '<div class="hint" style="margin-bottom:12px;">Pacientes que você quer checar depois. Copie, cole no Claude (central 3j) para guardar na aba VAR do Notion e depois use Apagar tudo. Nada some sozinho nesta seção.</div>';
     if (!lista.length) return h + '<div class="hint">Nada para arquivar.</div>';
-    h += '<div class="torre-botoes" style="margin:0 0 12px;"><button type="button" class="primario" data-torre-acao="copiar-todos">📋 Copiar todos</button><button type="button" class="perigo" data-torre-acao="apagar-tudo">🗑 Apagar tudo</button></div>';
-    var grupos = {}, ordem = [];
-    lista.forEach(function(i) {
-      var k = (i.dataTurno || '') + '|' + i.turno + '|' + (i.local || '');
-      if (!grupos[k]) { grupos[k] = { data: i.dataTurno || '', turno: i.turno, local: i.local || '', itens: [] }; ordem.push(k); }
-      grupos[k].itens.push(i);
-    });
-    ordem.sort(function(a, b) {
-      var x = grupos[a], y = grupos[b];
-      return String(y.data).localeCompare(String(x.data)) || String(y.turno).localeCompare(String(x.turno)) || String(x.local).localeCompare(String(y.local));
-    });
-    return h + ordem.map(function(k) {
-      var g = grupos[k];
-      return '<div class="torre-local">' + torreEsc(torreRotuloData(g.data) + ' · ' + TORRE_TURNOS[g.turno] + (g.local ? ' · ' + g.local : '')) + ' (' + g.itens.length + ')</div>' +
-        g.itens.map(function(i) { return torreCartao(i, 'arquivar'); }).join('');
+    h += '<div class="torre-botoes" style="margin:0 0 12px;"><button type="button" class="primario" data-torre-acao="copiar-todos">📋 Copiar todos</button><button type="button" data-torre-acao="imprimir-abrir">🖨 Imprimir</button><button type="button" class="perigo" data-torre-acao="apagar-tudo">🗑 Apagar tudo</button></div>';
+    if (torre.imprimindo) h += torreHtmlImprimir();
+    // Primeiro a data, dentro dela o local (24/10/2026).
+    return h + torrePorDataELocal(lista, function(i) { return i.dataTurno; }, function(i) { return i.local; }).map(function(dia) {
+      var out = '<div class="torre-arq-dia">' + torreEsc(torreRotuloData(dia.data)) + ' (' + dia.itens.length + ')</div>';
+      var atual = null;
+      dia.itens.forEach(function(i) {
+        var k = (i.local || '') + '|' + i.turno;
+        if (k !== atual) { atual = k; out += '<div class="torre-local">📍 ' + torreEsc((i.local || 'Sem local') + ' · ' + TORRE_TURNOS[i.turno]) + '</div>'; }
+        out += torreCartao(i, 'arquivar');
+      });
+      return out;
     }).join('');
+  }
+
+  // ---------- Imprimir (24/10/2026): escolhe os campos e imprime agrupado por data e local ----------
+  var TORRE_CAMPOS_IMPRESSAO = [['nome', 'Nome'], ['numero', 'Nº atendimento'], ['hipotese', 'Hipótese'], ['pendencias', 'Pendências'], ['obs', 'Observação'], ['cor', 'Cor'], ['checar', 'O que checar']];
+  function torreCfgImpressao() {
+    var c = torre.cfg.imprimir || {};
+    var campos = Array.isArray(c.campos) && c.campos.length ? c.campos : ['nome', 'numero', 'hipotese', 'pendencias', 'obs'];
+    return { campos: campos, ativos: c.ativos !== false, arquivar: !!c.arquivar };
+  }
+  function torreHtmlImprimir() {
+    var c = torreCfgImpressao();
+    var h = '<div class="torre-imprimir"><span class="label">O que sai no papel</span><div>';
+    TORRE_CAMPOS_IMPRESSAO.forEach(function(f) { h += '<label><input type="checkbox" data-imp-campo="' + f[0] + '"' + (c.campos.indexOf(f[0]) !== -1 ? ' checked' : '') + '>' + torreEsc(f[1]) + '</label>'; });
+    h += '</div><span class="label" style="margin-top:6px;">Quais pacientes</span><div>' +
+      '<label><input type="checkbox" data-imp-sec="ativos"' + (c.ativos ? ' checked' : '') + '>Ativos</label>' +
+      '<label><input type="checkbox" data-imp-sec="arquivar"' + (c.arquivar ? ' checked' : '') + '>A arquivar</label></div>' +
+      '<div class="torre-botoes"><button type="button" class="primario" data-torre-acao="imprimir-ok">🖨 Imprimir</button><button type="button" data-torre-acao="imprimir-cancel">Cancelar</button></div></div>';
+    return h;
+  }
+  function torreLerImpressao(raiz) {
+    var campos = [], c = torreCfgImpressao();
+    Array.prototype.forEach.call(raiz.querySelectorAll('[data-imp-campo]'), function(b) { if (b.checked) campos.push(b.dataset.impCampo); });
+    var sec = {};
+    Array.prototype.forEach.call(raiz.querySelectorAll('[data-imp-sec]'), function(b) { sec[b.dataset.impSec] = b.checked; });
+    return { campos: campos, ativos: 'ativos' in sec ? sec.ativos : c.ativos, arquivar: 'arquivar' in sec ? sec.arquivar : c.arquivar };
+  }
+  function torreHtmlParaImprimir(cfg) {
+    var nomesCor = {};
+    TORRE_CORES_DEF.forEach(function(c) { nomesCor[c[0]] = c[2]; });
+    var itens = torre.itens.filter(function(i) { return (cfg.ativos && i.status === 'ativo') || (cfg.arquivar && i.status === 'arquivar'); });
+    var colunas = TORRE_CAMPOS_IMPRESSAO.filter(function(f) { return cfg.campos.indexOf(f[0]) !== -1; });
+    var valor = function(i, k) {
+      if (k === 'pendencias') { var p = (i.aguarda || []).filter(function(a) { return !a.ok; }).map(torreRotuloPend); return p.join(', '); }
+      if (k === 'cor') return i.cor ? (nomesCor[i.cor] || '') : '';
+      return i[k] || '';
+    };
+    var corpo = torrePorDataELocal(itens, function(i) { return i.dataTurno; }, function(i) { return i.local; }).map(function(dia) {
+      var out = '<h2>' + torreEsc(torreRotuloData(dia.data)) + '</h2>';
+      var atual = null, linhas = [];
+      var fechar = function() { if (linhas.length) out += '<table><thead><tr>' + colunas.map(function(f) { return '<th>' + torreEsc(f[1]) + '</th>'; }).join('') + '</tr></thead><tbody>' + linhas.join('') + '</tbody></table>'; linhas = []; };
+      dia.itens.forEach(function(i) {
+        var k = (i.local || '') + '|' + i.turno;
+        if (k !== atual) { fechar(); atual = k; out += '<h3>' + torreEsc((i.local || 'Sem local') + ' · ' + TORRE_TURNOS[i.turno]) + (i.status === 'arquivar' ? '' : '') + '</h3>'; }
+        linhas.push('<tr>' + colunas.map(function(f) { return '<td>' + torreEsc(valor(i, f[0])) + '</td>'; }).join('') + '</tr>');
+      });
+      fechar();
+      return out;
+    }).join('');
+    return '<!doctype html><html><head><meta charset="utf-8"><title>Torre de controle</title><style>' +
+      'body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#000;margin:12mm;}h1{font-size:15px;margin:0 0 8px;}h2{font-size:13px;margin:14px 0 4px;border-bottom:1px solid #000;}h3{font-size:12px;margin:8px 0 4px;}' +
+      'table{width:100%;border-collapse:collapse;margin-bottom:6px;}th,td{border:1px solid #888;padding:3px 5px;text-align:left;vertical-align:top;white-space:pre-wrap;}th{background:#eee;}' +
+      '</style></head><body><h1>Torre de controle</h1>' + (corpo || '<p>Nenhum paciente.</p>') + '</body></html>';
+  }
+  function torreImprimir(cfg) {
+    var fr = document.getElementById('torreFrameImpressao');
+    if (fr) fr.parentNode.removeChild(fr);
+    fr = document.createElement('iframe');
+    fr.id = 'torreFrameImpressao';
+    fr.setAttribute('aria-hidden', 'true');
+    fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+    document.body.appendChild(fr);
+    var doc = fr.contentWindow.document;
+    doc.open(); doc.write(torreHtmlParaImprimir(cfg)); doc.close();
+    setTimeout(function() { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { torreStatus('⚠️ Não consegui abrir a impressão.'); } }, 150);
   }
 
   function torreHtmlLixeira() {
@@ -3276,6 +3410,15 @@
     }
     if (acao === 'painel-min') { torre.cfg.painelMin = true; torreGravarCfg(); torrePainelAtualizarVisibilidade(); return; }
     if (acao === 'novo-turno') { torre.novoTurno = true; torreRender(); return; }
+    if (acao === 'imprimir-abrir') { torre.imprimindo = !torre.imprimindo; torreRender(); return; }
+    if (acao === 'imprimir-cancel') { torre.imprimindo = false; torreRender(); return; }
+    if (acao === 'imprimir-ok') {
+      var caixa = alvo.closest('.torre-imprimir'), cfgImp = torreLerImpressao(caixa);
+      if (!cfgImp.campos.length) { torreStatus('Marque ao menos um campo para imprimir.'); return; }
+      if (!cfgImp.ativos && !cfgImp.arquivar) { torreStatus('Marque Ativos ou A arquivar.'); return; }
+      torre.cfg.imprimir = cfgImp; torreGravarCfg();
+      torre.imprimindo = false; torreRender(); torreImprimir(cfgImp); return;
+    }
     if (acao === 'turno-cancel') { torre.novoTurno = false; torreRender(); return; }
     if (acao === 'turno-criar') {
       var nt = document.getElementById('torreNtTurno').value, nd = document.getElementById('torreNtData').value, nl = (document.getElementById('torreNtLocal').value || '').trim();
@@ -3487,9 +3630,9 @@
     ['Queda de altura', /queda de (?:altura|escada|laje|telhado|andaime|[a-zà-ÿ]+ metros?)|queda de \d|ca[ií]u de (?:escada|laje|telhado|andaime|[a-zà-ÿ]+ metros?)/i],
     ['QPA', /\bqpa\b|queda (?:da|de) pr[óo]pria altura|queda do mesmo n[íi]vel|queda ao solo|queda (?:em )?(?:casa|domiciliar)|\bqueda\b(?! (?:de|da|do) (?:moto|bicicleta|bike|cavalo|patins|skate|altura|escada|laje|telhado|andaime))|ca[ií]u\b(?! (?:de|da|do) (?:moto|bicicleta|bike|cavalo|patins|skate|escada|laje|telhado|andaime))|escorreg/i],
     ['Torcional', /tor[çc]ional|tor[çc][ãa]o|torceu|entorse|virou o|inver[sç][ãa]o/i],
-    ['Trauma direto', /trauma direto|pancada|golpe|soco|chute|agress|contus|bateu|esmag|prensou|objeto/i],
+    ['Trauma direto', /trauma direto|\bpancada|\bgolpe|\bsocos?\b|\bchut(?:e|es|ou)\b|agress|contus|\bbateu\b|esmag|prensou|\bobjeto/i],
     ['Esporte', /bicicleta|\bbike\b|patins|skate|cavalo|esporte|futebol|basquete|v[ôo]lei|corrida|jogando|academia|treino|luta\b|jiu|crossfit|t[êe]nis/i],
-    ['Atraumático', /atraum[áa]tic|sem trauma|sem hist[óo]ria de trauma|nega trauma|dor insidiosa|sem queda/i]
+    ['Atraumático', /atraum[áa]tic|sem trauma|sem hist[óo]ria de trauma|nega (?:hist[óo]ria de )?trauma|dor insidiosa|sem queda/i]
   ];
   var TORRE_SEGMENTOS = [
     ['coluna lombar', /lombar|lombalgia|\bL[1-5]\b/i], ['coluna cervical', /cervical|cervicalgia|pesco[çc]o/i], ['coluna torácica', /tor[áa]cic|dorsal/i], ['coluna', /\bcoluna\b/i],
@@ -3502,12 +3645,55 @@
   ];
   function torreLadoPerto(t, idx, tam) {
     var trecho = t.slice(idx, idx + tam + 28);
-    var m = trecho.match(/\b(direit[oa]|esquerd[oa]|bilateral)\b|\b([DE])\b(?![a-zà-ÿ])/);
+    // Palavra inteira em qualquer caixa ("A ESQUERDA", "joelho Direito"); letra solta só maiúscula (D/E).
+    var w = trecho.match(/\b(direit[oa]|esquerd[oa]|bilateral)\b/i);
+    if (w) return /bilateral/i.test(w[1]) ? 'bilateral' : (/^d/i.test(w[1]) ? 'direito' : 'esquerdo');
+    var m = trecho.match(/\b([DE])\b(?![a-zà-ÿ])/);
     if (!m) return '';
-    if (m[1]) return /bilateral/i.test(m[1]) ? 'bilateral' : (/^d/i.test(m[1]) ? 'direito' : 'esquerdo');
-    return m[2] === 'D' ? 'direito' : 'esquerdo';
+    return m[1] === 'D' ? 'direito' : 'esquerdo';
   }
-  function torreHipoteseSugerida(dados, textoGerado) {
+  // Caso crônico (24/10/2026): a hipótese é só o diagnóstico (ex.: "Cervicalgia à esquerda"), sem mecanismo.
+  var TORRE_DIAG_CRONICO = [
+    ['Lombociatalgia', /lombociatalg/i], ['Cervicobraquialgia', /cervicobraquialg/i], ['Lombalgia', /lombalg|dor lombar/i], ['Cervicalgia', /cervicalg|dor cervical/i],
+    ['Dorsalgia', /dorsalg|dor dorsal|dor tor[áa]cica/i], ['Torcicolo', /torcicolo/i], ['Fascite plantar', /fasc[ií]te plantar|esp[oó]r[ãa]o/i],
+    ['Síndrome do manguito rotador', /manguito/i], ['Epicondilite lateral', /epicondilite lateral|cotovelo de tenista/i], ['Epicondilite medial', /epicondilite medial/i], ['Epicondilite', /epicondilite/i],
+    ['Tenossinovite de De Quervain', /quervain/i], ['Dedo em gatilho', /dedo em gatilho|gatilho/i], ['Síndrome do túnel do carpo', /t[úu]nel do carpo|\bSTC\b/i],
+    ['Bursite trocantérica', /bursite trocant/i], ['Bursite', /bursite/i], ['Tendinopatia', /tendin(?:opatia|ite)/i],
+    ['Gonartrose', /gonartrose|artrose (?:de|do|no) joelho/i], ['Coxartrose', /coxartrose|artrose (?:de|do|no) quadril/i], ['Artrose', /artrose|osteoartrite/i],
+    ['Condromalácia patelar', /condromal[áa]cia/i], ['Metatarsalgia', /metatarsalg/i], ['Gonalgia', /gonalg|dor (?:no|em) joelho/i],
+    ['Ombralgia', /ombralg|omalg|dor (?:no|em) ombro/i], ['Coxalgia', /coxalg|dor (?:no|em) quadril/i]
+  ];
+  var TORRE_DIAG_DO_MODELO = { e1: 'Lombalgia', e2: 'Cervicalgia', e3: 'Torcicolo', e4: 'Fascite plantar', e5: 'Ombralgia', e6: 'Tendinopatia', e7: 'Gonalgia' };
+  var TORRE_DIAG_DO_SEGMENTO = { 'coluna lombar': 'Lombalgia', 'coluna cervical': 'Cervicalgia', 'coluna torácica': 'Dorsalgia', 'ombro': 'Ombralgia', 'joelho': 'Gonalgia', 'quadril': 'Coxalgia', 'pé': 'Podalgia' };
+  function torreLadoTexto(lado, algia) {
+    if (!lado) return '';
+    if (lado === 'bilateral') return ' bilateral';
+    if (algia) return lado === 'direito' ? ' à direita' : ' à esquerda';
+    return ' ' + lado;
+  }
+  function torreDiagnosticoCronico(base, tpl, segmento) {
+    var melhor = Infinity, diag = '', idx = 0;
+    TORRE_DIAG_CRONICO.forEach(function(dg) {
+      var r = base.match(dg[1]);
+      if (r && r.index < melhor) { melhor = r.index; diag = dg[0]; idx = r.index; }
+    });
+    var lado = diag ? torreLadoPerto(base, idx, 18) : '';
+    if (!diag && TORRE_DIAG_DO_MODELO[tpl]) {
+      diag = TORRE_DIAG_DO_MODELO[tpl];
+      var m = base.match(/\b(direit[oa]|esquerd[oa]|bilateral)\b/i);
+      if (m) lado = /bilateral/i.test(m[1]) ? 'bilateral' : (/^d/i.test(m[1]) ? 'direito' : 'esquerdo');
+    }
+    if (!diag && segmento) {
+      var seg = segmento.replace(/ (direito|esquerdo|bilateral)$/, ''), ladoSeg = (segmento.match(/ (direito|esquerdo|bilateral)$/) || [])[1] || '';
+      if (TORRE_DIAG_DO_SEGMENTO[seg]) { diag = TORRE_DIAG_DO_SEGMENTO[seg]; lado = ladoSeg; }
+      else return 'Dor crônica em ' + segmento;
+    }
+    if (!diag) return '';
+    var algia = /alg|Torcicolo/.test(diag);
+    return diag + torreLadoTexto(lado, algia);
+  }
+
+  function torreHipoteseSugerida(dados, textoGerado, tpl) {
     var d = String(dados || ''), g = String(textoGerado || '');
     var iq = g.search(/^\s*(?:QD|HDA|HPMA)\s*:/im), qd = iq === -1 ? '' : g.slice(iq).split(/EXAME F[ÍI]SICO|EM TEMPO|CONDUTA/i)[0];
     var base = d + '\n' + qd;
@@ -3533,11 +3719,20 @@
         local = seg + (lado ? ' ' + lado : '');
       }
     }
+    // Crônico (modelo crônico, atraumático, "crônica", "agudização"): só o diagnóstico (24/10/2026).
+    tpl = String(tpl || '').split('+')[0].trim();
+    var mecDados = '';
+    TORRE_MECANISMOS.forEach(function(m) { if (!mecDados && m[0] !== 'Atraumático' && m[1].test(d)) mecDados = m[0]; });
+    var cronico = (/^e\d/.test(tpl) && !mecDados) || mec === 'Atraumático' || (!mec && /cr[ôo]nic|agudiza|insidios/i.test(base));
+    if (cronico) {
+      var dx = torreDiagnosticoCronico(d + '\n' + qd, tpl, local);
+      if (dx) return dx;
+    }
     if (!mec && !local) return '';
     return mec && local ? mec + ' -> ' + local : (mec || local);
   }
 
-  function torreExtrair(dados, textoGerado) {
+  function torreExtrair(dados, textoGerado, tpl) {
     var linhas = String(dados || '').split(/\n/).map(function(l) { return l.trim(); }).filter(Boolean);
     var numero = '', nome = '', hipotese = '';
     // número: primeira sequência de 5+ dígitos nas primeiras linhas (com hífen e dígito final, se houver)
@@ -3576,7 +3771,7 @@
     }
     if (nome) nome = torreCapitalizar(nome);
     var hipSug = false;
-    hipotese = torreHipoteseSugerida(dados, textoGerado);
+    hipotese = torreHipoteseSugerida(dados, textoGerado, tpl);
     if (hipotese) hipSug = true;
     else if (sobras.length) hipotese = sobras[0].slice(0, 140);
     if (!hipotese) {
@@ -3600,7 +3795,9 @@
       aguarda.forEach(function(a, q) { if (a.k === 'labs') pos = q; });
       aguarda.splice(pos + 1, 0, { k: 'Reavaliação', ok: false, txt: '' });
     }
-    return { nome: nome, numero: numero, hipotese: hipotese, hipSug: hipSug, aguarda: aguarda };
+    // Tudo o que o médico digitou na caixa vai inteiro para a observação (24/10/2026).
+    var obs = String(dados || '').trim();
+    return { nome: nome, numero: numero, hipotese: hipotese, hipSug: hipSug, aguarda: aguarda, obs: obs };
   }
 
   function torreToast(msg, botoes, fixo) {
@@ -3636,11 +3833,15 @@
     if (ex.nome && !igual.nome) igual.nome = ex.nome;
     if (ex.numero && !igual.numero) igual.numero = ex.numero;
     ex.aguarda.forEach(function(a) { if (!igual.aguarda.some(function(x) { return x.k === a.k; })) igual.aguarda.push(a); });
+    if (ex.obs) {
+      if (!igual.obs) igual.obs = ex.obs;
+      else if (igual.obs.indexOf(ex.obs) === -1) igual.obs = igual.obs + '\n---\n' + ex.obs;
+    }
     igual.atualizadoEm = new Date().toISOString();
     return torreSalvar(igual);
   }
   function torreNovoDeExtracao(ex, ver) {
-    var it = torreNovoItem({ nome: ex.nome, numero: ex.numero, hipotese: ex.hipotese, hipSug: !!ex.hipSug, aguarda: ex.aguarda });
+    var it = torreNovoItem({ nome: ex.nome, numero: ex.numero, hipotese: ex.hipotese, hipSug: !!ex.hipSug, aguarda: ex.aguarda, obs: ex.obs || '' });
     torre.itens.push(it);
     torreLembrarLocal(it.local);
     torreSalvar(it).then(function(salvou) {
@@ -3676,7 +3877,7 @@
 
   function torreAposGerar(dados, textoGerado) {
     try {
-      var ex = torreExtrair(dados, textoGerado);
+      var ex = torreExtrair(dados, textoGerado, (ultimoPayloadGerar && ultimoPayloadGerar.template) || '');
       if (!ex.nome && !ex.numero) return;
       torreCriarDeExtracao(ex, false);
     } catch (e) { /* a Torre nunca atrapalha o prontuário */ }
@@ -3684,25 +3885,25 @@
 
   // Botão "Adicionar/Atualizar na Torre" entre a IA e os Ajustes.
   function torreDadosAtuais(origem) {
-    if (origem === 'msg') return { dados: (document.getElementById('msgDados') || {}).value || '', texto: ultimoTextoMsg || '' };
+    if (origem === 'msg') return { dados: (document.getElementById('msgDados') || {}).value || '', texto: ultimoTextoMsg || '', tpl: '' };
     var d = (ultimoPayloadGerar && ultimoPayloadGerar.dadosCaso) || (document.getElementById('dadosCaso') || {}).value || '';
-    return { dados: d, texto: ultimoTextoGerar || '' };
+    return { dados: d, texto: ultimoTextoGerar || '', tpl: (ultimoPayloadGerar && ultimoPayloadGerar.template) || '' };
   }
   function torreAtualizarBotoes() {
     var bts = document.querySelectorAll('.btn-torre-add');
     Array.prototype.forEach.call(bts, function(b) {
       var d = torreDadosAtuais(b.dataset.torreAdd), existe = false;
-      try { var ex = torreExtrair(d.dados, d.texto); existe = !!(torrePorNumero(ex) || (!ex.numero && torrePorNome(ex))); } catch (e) {}
+      try { var ex = torreExtrair(d.dados, d.texto, d.tpl); existe = !!(torrePorNumero(ex) || (!ex.numero && torrePorNome(ex))); } catch (e) {}
       b.textContent = existe ? '🗼 Atualizar na Torre' : '🗼 Adicionar à Torre';
     });
   }
   document.addEventListener('click', function(e) {
     var b = e.target.closest ? e.target.closest('.btn-torre-add') : null;
     if (!b) return;
-    var d = torreDadosAtuais(b.dataset.torreAdd), ex = torreExtrair(d.dados, d.texto);
+    var d = torreDadosAtuais(b.dataset.torreAdd), ex = torreExtrair(d.dados, d.texto, d.tpl);
     if (!ex.nome && !ex.numero) {
       torreGarantirCarregado().then(function() {
-        var it = torreNovoItem({ hipotese: ex.hipotese, hipSug: !!ex.hipSug, aguarda: ex.aguarda });
+        var it = torreNovoItem({ hipotese: ex.hipotese, hipSug: !!ex.hipSug, aguarda: ex.aguarda, obs: ex.obs || '' });
         torre.itens.push(it); torre.editando[it.id] = true; torre.secao = 'ativo'; torreSalvar(it).then(function() { mostrarAba('torre'); });
       });
       return;
@@ -4181,6 +4382,30 @@
   var exameCasa = document.getElementById('exameCasa');
   var exameCasaSel = '';
   var subBtns = document.querySelectorAll('.completo-sub-btn');
+  // Evolução (24/10/2026): Ambulatório e PSO mostram os modelos de retorno; Internado é a evolução do internado (ev).
+  var evolSub = document.getElementById('evolSub');
+  var evolBtns = document.querySelectorAll('.evol-sub-btn');
+  var subEvol = 'amb';
+  function aplicarSubEvol() {
+    templatesSelecionados = [];
+    todosOsBotoesTemplate().forEach(function(btn) { btn.classList.remove('active'); });
+    evolBtns.forEach(function(b) { b.classList.toggle('active', b.dataset.evol === subEvol); });
+    gridRetorno.querySelectorAll('button').forEach(function(b) {
+      b.classList.toggle('oculto', subEvol === 'internado' ? b.dataset.t !== 'ev' : b.dataset.t === 'ev');
+    });
+    if (subEvol === 'internado') {
+      var ev = gridRetorno.querySelector('[data-t="ev"]');
+      ev.classList.add('active');
+      templatesSelecionados = ['ev'];
+      tplHint.textContent = 'Evolução do paciente internado. Cole as evoluções anteriores para copiar o formato.';
+    } else {
+      tplHint.textContent = (subEvol === 'pso' ? 'Retorno no PSO. ' : 'Retorno no ambulatório. ') + 'Escolha o desfecho. Sempre termina com novo retorno (não existe alta do seguimento).';
+    }
+    if (typeof atualizarRecusa === 'function') atualizarRecusa();
+  }
+  evolBtns.forEach(function(b) {
+    b.addEventListener('click', function() { subEvol = b.dataset.evol; aplicarSubEvol(); });
+  });
 
   function todosOsBotoesTemplate() {
     return document.querySelectorAll('#tplGridInicial button, #tplGridReavaliacao button, #tplGridRetorno button, #tplGridTrauma button, #tplGridCronico button, #tplGridRelato button');
@@ -4216,6 +4441,7 @@
     gridInicial.classList.add('oculto');
     gridReavaliacao.classList.add('oculto');
     gridRetorno.classList.add('oculto');
+    evolSub.classList.add('oculto');
     blocoCompleto.classList.add('oculto');
     // No 1º atendimento o modelo é único e automático: esconde o card inteiro (evita card vazio)
     var cardModelo = document.getElementById('cardModelo');
@@ -4235,7 +4461,8 @@
     } else if (tipoAtendimento === 'retorno') {
       labelModelo.classList.remove('oculto');
       gridRetorno.classList.remove('oculto');
-      tplHint.textContent = 'Escolha o desfecho do retorno. Sempre termina com novo retorno (não existe alta do seguimento).';
+      evolSub.classList.remove('oculto');
+      aplicarSubEvol();
     } else if (tipoAtendimento === 'completo') {
       labelModelo.classList.remove('oculto');
       blocoCompleto.classList.remove('oculto');
@@ -4336,7 +4563,7 @@
         labelDados.textContent = 'Dados da reavaliação';
       } else if (tipoAtendimento === 'retorno') {
         blocoInicial.classList.add('oculto');
-        labelDados.textContent = 'Dados do retorno de hoje';
+        labelDados.textContent = 'Dados da evolução de hoje';
       } else {
         blocoInicial.classList.add('oculto');
         labelDados.textContent = 'Dados do caso';
@@ -4690,6 +4917,7 @@
       exameAmbulatorial: (tipoAtendimento === 'completo' && subCompleto === 'cronico') ? exameCasaSel : '',
       encaminhamentos: encaminhamentosSel.slice(),
       recusaOperar: recusaOperarSel,
+      localEvolucao: tipoAtendimento === 'retorno' ? subEvol : '',
       imagens: (tipoAtendimento === 'retorno' ? arquivosAtendimentosAnteriores().concat(arquivosExamesAnteriores('antes'), arquivosExamesAnteriores('hoje').map(function(a) { a.rotulo = 'Exame/laudo atual (retorno de hoje):'; return a; })) : arquivosExamesAnteriores()).concat(
         imagensExame.obter().map(function(a) { if (tipoAtendimento === 'retorno') a.rotulo = 'Exame/laudo atual (retorno de hoje):'; return a; })
       )
@@ -4702,7 +4930,7 @@
           tipo: 'geracao',
           data: agoraIso(),
           entrada: {
-            tipoAtendimento: tipoAtendimento,
+            tipoAtendimento: tipoAtendimento === 'retorno' ? 'evolução — ' + ({ amb: 'ambulatório', pso: 'PSO', internado: 'internado' }[subEvol] || subEvol) : tipoAtendimento,
             template: payloadGerar.template,
             acompanhante: payloadGerar.acompanhante === 'crianca' ? 'pais/responsável (criança)' : (payloadGerar.acompanhante === 'idoso' ? 'familiar/cuidador (idoso)' : 'não'),
             deambulacao: payloadGerar.naoDeambula ? 'não deambula' : 'deambulando',
@@ -6092,7 +6320,7 @@
 
   var GRUPOS_TEMPLATES = [
     { categoria: 'Prontuário — Atendimento', chaves: ['a', 'b', 'bd', 'bg', 'bf'] },
-    { categoria: 'Prontuário — Retorno', chaves: ['r0', 'r1', 'r2', 'r3', 'r4', 'ev'] },
+    { categoria: 'Prontuário — Evolução', chaves: ['r0', 'r1', 'r2', 'r3', 'r4', 'ev'] },
     { categoria: 'Prontuário — Reavaliação', chaves: ['c', 'd', 'g', 'f'] },
     { categoria: 'Prontuário — Crônicos', chaves: ['e1','e2','e3','e4','e5','e6','e7','e8','h'] },
     { categoria: 'Mensagens', chaves: ['chefe', 'internacao', 'paciente', 'retaguarda'], tipo: 'mensagem' }

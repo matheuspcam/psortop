@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ erro: 'Método não permitido' });
   }
 
-  const { pin, tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, encaminhamentos, modo, dataHoje, imagens, resultadoAnterior, instrucaoAjuste, categoria, exemplos, pedido, tipoAtestado, diasAfastamento, diagnosticoAtestado, provedor, recusaOperar } = req.body;
+  const { pin, tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, encaminhamentos, modo, dataHoje, imagens, resultadoAnterior, instrucaoAjuste, categoria, exemplos, pedido, tipoAtestado, diasAfastamento, diagnosticoAtestado, provedor, recusaOperar, localEvolucao } = req.body;
 
   if (!process.env.SITE_PIN || pin !== process.env.SITE_PIN) {
     return res.status(401).json({ erro: 'PIN incorreto' });
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
       : (ehMensagem ? montarPromptSistemaMensagem() : montarPromptSistema()));
 
   const contextoAjuste = ehAjuste && !ehMensagem && !ehAvulso
-    ? `CONTEXTO ORIGINAL (fonte para cronologia e autoria; não é uma nova ordem de geração):\n${montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje, encaminhamentos, recusaOperar })}\n\n`
+    ? `CONTEXTO ORIGINAL (fonte para cronologia e autoria; não é uma nova ordem de geração):\n${montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje, encaminhamentos, recusaOperar, localEvolucao })}\n\n`
     : '';
 
   const contents = ehAjuste
@@ -91,7 +91,7 @@ export default async function handler(req, res) {
           ? montarPromptAvulso({ categoria, exemplos, pedido, tipoAtestado, diasAfastamento, diagnosticoAtestado, dataHoje })
           : (ehMensagem
             ? montarPromptMensagem({ dadosCaso, template, dataHoje })
-            : montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje, encaminhamentos, recusaOperar })),
+            : montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje, encaminhamentos, recusaOperar, localEvolucao })),
         imagens
       ) }];
 
@@ -188,6 +188,8 @@ function posProcessarProntuario(texto, ctx) {
   t = garantirNegaTrauma(t, fontes);
   t = almofadaParaControleAlgico(t);
   t = removerAvisosGenericos(t);
+  t = limparAvisosQueNaoFaltam(t, fontes);
+  t = relatoDosPais(t, ctx.acompanhante, fontes);
   t = juntarNegativasDaHistoria(t);
   t = removerOfertaDeRxSeRxAvaliado(t);
   t = rmSemCitarRxNaoFeito(t);
@@ -195,6 +197,14 @@ function posProcessarProntuario(texto, ctx) {
   t = garantirAtestadoSeSolicitado(t, ctx);
   t = robofootERMPorDor(t, ctx, fontes);
   t = retornoClinicoERadiologico(t);
+  t = negativasDoTraumaDeEnergia(t, ctx.dadosCaso, ctx.tipoAtendimento);
+  t = negaQuadroPrevio(t, ctx.dadosCaso);
+  t = garantirLinhaDeEdema(t);
+  t = rxNormalParaIdade(t, ctx.dadosCaso);
+  t = altaDaOrtopediaAguardaOutraEquipe(t, ctx.dadosCaso);
+  t = linhaDeQuadroFisiologico(t, ctx.dadosCaso, ctx.acompanhante);
+  if (!ctx.ehAjuste && ctx.tipoAtendimento === 'retorno' && String(ctx.template || '').split('+')[0].trim() === 'r0') t = condutaDoR0(t, ctx.dadosCaso);
+  if (!ctx.ehAjuste && ctx.tipoAtendimento === 'retorno') t = exameDoRetornoSemAchadosAntigos(t, ctx.dadosCaso, ctx.atendimentoInicial);
   t = avisarSeExameMarcadoFaltou(t, ctx);
   t = subirCondutasNovas(t);
   t = semIndicacaoPrimeiroNaConduta(t);
@@ -210,6 +220,185 @@ function posProcessarProntuario(texto, ctx) {
     // Palavras em inglês / trocas já observadas nas saídas do modelo
     .replace(/\blimitations\b/gi, 'limitações')
     .replace(/fases internas/gi, 'fases iniciais');
+}
+
+// ===== Correções de 24/10/2026 (lote de sugestões 19–22/10) =====
+
+function blocoDaSecao(linhas, reTitulo) {
+  const ini = linhas.findIndex(l => reTitulo.test(l));
+  if (ini === -1) return null;
+  let fim = linhas.length;
+  for (let i = ini + 1; i < linhas.length; i++) { if (linhas[i].trim() === '') { fim = i; break; } }
+  return { ini, fim };
+}
+function indiceDasNegativas(linhas) {
+  const iH = linhas.findIndex(l => /^\s*(QD|HDA|HPMA)\s*:/i.test(l));
+  if (iH === -1) return { iH: -1, iNeg: -1, fim: -1 };
+  let fim = linhas.length;
+  for (let i = iH + 1; i < linhas.length; i++) { if (linhas[i].trim() === '' || /^\s*(EXAME|EM TEMPO|CONDUTA|TEMPO DESDE)\b/i.test(linhas[i])) { fim = i; break; } }
+  let iNeg = -1;
+  for (let i = iH + 1; i < fim; i++) { if (/^\s*Nega\b/.test(linhas[i])) { iNeg = i; break; } }
+  return { iH, iNeg, fim };
+}
+function acrescentarNegativas(texto, frases) {
+  const linhas = String(texto || '').split('\n');
+  const { iH, iNeg, fim } = indiceDasNegativas(linhas);
+  if (iH === -1) return texto;
+  const faltam = frases.filter(f => !linhas.slice(iH, fim).join(' ').toLowerCase().includes(f.toLowerCase().replace(/\.$/, '')));
+  if (!faltam.length) return texto;
+  if (iNeg !== -1) linhas[iNeg] = linhas[iNeg].replace(/^(\s*)/, '$1' + faltam.join(' ') + ' ');
+  else linhas.splice(fim, 0, faltam.join(' '));
+  return linhas.join('\n');
+}
+
+// Acidente de moto/carro, atropelamento ou queda: "Nega TCE. Nega perda de consciência." (e, nos acidentes, "Nega dor em outras topografias.").
+function negativasDoTraumaDeEnergia(texto, dados, tipo) {
+  if (tipo === 'retorno') return texto;
+  const d = String(dados || '');
+  const acidente = /\bmoto\b|motocicl|\bcarro\b|autom[óo]vel|acidente|colis[ãa]o|atropel|capot/i.test(d);
+  const queda = /\bqueda\b|\bcaiu\b|\bqpa\b/i.test(d);
+  if (!acidente && !queda) return texto;
+  const semNeg = d.replace(/neg[a-z]*\s+(?:TCE|perda[^\n.,]*)/gi, ' ');
+  if (/\bTCE\b|bateu a cabe|trauma (?:de|na) cabe|perd\w*\s+(?:a\s+|de\s+)?consci|desmai|s[íi]ncope|inconsci/i.test(semNeg)) return texto;
+  const t = String(texto || '');
+  const frases = [];
+  if (!/Nega TCE/i.test(t)) frases.push('Nega TCE.');
+  if (!/Nega perda de consci/i.test(t)) frases.push('Nega perda de consciência.');
+  if (acidente && !/dor em outras topografias/i.test(t)) frases.push('Nega dor em outras topografias.');
+  return frases.length ? acrescentarNegativas(t, frases) : t;
+}
+
+// Linha padrão do edema não pode sumir do exame (o modelo às vezes a apaga).
+function garantirLinhaDeEdema(texto) {
+  const linhas = String(texto || '').split('\n');
+  const b = blocoDaSecao(linhas, /^\s*EXAME F[ÍI]SICO/i);
+  if (!b) return texto;
+  const bloco = linhas.slice(b.ini + 1, b.fim);
+  if (!bloco.length || bloco.some(l => /edema/i.test(l))) return texto;
+  let pos = bloco.findIndex(l => /^\s*Sem deformidades/i.test(l));
+  if (pos === -1) pos = bloco.findIndex(l => /^\s*Sem les[õo]es cut[âa]neas/i.test(l));
+  if (pos === -1) pos = 0;
+  linhas.splice(b.ini + 1 + pos + 1, 0, 'Sem edema, sem abaulamentos e sem tensão de partes moles.');
+  return linhas.join('\n');
+}
+
+// "Alta da ortopedia" com o paciente seguindo com outra equipe: a alta hospitalar não é da ortopedia.
+function altaDaOrtopediaAguardaOutraEquipe(texto, dados) {
+  const d = String(dados || '');
+  if (!/alta\s+(?:d[ao]\s+)?ortop/i.test(d)) return texto;
+  const mEq = d.match(/(cl[íi]nica(?:\s+m[ée]dica)?|\bCM\b|neurologia|neurocirurgia|cirurgia geral|pediatria|cardiologia|urologia|vascular)/i);
+  if (!mEq) return texto;
+  const equipe = /^(cl|cm)/i.test(mEq[1]) ? 'clínica médica' : mEq[1].toLowerCase();
+  const linhas = String(texto || '').split('\n');
+  const b = blocoDaSecao(linhas, /^\s*CONDUTA\s*:?\s*$/i);
+  if (!b) return texto;
+  let bloco = linhas.slice(b.ini + 1, b.fim)
+    .filter(l => !/^\s*Alta da ortopedia\.?\s*$/i.test(l))
+    .filter(l => !/^\s*Sem indica[çc][ãa]o de procedimento ortop/i.test(l))
+    .filter(l => !/^\s*(Solicitad[ao]|Encaminhad[ao]|Realizad[ao]|Aguarda)\b[^\n]*(avalia[çc][ãa]o|reavalia[çc][ãa]o|aval)\b[^\n]*(cl[íi]nica|equipe|neuro|cirurgia|pediatr|cardio|urolog|vascular)/i.test(l));
+  bloco = ['Sem indicação de procedimento ortopédico cirúrgico de urgência no momento ou demais condutas ortopédicas.', `Aguarda reavaliação da ${equipe}.`].concat(bloco);
+  return linhas.slice(0, b.ini + 1).concat(bloco, linhas.slice(b.fim)).join('\n');
+}
+
+// r0: a conduta é só a de hoje (RX e reavaliação após), nunca a dos atendimentos anteriores.
+function condutaDoR0(texto, dados) {
+  const d = String(dados || '');
+  const linhas = String(texto || '').split('\n');
+  const b = blocoDaSecao(linhas, /^\s*CONDUTA\s*:?\s*$/i);
+  if (!b) return texto;
+  const nova = [];
+  if (/retir\w*\s+(?:a\s+|da\s+)?(?:tala|gesso|imobiliza)/i.test(d)) nova.push('Solicito retirada da tala gessada para a realização das radiografias.');
+  nova.push('Solicito RX.');
+  if (/analges|dipirona|analg[ée]sic/i.test(d)) nova.push('Prescrita analgesia.');
+  nova.push('Reavaliação após o resultado dos exames.');
+  return linhas.slice(0, b.ini + 1).concat(nova, linhas.slice(b.fim)).join('\n').replace(/\n{3,}/g, '\n\n');
+}
+
+// Relato dos pais sem mãe/pai identificados: "pais" ou "responsáveis", nunca "genitora" inventada.
+const VERBO_PLURAL = { relata: 'relatam', refere: 'referem', informa: 'informam', nega: 'negam', traz: 'trazem', conta: 'contam', observou: 'observaram', notou: 'notaram', percebeu: 'perceberam', procura: 'procuram', procurou: 'procuraram' };
+function relatoDosPais(texto, acompanhante, fontes) {
+  if (acompanhante !== 'crianca') return texto;
+  const f = String(fontes || '');
+  if (/\bm[ãa]e\b|genitora|\bpai\b|genitor\b|\bav[óô]\b|\btia?\b/i.test(f)) return texto;
+  const suj = /\bpais\b/i.test(f) ? 'pais' : 'responsáveis';
+  const Suj = suj.charAt(0).toUpperCase() + suj.slice(1);
+  return String(texto || '')
+    .replace(/\b([Gg])enitor(?:a|\(a\))?\s+(relata|refere|informa|nega|traz|conta|observou|notou|percebeu|procura|procurou)\b/g, (m, g, v) => (g === 'G' ? Suj : suj) + ' ' + VERBO_PLURAL[v])
+    .replace(/\b([àa])\s+genitora\b/gi, (m, a) => (a === 'À' || a === 'A' ? 'Aos ' : 'aos ') + suj)
+    .replace(/\b([Rr]esponsável|[Gg]enitora)\s+(refere|referiu)\s+compreens/g, () => `${Suj} referem compreens`)
+    .split('\n').map(l => /^\s*(Pais|Responsáveis)\s+referem compreens/i.test(l) ? l.replace(/encontrando-se ciente\b/i, 'encontrando-se cientes') : l).join('\n');
+}
+
+// Avisos que não dizem o que falta (nome/matrícula, responsável "não identificado", lado/segmento já escritos, exame não feito ou recusado) saem.
+function limparAvisosQueNaoFaltam(texto, fontes) {
+  const temLado = /\b(direit[oa]s?|esquerd[oa]s?|bilateral)\b/i.test(String(fontes || ''));
+  return String(texto || '').split('\n').map(l => {
+    if (!/^\s*⚠️/.test(l)) return l;
+    if (/(nome|matr[íi]cula)[^\n]*n[ãa]o dev/i.test(l) || /respons[áa]vel n[ãa]o identificad/i.test(l)) return null;
+    const partes = l.replace(/^\s*⚠️\s*/, '').split(/\s*;\s*/).filter(p => {
+      if (/n[ãa]o realizad|recusad|n[ãa]o (?:desej|quis|quer)/i.test(p)) return false;
+      if (temLado && /segmento[^;]*n[ãa]o (?:especificad|informad)/i.test(p)) return false;
+      return true;
+    });
+    return partes.length ? '⚠️ ' + partes.join('; ') : null;
+  }).filter(l => l !== null).join('\n');
+}
+
+// "sem quadro prévio" nos dados vira negativa na história.
+function negaQuadroPrevio(texto, dados) {
+  if (!/sem\s+quadro\s+pr[ée]vio|nega\s+quadro\s+pr[ée]vio|nunca\s+teve|primeiro\s+epis[óo]dio/i.test(String(dados || ''))) return texto;
+  if (/quadro pr[ée]vio|epis[óo]dios? pr[ée]vios?/i.test(texto)) return texto;
+  return acrescentarNegativas(texto, ['Nega quadro prévio semelhante.']);
+}
+
+// "RX normal para a idade": a ressalva da faixa etária fica no EM TEMPO.
+function rxNormalParaIdade(texto, dados) {
+  if (!/normais?\s+para\s+(?:a\s+)?(?:idade|faixa\s+et[áa]ria)/i.test(String(dados || ''))) return texto;
+  return String(texto || '').split('\n').map(l => {
+    if (!/^\s*Avalio\s+(?:as\s+)?radiografias?/i.test(l) || /faixa et[áa]ria|idade/i.test(l)) return l;
+    return l.replace(/^(\s*Avalio\s+(?:as\s+)?radiografias?[^,\n]*),\s*/i, '$1, compatíveis com a faixa etária, ');
+  }).join('\n');
+}
+
+// Quadro normal/fisiológico informado pelo médico: linha elaborada de tranquilização na CONDUTA.
+function linhaDeQuadroFisiologico(texto, dados, acompanhante) {
+  const d = String(dados || '');
+  if (!/fisiol[óo]gic|tranquiliz|quadro\s+(?:aparentemente\s+)?normal/i.test(d)) return texto;
+  const t = String(texto || '');
+  if (/fisiol[óo]gic/i.test(t)) return t;
+  const crianca = acompanhante === 'crianca';
+  const quem = crianca ? (/\bpais\b/i.test(d) ? 'Pais tranquilizados' : 'Responsáveis tranquilizados') : (acompanhante ? 'Paciente e acompanhante tranquilizados' : 'Paciente tranquilizado');
+  const plural = crianca || !!acompanhante;
+  const linha = `${quem} quanto ao quadro, sendo ${plural ? 'orientados' : 'orientado'} de que os achados clínicos e de imagem são compatíveis com variação fisiológica${crianca ? ' para a idade' : ''}, sem sinais de alteração patológica ao exame físico e aos exames de imagem, sem necessidade de condutas adicionais além das descritas no momento.`;
+  const linhas = t.split('\n');
+  const b = blocoDaSecao(linhas, /^\s*CONDUTA\s*:?\s*$/i);
+  if (!b) return t;
+  let pos = b.ini + 1;
+  for (let i = b.ini + 1; i < b.fim; i++) { if (/^\s*(Sem indica[çc][ãa]o|Prescrit|Solicito|Orientado retorno ambulatorial ap[óo]s)/i.test(linhas[i])) pos = i + 1; }
+  linhas.splice(pos, 0, linha);
+  return linhas.join('\n');
+}
+
+// Retorno: achados agudos copiados dos atendimentos anteriores (dor intensa, edema, hematoma, equimose) não são de hoje.
+// Sem informação de hoje, o exame segue a evolução esperada (24/10/2026).
+function exameDoRetornoSemAchadosAntigos(texto, dados, anteriores) {
+  const hoje = String(dados || ''), antes = String(anteriores || '');
+  const linhas = String(texto || '').split('\n');
+  const b = blocoDaSecao(linhas, /^\s*EXAME F[ÍI]SICO/i);
+  if (!b) return texto;
+  const deHoje = re => re.test(hoje);
+  const deAntes = re => re.test(antes);
+  const out = [];
+  for (let i = 0; i < linhas.length; i++) {
+    let l = linhas[i];
+    if (i > b.ini && i < b.fim) {
+      if (/hematoma|equimose/i.test(l) && deAntes(/hematoma|equimose/i) && !deHoje(/hematoma|equimose/i)) continue;
+      if (/\bedema\b/i.test(l) && !/^\s*Sem edema/i.test(l) && deAntes(/\bedema\b/i) && !deHoje(/\bedema\b/i)) l = 'Sem edema, sem abaulamentos e sem tensão de partes moles.';
+      if (/^\s*Dor (?:intensa|importante|moderada|forte)\b[^\n]*palpa/i.test(l) && deAntes(/dor (?:intensa|importante|moderada|forte)/i) && !deHoje(/dor (?:intensa|importante|moderada|forte)/i)) l = 'Sem dor importante à palpação do foco.';
+    }
+    out.push(l);
+  }
+  return out.join('\n');
 }
 
 // Atestado pedido nos dados (ou na instrução de ajuste) tem que aparecer na CONDUTA, mesmo que o modelo esqueça (11/10/2026).
@@ -803,23 +992,23 @@ function moverLinhasDeTempoParaAposHistoria(texto) {
   return linhas.join('\n').replace(/\n{3,}/g, '\n\n');
 }
 
-// Se o modelo esqueceu a linha do tempo desde o trauma, ela é calculada aqui (data mais antiga informada).
+// A linha do tempo desde o trauma é calculada aqui pela data mais antiga (incluindo a data deduzida de "há N dias"
+// dentro de um atendimento anterior, 24/10/2026). Se o modelo esqueceu, entra; se escreveu outro valor, é corrigida.
 function garantirTempoDoTrauma(texto, template, fontes, dataHoje) {
   const primeiro = String(template || '').split('+')[0].trim();
   if (!/^r\d/.test(primeiro)) return texto;
-  if (/^\s*TEMPO DESDE O TRAUMA\s*:/im.test(texto)) return texto;
-  if (!/fratur|trauma|luxa|entorse|les[ãa]o/i.test(texto)) return texto;
+  const jaTem = /^\s*TEMPO DESDE O TRAUMA\s*:/im.test(texto);
+  if (!jaTem && !/fratur|trauma|luxa|entorse|les[ãa]o/i.test(texto)) return texto;
   const mh = String(dataHoje || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (!mh) return texto;
   const hoje = new Date(+mh[3], +mh[2] - 1, +mh[1]);
   let menor = null;
-  (String(fontes).match(/\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g) || []).forEach(t => {
-    const d = lerData(t, hoje);
-    if (d && d <= hoje && (!menor || d < menor)) menor = d;
-  });
+  datasDoTexto(fontes, hoje).forEach(({ d }) => { if (d <= hoje && (!menor || d < menor)) menor = d; });
   if (!menor) return texto;
   const dias = Math.round((hoje - menor) / 86400000);
-  return moverLinhasDeTempoParaAposHistoria(String(texto).replace(/\s+$/, '') + '\n\nTEMPO DESDE O TRAUMA: ' + tempoEmCaixaAlta(dias));
+  const linha = 'TEMPO DESDE O TRAUMA: ' + tempoEmCaixaAlta(dias);
+  if (jaTem) return String(texto).replace(/^[ \t]*TEMPO DESDE O TRAUMA\s*:[^\n]*/im, linha);
+  return moverLinhasDeTempoParaAposHistoria(String(texto).replace(/\s+$/, '') + '\n\n' + linha);
 }
 
 // VAR: seções sem conteúdo ("Material cirúrgico: Ausente", "Limitações: sem limitações") saem do texto.
@@ -1324,7 +1513,20 @@ function regrasDocumentacao() {
 - TRAUMA SEMPRE CLARO NA HISTÓRIA (18/10/2026, 2ª leva): no PS de ortopedia, toda história deixa claro se houve trauma. Se os dados dizem que não houve ("nega trauma", "sem trauma", "atraumático"), escreva "Nega trauma." na linha das negativas da história (ex: "Nega trauma. Nega dor em outras topografias. Nega demais queixas associadas."). Nunca deixe só "sem trauma associado" no meio da frase. Se houve trauma, descreva o mecanismo como informado.
 - ALMOFADA (18/10/2026, 2ª leva): na ortopedia a almofada (tipo "de hemorroida") é para dor sacral/coccígea. Escreva sempre "Indicado uso de almofada para controle álgico."; nunca cite hemorroida.
 - RX PEDIDO ANTES E SEM COMENTÁRIO = NORMAL (18/10/2026, 2ª leva): na reavaliação, liberação ou retorno, se o atendimento anterior pediu RX e o médico não comentou o resultado nem colou laudo dele, o RX está normal e entra no EM TEMPO com a frase padrão de radiografia normal do segmento. Se outro exame de imagem do mesmo segmento (TC, RM) tem achado, o RX entra na MESMA frase, com o mesmo achado: "Avalio radiografia e tomografia computadorizada de [segmento], evidenciando [achado do laudo]...". Se o médico comentar o RX, vale o que ele disse.
-- RETORNO CLÍNICO E RADIOLÓGICO (18/10/2026, 2ª leva): quando houver exame de imagem no plano (avaliado no EM TEMPO ou solicitado na CONDUTA), a linha de retorno diz "para reavaliação clínica e radiológica" (ex: "Orientado retorno ambulatorial em 2 semanas para reavaliação clínica e radiológica.").`;
+- RETORNO CLÍNICO E RADIOLÓGICO (18/10/2026, 2ª leva): quando houver exame de imagem no plano (avaliado no EM TEMPO ou solicitado na CONDUTA), a linha de retorno diz "para reavaliação clínica e radiológica" (ex: "Orientado retorno ambulatorial em 2 semanas para reavaliação clínica e radiológica.").
+- EXAME DO RETORNO = ESTADO DE HOJE (24/10/2026): no retorno, o exame físico descreve o paciente de HOJE. Nunca copie achados agudos de atendimentos anteriores (dor intensa, edema, hematoma, equimose, limitação) como se estivessem presentes hoje. Sem achado informado hoje, raciocine pela EVOLUÇÃO ESPERADA (fluxo normal) para o tempo decorrido e o tratamento em curso (ex.: fratura em tratamento conservador com 3 semanas: dor discreta ou ausente, sem edema importante, hematoma já reabsorvido) e escreva o exame compatível com isso. Achado anormal ou patológico só entra se o médico informar.
+- CONDUTA DO r0 (24/10/2026): no retorno "pede RX e reavalia após", a CONDUTA é só a de HOJE (RX, reavaliação após e, se pedido, analgesia ou retirada da imobilização). Nunca copie a conduta de atendimentos anteriores (internação, discussão, relatórios, tipoia, analgesia otimizada) para a conduta de hoje.
+- DATA DO TRAUMA NO RETORNO (24/10/2026): se um atendimento anterior diz "trauma/queda há N dias/semanas", a data do trauma é a data DAQUELE atendimento menos N, não a data do atendimento. Use o TEMPO CALCULADO.
+- ALTA DA ORTOPEDIA COM OUTRA EQUIPE (24/10/2026): quando o médico dá "alta da ortopedia" mas o paciente segue com outra equipe (clínica médica, neurologia etc.), a alta hospitalar NÃO é da ortopedia. A CONDUTA traz "Sem indicação de procedimento ortopédico cirúrgico de urgência no momento ou demais condutas ortopédicas." e "Aguarda reavaliação da clínica médica." (ou da equipe citada), SEM a linha "Alta da ortopedia" e sem "Solicitada avaliação". "Alta da ortopedia" só quando a alta hospitalar for do ortopedista.
+- NEGATIVAS DO TRAUMA DE ENERGIA (24/10/2026): em acidente de moto/carro, atropelamento ou queda, a linha de negativas traz "Nega TCE. Nega perda de consciência." (e, nos acidentes, "Nega dor em outras topografias."), salvo se os dados informarem o contrário.
+- EXAMES SEPARADOS NO EM TEMPO (24/10/2026): RX e TC (ou RM, USG) ficam em frases/parágrafos separados. O RX normal usa a frase padrão de radiografia; a TC/RM traz o tipo, o segmento e a data ("Tomografia computadorizada de bacia de 22/10/2026: ...") e o laudo, se informado. Só junte numa frase o RX sem comentário com outro exame do mesmo segmento quando houver achado (regra de 18/10).
+- TOPOGRAFIA DA DOR (24/10/2026): quando o ponto de dor for uma referência óssea, cite também o segmento e o lado ("dor à palpação na altura do trocanter maior do quadril direito").
+- RECUSA DE EXAME NUNCA VIRA "SEM NECESSIDADE" (24/10/2026): se o paciente ou os responsáveis recusaram um exame (RM, TC), registre a recusa e o motivo informado (ex.: "Pais recusam a realização de ressonância magnética no momento, visto que o paciente não tolera o exame acordado e não desejam sedação, cientes de que a investigação permanece indicada conforme evolução."). Nunca escreva que o exame "não é necessário".
+- EXAME NÃO REALIZADO TEM MOTIVO (24/10/2026): exame que não pôde ser feito é descrito com o motivo informado (ex.: "Tomografia computadorizada não realizada, pois o paciente não permaneceu imóvel para a aquisição das imagens e os responsáveis optaram por não realizar sedação."). Nunca "não realizada conforme informado".
+- RELATO DOS PAIS (24/10/2026): com o botão de pais/responsável, o sujeito é "pais" (se o médico escreveu pais) ou "responsáveis". "Genitora" ou "genitor" só se o médico disser mãe ou pai. Nas orientações: "Pais referem compreensão das orientações, encontrando-se cientes da conduta adotada."
+- TODA NEGATIVA DOS DADOS ENTRA (24/10/2026): "sem quadro prévio" vira "Nega quadro prévio semelhante." na história; "RX normal para a idade" mantém a ressalva ("compatíveis com a faixa etária").
+- QUADRO FISIOLÓGICO (24/10/2026): quando o médico diz que o quadro é normal, fisiológico ou que tranquilizou a família, a CONDUTA traz uma linha elaborada: quem foi tranquilizado, que os achados clínicos e de imagem são compatíveis com variação fisiológica (para a idade, em criança), sem sinais de alteração patológica, sem necessidade de condutas adicionais além das descritas. Nunca presuma patologia.
+- AVISOS (⚠️) SÓ PARA O QUE FALTA (24/10/2026): nunca avise o que já foi informado (lado e segmento escritos, exame não realizado, exame recusado) nem dê instrução de nome/matrícula ou de como chamar o responsável.`;
 }
 
 function montarPromptSistema() {
@@ -1973,7 +2175,7 @@ Pulsos distais palpáveis e simétricos.
 Perfusão periférica adequada, com tec < 3 segundos.
 Sem sinais sugestivos de lesão vascular aguda.
 Sem sinais clínicos de trombose venosa profunda.
-(Instrução: este é o exame físico PADRÃO do retorno e sai SEMPRE completo, inclusive com gesso, tala, robofoot ou órtese (pedido do médico, 29/09/2026): nesse caso acrescente, logo após a primeira linha, o estado da imobilização. Só altere as linhas correspondentes ao que o médico informou — condição da imobilização, ferida operatória, dor no foco, limitação de movimento. Não resuma, não troque por frases genéricas e não acrescente linhas que o médico não informou.)
+(Instrução: este é o exame físico PADRÃO do retorno e sai SEMPRE completo, inclusive com gesso, tala, robofoot ou órtese (pedido do médico, 29/09/2026): nesse caso acrescente, logo após a primeira linha, o estado da imobilização. Só altere as linhas correspondentes ao que o médico informou HOJE — condição da imobilização, ferida operatória, dor no foco, limitação de movimento. Achados de atendimentos anteriores (dor intensa, edema, hematoma) não são de hoje: sem informação de hoje, siga a evolução esperada para o tempo decorrido (24/10/2026). Não resuma, não troque por frases genéricas e não acrescente linhas que o médico não informou.)
 
 EM TEMPO:
 (Instrução: descrever os exames atuais comparando com os anteriores informados — alinhamento, desvio, sinais de consolidação, calo ósseo, posição do material de síntese. Omitir se não houver exame.)`;
@@ -2055,6 +2257,34 @@ function lerData(txt, hoje) {
   return d;
 }
 
+// Datas dos atendimentos + data do trauma deduzida de "há N dias/semanas" dentro de cada atendimento (24/10/2026).
+// Ex.: "ATENDIMENTO 1 — 05/10: queda há cerca de 7 dias" -> trauma em 28/09.
+const NUM_EXTENSO = { um: 1, uma: 1, dois: 2, duas: 2, 'três': 3, tres: 3, quatro: 4, cinco: 5, seis: 6, sete: 7, oito: 8, nove: 9, dez: 10, quinze: 15 };
+function datasDoTexto(texto, hoje) {
+  const t = String(texto || '');
+  const re = /\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g;
+  const achadas = [];
+  let m;
+  while ((m = re.exec(t)) !== null) achadas.push({ idx: m.index, fim: m.index + m[0].length, d: lerData(m[0], hoje) });
+  const saida = [];
+  achadas.forEach((a, k) => {
+    if (!a.d || a.d > hoje) return;
+    saida.push({ d: a.d, deduzida: false });
+    const trecho = t.slice(a.fim, k + 1 < achadas.length ? achadas[k + 1].idx : t.length);
+    const r = trecho.match(/\bh[áa]\s+(?:cerca\s+de\s+|aproximadamente\s+|aprox\.?\s+|uns?\s+|umas?\s+|mais\s+de\s+|quase\s+)?(\d{1,3}|um|uma|dois|duas|tr[êe]s|quatro|cinco|seis|sete|oito|nove|dez|quinze)\s+(dias?|semanas?|m[êe]s(?:es)?)\b/i);
+    const ontem = !r && /\bontem\b/i.test(trecho.slice(0, 200)) && /(queda|caiu|trauma|tor[çc]|entorse|acidente|bateu|pancada)/i.test(trecho.slice(0, 200));
+    if (!r && !ontem) return;
+    let n = 1, unidade = 'dia';
+    if (r) { n = /^\d+$/.test(r[1]) ? +r[1] : (NUM_EXTENSO[r[1].toLowerCase()] || 0); unidade = r[2].toLowerCase(); }
+    if (!n) return;
+    const dias = /^sem/.test(unidade) ? n * 7 : /^m/.test(unidade) ? n * 30 : n;
+    const d = new Date(a.d.getFullYear(), a.d.getMonth(), a.d.getDate() - dias);
+    const dd = String(a.d.getDate()).padStart(2, '0'), mm = String(a.d.getMonth() + 1).padStart(2, '0');
+    saida.push({ d, deduzida: true, nota: `data estimada do trauma (${dias} dias antes do atendimento de ${dd}/${mm})` });
+  });
+  return saida;
+}
+
 // Lista cada data encontrada nos atendimentos com o tempo até hoje (semanas + dias).
 function calcularTempos(texto, dataHoje) {
   const mh = String(dataHoje || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
@@ -2062,16 +2292,14 @@ function calcularTempos(texto, dataHoje) {
   const hoje = new Date(+mh[3], +mh[2] - 1, +mh[1]);
   const vistas = new Set();
   const linhas = [];
-  (String(texto).match(/\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g) || []).forEach(t => {
-    const d = lerData(t, hoje);
-    if (!d || d > hoje) return;
+  datasDoTexto(texto, hoje).sort((x, y) => x.d - y.d).forEach(({ d, nota }) => {
     const chave = d.toISOString().slice(0, 10);
     if (vistas.has(chave)) return;
     vistas.add(chave);
     const dias = Math.round((hoje - d) / 86400000);
     const sem = Math.floor(dias / 7), resto = dias % 7;
     const dd = String(d.getDate()).padStart(2, '0'), mm = String(d.getMonth() + 1).padStart(2, '0');
-    linhas.push(`- ${dd}/${mm}/${d.getFullYear()}: ${dias} dias atrás (${sem} semana${sem === 1 ? '' : 's'}${resto ? ` e ${resto} dia${resto === 1 ? '' : 's'}` : ''}; no texto corrido escreva "cerca de ${resto >= 4 ? sem + 1 : sem} semanas"; na linha final escreva exatamente "${tempoEmCaixaAlta(dias)}")`);
+    linhas.push(`- ${dd}/${mm}/${d.getFullYear()}${nota ? ' — ' + nota : ''}: ${dias} dias atrás (${sem} semana${sem === 1 ? '' : 's'}${resto ? ` e ${resto} dia${resto === 1 ? '' : 's'}` : ''}; no texto corrido escreva "cerca de ${resto >= 4 ? sem + 1 : sem} semanas"; na linha final escreva exatamente "${tempoEmCaixaAlta(dias)}")`);
   });
   return linhas.join('\n');
 }
@@ -2080,10 +2308,10 @@ const NOMES_TIPO = {
   inicial: 'Atendimento inicial (paciente será reavaliado depois, ainda sem desfecho)',
   reavaliacao: 'Reavaliação (de atendimento anterior, já com desfecho a definir)',
   completo: 'Atendimento completo (avaliado e resolvido nesta mesma consulta)',
-  retorno: 'Retorno ambulatorial (paciente em seguimento, com um ou mais atendimentos prévios em outros dias; não é a reavaliação de hoje)'
+  retorno: 'Evolução / retorno (paciente em seguimento, com um ou mais atendimentos prévios em outros dias; não é a reavaliação de hoje)'
 };
 
-function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje, encaminhamentos, recusaOperar }) {
+function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, template, extra, acompanhante, naoDeambula, exameAmbulatorial, dataHoje, encaminhamentos, recusaOperar, localEvolucao }) {
   const templatesEscolhidos = String(template)
     .split('+')
     .map(t => t.trim())
@@ -2100,13 +2328,19 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
     partes.push(`DATA DE HOJE: ${dataHoje}. Use-a só para completar o ano de datas informadas sem ano e para interpretar "hoje", "ontem", "semana passada". Nunca crie datas que o médico não informou.`);
   }
   partes.push(`TIPO DE ATENDIMENTO: ${NOMES_TIPO[tipoAtendimento] || tipoAtendimento}`);
+  // Evolução (24/10/2026): Ambulatório, PSO ou Internado. No PSO o retorno de hoje é no pronto-socorro de ortopedia.
+  if (tipoAtendimento === 'retorno' && localEvolucao === 'pso') {
+    partes.push(`EVOLUÇÃO NO PSO: o paciente retorna hoje ao pronto-socorro de ortopedia (não é consulta de ambulatório). Na história escreva "Retorna hoje ao pronto-socorro para reavaliação" no lugar de "reavaliação ambulatorial". As linhas de conduta do modelo valem como estão.`);
+  } else if (tipoAtendimento === 'retorno' && localEvolucao === 'amb') {
+    partes.push(`EVOLUÇÃO NO AMBULATÓRIO: retorno em consulta ambulatorial.`);
+  }
 
   const ehRelato = templatesEscolhidos.includes('h');
   const ehEv = templatesEscolhidos.includes('ev');
 
   if (acompanhante) {
     const relator = acompanhante === 'crianca'
-      ? 'pelos pais/responsável (paciente pediátrico; use "genitora", "genitor" ou "responsável" conforme informado)'
+      ? 'pelos pais/responsável (paciente pediátrico; o sujeito é "pais" se o médico escreveu pais, senão "responsáveis"; "genitora" ou "genitor" só se o médico disser mãe ou pai; nunca avise que o responsável não foi identificado)'
       : acompanhante === 'idoso'
         ? 'por familiar/cuidador (use "filha", "filho", "cuidador(a)" ou "familiar" conforme informado)'
         : 'por acompanhante (ex: pai, mãe, familiar ou cuidador, conforme informado)';
@@ -2156,6 +2390,12 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
       partes.push(`\nLINHAS DE TEMPO (retorno de trauma/fratura): logo DEPOIS da história (HDA), antes do EXAME FÍSICO, deixe uma linha em branco e escreva, em CAIXA ALTA, uma linha "TEMPO DESDE O TRAUMA: X SEMANAS E Y DIAS", usando o valor do TEMPO CALCULADO da data do trauma (a mais antiga). Se houve imobilização E a data de início dela está nos registros, escreva depois "TEMPO TOTAL DE IMOBILIZAÇÃO: X SEMANAS E Y DIAS", com o valor da data em que a imobilização começou. Se não há registro de quando a imobilização começou (ex: o primeiro atendimento não imobilizou), NÃO escreva essa segunda linha e sinalize no topo "⚠️ Início da imobilização não informado". Sem imobilização, não escreva essa segunda linha. Esses tempos não entram no texto corrido da HDA.`);
     }
   }
+  if (tipoAtendimento === 'retorno' && !ehEv) {
+    partes.push(`\nEXAME FÍSICO DE HOJE (evolução esperada, 24/10/2026): os achados dos atendimentos anteriores (dor intensa, edema, hematoma, equimose) NÃO são de hoje. Escreva o exame de hoje pela evolução esperada para o tempo decorrido e o tratamento em curso (fluxo normal); achado anormal só se informado nos DADOS DO RETORNO DE HOJE.`);
+  }
+  if (tipoAtendimento === 'retorno' && templatesEscolhidos.includes('r0')) {
+    partes.push(`\nCONDUTA DO r0: só a conduta de HOJE ("Solicito RX." e "Reavaliação após o resultado dos exames.", mais analgesia ou retirada da imobilização se pedidas nos dados de hoje). Não copie nada da conduta dos atendimentos anteriores.`);
+  }
   if (tipoAtendimento === 'retorno' && !templatesEscolhidos.includes('r0') && !ehEv) {
     partes.push(`\nRETORNO AMBULATORIAL: na ortopedia não existe alta do seguimento. Todo retorno termina com novo retorno ambulatorial com prazo (o informado pelo médico; se não informado, sinalize no topo). Nunca escreva "alta", "alta do seguimento" ou "alta ambulatorial".`);
   }
@@ -2188,7 +2428,7 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
   }
 
   const temInternacao = ['f', 'bf', 'r4'].some(t => templatesEscolhidos.includes(t));
-  if (!ehRelato && !temInternacao) {
+  if (!ehRelato && !temInternacao && tipoAtendimento !== 'retorno') {
     partes.push(`\nREFERÊNCIA CONDICIONAL — INTERNAÇÃO (usar SOMENTE se o médico definiu internação na avaliação atual; a presença deste bloco não indica internação):\n${TEMPLATES.f.texto}`);
   }
   if (templatesEscolhidos.includes('bf') || (tipoAtendimento === 'completo' && templatesEscolhidos.includes('f'))) {
