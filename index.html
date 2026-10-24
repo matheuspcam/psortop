@@ -967,6 +967,16 @@
   #torrePainel .torre-resumo, #torrePainel .torre-obs-resumo { font-size: 11.5px; margin-top: 1px; }
   #torrePainel .torre-sug { font-size: 10px; }
   .torre-dia > summary { font-size: 15px; }
+  /* Dia e local recolhíveis (24/10/2026, 2ª leva): tudo começa recolhido. */
+  .torre-dia > summary::before, .torre-loc > summary::before { content: '▸'; color: var(--ink-dim); margin-right: 6px; }
+  .torre-dia[open] > summary::before, .torre-loc[open] > summary::before { content: '▾'; }
+  .torre-dia > summary > span:first-child { flex: 1; }
+  .torre-loc { margin: 8px 0 8px 6px; }
+  .torre-loc > summary { cursor: pointer; list-style: none; display: flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 700; color: var(--ink-dim); padding: 8px 10px; border: 1px solid var(--panel-border); border-radius: 10px; background: #f7f9f7; }
+  .torre-loc > summary::-webkit-details-marker { display: none; }
+  .torre-loc > summary > span:first-of-type { flex: 1; }
+  .torre-loc > summary .torre-cont { font-weight: 500; font-size: 12px; }
+  .torre-loc[open] > summary { margin-bottom: 8px; }
   .torre-subgrupo { margin: 8px 0 12px; }
   .torre-subgrupo .torre-localbox { margin: 4px 0 8px; }
   .torre-subgrupo .torre-localbox .torre-cont { flex: none; font-size: 12px; color: var(--ink-dim); font-weight: 600; }
@@ -3124,7 +3134,6 @@
       if (i.obs) h += '<div class="torre-obs-resumo">📝 ' + torreEsc(i.obs) + '</div>';
       return h + '</div>';
     }
-    if (modo === 'lixeira') h += '<div class="torre-hip">' + torreEsc(torreRotuloData(i.dataTurno) + ' · ' + TORRE_TURNOS[i.turno] + (i.local ? ' · ' + i.local : '')) + '</div>';
     if (modo === 'ativo' && torre.editando[i.id]) {
       h += '<div style="margin-top:8px;">' +
         '<input type="text" data-campo="nome" placeholder="Nome" value="' + torreEsc(i.nome) + '">' +
@@ -3223,19 +3232,44 @@
         return h + '</details>';
       }).join('');
     }
-    // Aba Torre: primeiro a data, dentro dela o local (24/10/2026).
-    return torrePorDataELocal(grupos, function(g) { return g.data; }, function(g) { return g.local; }).map(function(dia, idx) {
+    // Aba Torre: primeiro a data, dentro dela o local, tudo recolhível e começando recolhido (24/10/2026).
+    return torrePorDataELocal(grupos, function(g) { return g.data; }, function(g) { return g.local; }).map(function(dia) {
       var total = dia.itens.reduce(function(n, g) { return n + g.itens.length; }, 0);
-      var chave = 'dia:' + dia.data;
-      var aberto = (chave in torre.abertos) ? torre.abertos[chave] : (idx < 2 || dia.itens.some(function(g) { return g.itens.some(torrePendente); }));
-      var h = '<details class="torre-grupo torre-dia" data-grupo="' + torreEsc(chave) + '"' + (aberto ? ' open' : '') + '><summary><span>' + torreEsc(torreRotuloData(dia.data)) + '</span><span class="torre-cont">' + total + (total === 1 ? ' paciente' : ' pacientes') + '</span></summary>';
-      dia.itens.forEach(function(g) {
-        h += '<div class="torre-subgrupo"><div class="torre-localbox">📍 <input type="text" data-glocal="' + torreEsc(g.key) + '" list="torreLocaisLista" placeholder="Local deste turno" value="' + torreEsc(g.local) + '"><span class="torre-cont">' + torreEsc(TORRE_TURNOS[g.turno]) + ' · ' + g.itens.length + '</span></div>';
-        if (!g.itens.length) h += '<div class="hint">Turno sem pacientes.</div>';
-        torreOrdenarCartoes(g.itens).forEach(function(i) { h += torreCartao(i, 'ativo'); });
-        h += '</div>';
+      var todos = []; dia.itens.forEach(function(g) { todos = todos.concat(g.itens); });
+      var corpo = dia.itens.map(function(g) {
+        var interno = '<div class="torre-localbox">📍 <input type="text" data-glocal="' + torreEsc(g.key) + '" list="torreLocaisLista" placeholder="Local deste turno" value="' + torreEsc(g.local) + '"></div>';
+        if (!g.itens.length) interno += '<div class="hint">Turno sem pacientes.</div>';
+        torreOrdenarCartoes(g.itens).forEach(function(i) { interno += torreCartao(i, 'ativo'); });
+        return torreBlocoLocal('loc:' + g.key, (g.local || 'Sem local') + ' · ' + TORRE_TURNOS[g.turno], g.itens, interno);
+      }).join('');
+      return torreBlocoDia('dia:' + dia.data, dia.data, todos, total, corpo);
+    }).join('');
+  }
+
+  // Blocos recolhíveis de dia e de local. Começam recolhidos; abrem sozinhos só se houver card em edição/arquivando.
+  function torreGrupoAberto(chave, itens) {
+    if (chave in torre.abertos) return torre.abertos[chave];
+    return itens.some(function(i) { return torre.editando[i.id] || torre.arquivando[i.id] || torre.corAberta[i.id]; });
+  }
+  function torreBlocoDia(chave, data, itens, total, corpo) {
+    return '<details class="torre-grupo torre-dia" data-grupo="' + torreEsc(chave) + '"' + (torreGrupoAberto(chave, itens) ? ' open' : '') + '><summary><span>' + torreEsc(torreRotuloData(data)) + '</span><span class="torre-cont">' + total + (total === 1 ? ' paciente' : ' pacientes') + '</span></summary>' + corpo + '</details>';
+  }
+  function torreBlocoLocal(chave, rotulo, itens, corpo) {
+    return '<details class="torre-loc" data-grupo="' + torreEsc(chave) + '"' + (torreGrupoAberto(chave, itens) ? ' open' : '') + '><summary><span>📍 ' + torreEsc(rotulo) + '</span><span class="torre-cont">' + itens.length + '</span></summary>' + corpo + '</details>';
+  }
+  // A arquivar e Lixeira: mesma organização (dia > local), com prefixo próprio para lembrar o que está aberto.
+  function torreHtmlPorDiaELocal(lista, prefixo, modo) {
+    return torrePorDataELocal(lista, function(i) { return i.dataTurno; }, function(i) { return i.local; }).map(function(dia) {
+      var blocos = [], atual = null;
+      dia.itens.forEach(function(i) {
+        var k = (i.local || '') + '|' + i.turno;
+        if (k !== atual) { atual = k; blocos.push({ k: k, rotulo: (i.local || 'Sem local') + ' · ' + TORRE_TURNOS[i.turno], itens: [] }); }
+        blocos[blocos.length - 1].itens.push(i);
       });
-      return h + '</details>';
+      var corpo = blocos.map(function(bl) {
+        return torreBlocoLocal(prefixo + '-loc:' + dia.data + '|' + bl.k, bl.rotulo, bl.itens, bl.itens.map(function(i) { return torreCartao(i, modo); }).join(''));
+      }).join('');
+      return torreBlocoDia(prefixo + '-dia:' + dia.data, dia.data, dia.itens, dia.itens.length, corpo);
     }).join('');
   }
 
@@ -3245,17 +3279,8 @@
     if (!lista.length) return h + '<div class="hint">Nada para arquivar.</div>';
     h += '<div class="torre-botoes" style="margin:0 0 12px;"><button type="button" class="primario" data-torre-acao="copiar-todos">📋 Copiar todos</button><button type="button" data-torre-acao="imprimir-abrir">🖨 Imprimir</button><button type="button" class="perigo" data-torre-acao="apagar-tudo">🗑 Apagar tudo</button></div>';
     if (torre.imprimindo) h += torreHtmlImprimir();
-    // Primeiro a data, dentro dela o local (24/10/2026).
-    return h + torrePorDataELocal(lista, function(i) { return i.dataTurno; }, function(i) { return i.local; }).map(function(dia) {
-      var out = '<div class="torre-arq-dia">' + torreEsc(torreRotuloData(dia.data)) + ' (' + dia.itens.length + ')</div>';
-      var atual = null;
-      dia.itens.forEach(function(i) {
-        var k = (i.local || '') + '|' + i.turno;
-        if (k !== atual) { atual = k; out += '<div class="torre-local">📍 ' + torreEsc((i.local || 'Sem local') + ' · ' + TORRE_TURNOS[i.turno]) + '</div>'; }
-        out += torreCartao(i, 'arquivar');
-      });
-      return out;
-    }).join('');
+    // Primeiro a data, dentro dela o local, tudo recolhido (24/10/2026).
+    return h + torreHtmlPorDiaELocal(lista, 'arq', 'arquivar');
   }
 
   // ---------- Imprimir (24/10/2026): escolhe os campos e imprime agrupado por data e local ----------
@@ -3327,7 +3352,7 @@
     var h = '<div class="hint" style="margin-bottom:12px;">Itens apagados ficam aqui por 7 dias e depois são removidos de vez do servidor. A limpeza acontece na próxima vez que a Torre for aberta ou salva.</div>';
     if (!lista.length) return h + '<div class="hint">Lixeira vazia.</div>';
     h += '<div class="torre-botoes" style="margin:0 0 12px;"><button type="button" class="perigo" data-torre-acao="excluir-todos">🗑 Apagar tudo de vez</button></div>';
-    return h + lista.map(function(i) { return torreCartao(i, 'lixeira'); }).join('');
+    return h + torreHtmlPorDiaELocal(lista, 'lix', 'lixeira');
   }
 
   function torreRender() {
@@ -3828,7 +3853,14 @@
     })[0] || null;
   }
 
+  // Paciente que acabou de entrar/atualizar: abre o dia e o local dele na aba, para "Ver na Torre" achar o card.
+  function torreAbrirGruposDe(it) {
+    var k = (it.dataTurno || '') + '|' + it.turno;
+    torre.abertos['dia:' + (it.dataTurno || '')] = true;
+    torre.abertos['loc:' + k] = true;
+  }
   function torreAtualizarItem(igual, ex) {
+    torreAbrirGruposDe(igual);
     if (ex.hipotese && !igual.hipotese) { igual.hipotese = ex.hipotese; igual.hipSug = !!ex.hipSug; }
     if (ex.nome && !igual.nome) igual.nome = ex.nome;
     if (ex.numero && !igual.numero) igual.numero = ex.numero;
@@ -3843,6 +3875,7 @@
   function torreNovoDeExtracao(ex, ver) {
     var it = torreNovoItem({ nome: ex.nome, numero: ex.numero, hipotese: ex.hipotese, hipSug: !!ex.hipSug, aguarda: ex.aguarda, obs: ex.obs || '' });
     torre.itens.push(it);
+    torreAbrirGruposDe(it);
     torreLembrarLocal(it.local);
     torreSalvar(it).then(function(salvou) {
       torreRender();
