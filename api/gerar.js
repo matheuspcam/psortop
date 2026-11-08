@@ -17,14 +17,21 @@ export default async function handler(req, res) {
   // Aviso do site de que o médico precisou ajustar um texto gerado por este modelo (mede assertividade, 11/10/2026).
   if (modo === 'desempenho') {
     const m = String((req.body || {}).modelo || '').slice(0, 80);
-    if (m) await upstashSilencioso(['LPUSH', 'ortopia:ajustes:' + m, String(Date.now())], ['LTRIM', 'ortopia:ajustes:' + m, '0', '59']);
+    if (m) await gravarEventos([{ k: 'a', t: Date.now(), m }]);
     return res.status(200).json({ ok: true });
+  }
+
+  // Tela "IAs" do menu: desempenho de 30 dias, fila do Automático e texto para a revisão periódica com o Claude.
+  if (modo === 'painel-ias') {
+    try { return res.status(200).json(await painelDasIAs()); }
+    catch (e) { console.error(e); return res.status(500).json({ erro: 'Falha ao carregar o desempenho das IAs.' }); }
   }
 
   const ehAvulso = modo === 'avulso';
   const ehImagem = modo === 'imagem';
   res.locals = res.locals || {};
   res.locals.tentativas = [];
+  res.locals.inicioRequisicao = Date.now();
 
   if (ehImagem) {
     if (!Array.isArray(imagens) || !imagens.length) {
@@ -56,8 +63,9 @@ export default async function handler(req, res) {
       }
       if (texto === null) {
         texto = await chamarGemini(montarPromptSistemaImagem(), contentsImg, 0.2, apiKey, res, false, listaModelosImagem());
-        if (texto === null) return;
+        if (texto === null) { await registrarDesempenho(res, null); return; }
       }
+      await registrarDesempenho(res, { modelo: res.locals.modeloUsado, tempoMs: 0, aba: 'imagem' });
       texto = limparSecoesVaziasVar(preposicaoDoSegmento(limparCaracteresEstranhos(corrigirEspanholETipos(texto)))
         .replace(/\b([Ee])miplat[ôo]/g, (m, e) => (e === 'E' ? 'H' : 'h') + 'emiplatô'));
       return res.status(200).json({ texto: texto, modelo: (res.locals && res.locals.modeloUsado) || '', tentativas: res.locals.tentativas });
@@ -98,7 +106,7 @@ export default async function handler(req, res) {
   try {
     const inicioGeracao = Date.now();
     let texto = await chamarModelo(provedor, promptSistema, contents, ehAjuste ? 0.5 : 0.3, apiKey, res, undefined, ehAvulso ? listaModelosRapidos() : undefined);
-    if (texto === null) return; // erro já respondido dentro de chamarGemini
+    if (texto === null) { await registrarDesempenho(res, null); return; } // erro já respondido dentro de chamarGemini
     const tempoMs = Date.now() - inicioGeracao;
 
     // Proteção extra: se o ajuste devolveu o texto praticamente idêntico ao anterior,
@@ -116,17 +124,16 @@ export default async function handler(req, res) {
     }
 
     if (!ehMensagem && !ehAvulso) {
-      texto = posProcessarProntuario(texto, { tipoAtendimento, acompanhante, dadosCaso, atendimentoInicial, extra, instrucaoAjuste, exameAmbulatorial, ehAjuste, ehEvolucao: String(template || '').split('+').map(x => x.trim()).includes('ev'), template, recusaOperar });
-    } else texto = ehMensagem ? posProcessarMensagem(preposicaoDoSegmento(texto)) : preposicaoDoSegmento(texto);
+      texto = posProcessarProntuario(texto, { tipoAtendimento, acompanhante, dadosCaso, atendimentoInicial, extra, instrucaoAjuste, exameAmbulatorial, ehAjuste, temImagens: Array.isArray(imagens) && imagens.length > 0, ehEvolucao: String(template || '').split('+').map(x => x.trim()).includes('ev'), template, recusaOperar });
+    } else texto = ehMensagem ? posProcessarMensagem(preposicaoDoSegmento(texto)) : preposicaoDoSegmento(corrigirIngles(texto));
     if (!ehAjuste && !ehMensagem && !ehAvulso && tipoAtendimento === 'retorno') {
       texto = garantirTempoDoTrauma(texto, template, `${atendimentoInicial || ''}\n${dadosCaso || ''}`, dataHoje);
     }
 
     const modeloFinal = (res.locals && res.locals.modeloUsado) || '';
-    // Só gerações completas contam para o ranking de velocidade (ajuste e texto avulso têm outro tamanho de saída).
-    if (modeloFinal && !ehAjuste && !ehAvulso) {
-      await upstashSilencioso(['LPUSH', 'ortopia:tempos:' + modeloFinal, Date.now() + '|' + tempoMs], ['LTRIM', 'ortopia:tempos:' + modeloFinal, '0', '59']);
-    }
+    // Histórico de desempenho (08/11/2026): toda geração e toda falha. O tempo só entra na mediana para gerações
+    // completas de prontuário e mensagem (ajuste e texto avulso têm outro tamanho de saída).
+    await registrarDesempenho(res, { modelo: modeloFinal, tempoMs, aba: ehAvulso ? 'avulso' : (ehMensagem ? 'mensagem' : 'prontuario'), template, ajuste: ehAjuste });
     return res.status(200).json({ texto: texto, modelo: modeloFinal, tempoMs: tempoMs, tentativas: res.locals.tentativas });
   } catch (e) {
     console.error(e);
@@ -137,7 +144,20 @@ export default async function handler(req, res) {
 // Mensagens padronizadas (14/10/2026): aviso de campo faltante que já foi preenchido sai por código;
 // no informativo de internação o diagnóstico começa em minúscula (exceto sigla).
 function posProcessarMensagem(texto) {
-  let t = String(texto || '');
+  let t = corrigirIngles(String(texto || ''));
+  // Informativo de internação (08/11/2026): iniciais "A.A.M.", antiagregante só pelo nome, origem/destino padrão.
+  t = t.replace(/^([ \t]*Paciente:[ \t]*)((?:[A-ZÀ-Ý][ \t]*\.?[ \t]*){2,6})[ \t]*$/gm, (m, pre, ini) => {
+    const letras = ini.replace(/[^A-ZÀ-Ý]/g, '');
+    return letras.length >= 2 && letras.length <= 6 ? pre + letras.split('').join('.') + '.' : m;
+  });
+  t = t.replace(/^([ \t]*Uso de anticoagulante\/antiagregante:[ \t]*)(?:N[ãa]o|Sim)[ \t]*\((?:anti(?:agregante|coagulante)s?[ \t:]*)?([^)]+)\)[ \t]*$/gim, (m, pre, med) => pre + med.trim());
+  t = t.replace(/^([ \t]*Uso de anticoagulante\/antiagregante:[ \t]*)Sim[ \t]*[-–,:][ \t]*(\S[^\n]*)$/gim, (m, pre, med) => pre + med.trim());
+  if (/INFORMATIVO DE SOLICITA[ÇC][ÃA]O DE INTERNA[ÇC][ÃA]O/i.test(t)) {
+    t = t.replace(/^([ \t]*Hospital de origem:)[ \t]*$/gim, '$1 HSM Santiago');
+    t = t.replace(/^([ \t]*Transfer[êe]ncia para Hospital:)[ \t]*$/gim, '$1 HSM Dubai');
+    t = t.replace(/^[ \t]*⚠️[^\n]*hospital de (origem|destino)[^\n]*\n?/gim, '');
+    t = t.replace(/\bPA BUTANT[AÃ]\b/gi, 'PA Butantã');
+  }
   const hosp = t.match(/^[ \t]*Hospital de origem:[ \t]*(\S[^\n]*)$/im);
   if (hosp) {
     t = t.replace(/^[ \t]*⚠️[^\n]*hospital de origem[^\n]*\n?/gim, '');
@@ -206,6 +226,9 @@ function posProcessarProntuario(texto, ctx) {
   if (!ctx.ehAjuste && ctx.tipoAtendimento === 'retorno' && String(ctx.template || '').split('+')[0].trim() === 'r0') t = condutaDoR0(t, ctx.dadosCaso);
   if (!ctx.ehAjuste && ctx.tipoAtendimento === 'retorno') t = exameDoRetornoSemAchadosAntigos(t, ctx.dadosCaso, ctx.atendimentoInicial);
   t = avisarSeExameMarcadoFaltou(t, ctx);
+  t = inicialSemResultadoInventado(t, ctx);
+  t = reavaliacaoEnxuta(t, ctx);
+  t = juntarEdemaEDor(t);
   t = subirCondutasNovas(t);
   t = semIndicacaoPrimeiroNaConduta(t);
   t = removerTelefoneSemNumero(t);
@@ -220,6 +243,93 @@ function posProcessarProntuario(texto, ctx) {
     // Palavras em inglês / trocas já observadas nas saídas do modelo
     .replace(/\blimitations\b/gi, 'limitações')
     .replace(/fases internas/gi, 'fases iniciais');
+}
+
+// ===== Correções de 08/11/2026 (lote de sugestões 25/10–05/11) =====
+
+function removerSecao(texto, reTitulo) {
+  const linhas = String(texto || '').split('\n');
+  const b = blocoDaSecao(linhas, reTitulo);
+  if (!b) return texto;
+  const fim = b.fim < linhas.length && !linhas[b.fim].trim() ? b.fim + 1 : b.fim;
+  return linhas.slice(0, b.ini).concat(linhas.slice(fim)).join('\n');
+}
+
+// Reavaliação enxuta (sugestões 3, 7 e 12): não repete o atendimento inicial. AP, HDA e EXAME FÍSICO só ficam
+// quando o médico informou algo novo naquela parte ou pediu expressamente; EM TEMPO e CONDUTA completas ficam sempre.
+function pediuSecao(fontes, re) {
+  return new RegExp(`(com|inclu\\w*|coloc\\w*|escrev\\w*|repet\\w*|mant\\w*|traz\\w*|p[õo]e|ponha)\\s+(o\\s+|a\\s+|tamb[ée]m\\s+)?(${re})`, 'i').test(fontes);
+}
+function reavaliacaoEnxuta(texto, ctx) {
+  if (ctx.tipoAtendimento !== 'reavaliacao') return texto;
+  const dados = String(ctx.dadosCaso || '');
+  const fontes = `${dados}\n${ctx.instrucaoAjuste || ''}`;
+  const tudo = /\b(completo|completa|tudo de novo|repetir tudo)\b/i.test(String(ctx.instrucaoAjuste || '')) || /\[\s*(completo|completa)\s*\]/i.test(dados);
+  if (tudo) return texto;
+  let t = String(texto || '');
+  const novoAP = /\b(ap|alergi\w*|antecedent\w*|comorbidad\w*|has|dm|diab[ée]t\w*|hipertens\w*|anticoag\w*|uso cont[íi]nuo)\b/i.test(fontes) || pediuSecao(fontes, 'ap\\b|antecedentes?');
+  const novoExame = /exame (f[íi]sico|completo)|palpa|edema|equimose|hematoma|for[çc]a|sensib|pulso|\badm\b|amplitude|deambul|marcha|\bapoio\b|dor (a|à) |sinal de|\bteste|manobra|lachman|gaveta|neer|jobe|lasegue|las[èe]gue|deformidade|crepita|instabil|bloqueio/i.test(dados) || pediuSecao(fontes, 'exame');
+  const novaHDA = /\b(refere|relata|relatam|nega|conta|informa|hist[óo]ri\w*|evolu[íi]\w*|piora\w*|melhor\w*|qd|hda|desde|agora|febre|novo|nova)\b/i.test(dados) || pediuSecao(fontes, 'hda|hist[óo]ria|queixa');
+  if (!novoAP) t = t.split('\n').filter(l => !/^\s*AP\s*:/i.test(l)).join('\n');
+  if (!novaHDA) t = removerSecao(t, /^\s*(HDA|HPMA|QD)\s*:/i);
+  if (!novoExame) t = removerSecao(t, /^\s*EXAME F[ÍI]SICO/i);
+  return t.replace(/\n{3,}/g, '\n\n');
+}
+
+// Primeiro atendimento com exame pedido (sugestões 4, 5, 6 e 9): pedir exame não é ter o resultado. Sem laudo,
+// imagem ou resultado escrito, não existe EM TEMPO; a conduta lista todos os exames pedidos e a analgesia só entra
+// se o médico pediu.
+const RE_RESULTADO_EXAME = /(sem\s+(fratur|altera|les[ãa]o|luxa|achad)|normal|\bfratur|\bluxa|evidenc|laudo|achados?\b|avalio|vi\s+(o|a)\s|limp[oa]\b|\bfx\b|\blx\b)/i;
+const RE_ANALGESIA = /\b(med|medica[çc][ãa]o|medicar|medicad[oa]|analges\w*|sintom[áa]tic\w*|dipirona|novalgina|tramal|tramadol|cetoprofeno|profenid|toragesic|cetorolaco|morfina|tilatil|tenoxicam|decadron|dexametasona|paracetamol|ibuprofeno|dorflex|buscopan|bic|ev)\b/i;
+function inicialSemResultadoInventado(texto, ctx) {
+  if (ctx.tipoAtendimento !== 'inicial') return texto;
+  const fontes = `${ctx.dadosCaso || ''}\n${ctx.instrucaoAjuste || ''}`;
+  const temResultado = !!String(ctx.extra || '').trim() || !!ctx.temImagens || RE_RESULTADO_EXAME.test(fontes);
+  let t = String(texto || '');
+  if (!temResultado) t = removerSecao(t, /^\s*EM TEMPO\s*:?\s*$/i);
+  const linhasPedido = fontes.split('\n').filter(l => !RE_RESULTADO_EXAME.test(l));
+  const exames = examesPedidosNosDados(linhasPedido.join('\n'));
+  const linhas = t.split('\n');
+  const b = blocoDaSecao(linhas, /^\s*CONDUTA\s*:?\s*$/i);
+  if (b) {
+    let bloco = linhas.slice(b.ini + 1, b.fim);
+    // Analgesia só se o médico escreveu (o "uso de medicação X" da história não conta).
+    const semUso = fontes.replace(/(em\s+)?uso\s+(de|cont[íi]nuo)[^\n,.;]*/gi, '');
+    if (!RE_ANALGESIA.test(semUso)) bloco = bloco.filter(l => !/^\s*(Prescrita analgesia|Realizada medica[çc][ãa]o analg[ée]sica|Instituída analgesia)/i.test(l));
+    if (exames.length && !temResultado) {
+      const reSolicito = /^\s*Solicit(o|ad[oa]s?)\s+(RX|TC|RM|USG|radiograf|tomograf|resson|ultrass)(?![^\n]*ambulatorialmente)/i;
+      const linhaNova = `Solicito ${juntarComE(exames)}.`;
+      const i = bloco.findIndex(l => reSolicito.test(l));
+      if (i >= 0) bloco[i] = linhaNova;
+      else {
+        const iReav = bloco.findIndex(l => /^\s*Reavalia[çc][ãa]o ap[óo]s/i.test(l));
+        bloco.splice(iReav >= 0 ? iReav : bloco.length, 0, linhaNova);
+      }
+      bloco = bloco.filter((l, k) => !(reSolicito.test(l) && l !== linhaNova && bloco.indexOf(linhaNova) !== k));
+      bloco = bloco.map(l => exames.length > 1 ? l.replace(/^(\s*Reavalia[çc][ãa]o ap[óo]s o resultado) do exame\b/i, '$1 dos exames') : l);
+    }
+    linhas.splice(b.ini + 1, b.fim - b.ini - 1, ...bloco);
+    t = linhas.join('\n');
+  }
+  return t.replace(/\n{3,}/g, '\n\n');
+}
+
+// Edema e dor no mesmo segmento viram uma linha só (sugestão 9): "Edema e dor à palpação bimaleolar em tornozelo direito."
+function juntarEdemaEDor(texto) {
+  const linhas = String(texto || '').split('\n');
+  const b = blocoDaSecao(linhas, /^\s*EXAME F[ÍI]SICO/i);
+  if (!b) return texto;
+  for (let i = b.ini + 1; i < b.fim - 1; i++) {
+    const ed = linhas[i], dor = linhas[i + 1];
+    if (!/^\s*(Presen[çc]a de\s+)?edema\b/i.test(ed) || /\bsem\s+edema/i.test(ed) || /tens[ãa]o de partes moles/i.test(ed)) continue;
+    const m = dor.match(/^(\s*)Dor (?:à|a) palpa[çc][ãa]o\s+(.+?)\.?\s*$/i);
+    if (!m) continue;
+    const segEd = (ed.match(/\b(?:em|no|na|do|da)\s+([^\n.,]+?)\.?\s*$/i) || [])[1] || '';
+    if (segEd && !m[2].toLowerCase().includes(segEd.toLowerCase().split(' ')[0])) continue;
+    linhas.splice(i, 2, `${m[1]}Edema e dor à palpação ${m[2]}.`);
+    break;
+  }
+  return linhas.join('\n');
 }
 
 // ===== Correções de 24/10/2026 (lote de sugestões 19–22/10) =====
@@ -283,6 +393,28 @@ function garantirLinhaDeEdema(texto) {
 }
 
 // "Alta da ortopedia" com o paciente seguindo com outra equipe: a alta hospitalar não é da ortopedia.
+// Alta da ortopedia com encaminhamento a outra equipe (revisado 08/11/2026): encaminhou para a clínica médica (ou outra
+// equipe) = alta da ortopedia, sem "Aguarda reavaliação". Exames só aparecem se o médico escreveu que pediu, como
+// "Solicitados RX e TC e encaminhado...". O respaldo completo de alta (explicação, limite do exame, sinais de alarme
+// e ciência) sempre fica no fim da conduta.
+const RESPALDO_ALTA = [
+  'Explicado ao paciente o quadro atual e a conduta proposta nesta avaliação.',
+  'Esclarecido que a avaliação inicial, inclusive por métodos de imagem, pode não evidenciar todas as lesões em fases precoces, podendo haver necessidade de reavaliação conforme evolução clínica e resposta ao tratamento, com eventual complementação propedêutica.',
+  'Orientado quanto a sinais de alarme e necessidade de retorno imediato em caso de piora da dor, edema progressivo, limitação funcional importante, alteração de sensibilidade ou força, alteração de coloração do membro, febre ou outras intercorrências.',
+  'Paciente refere compreensão das orientações, encontrando-se ciente da conduta adotada.'
+];
+function examesPedidosNosDados(d) {
+  const t = String(d || '');
+  const ex = [];
+  if (/(^|[^a-z])(rx|raio[\s-]?x|radiografias?)([^a-z]|$)/i.test(t)) ex.push('RX');
+  if (/(^|[^a-z])(tc|tomografias?)([^a-z]|$)/i.test(t)) ex.push('TC');
+  if (/(^|[^a-z])(rm|rnm|resson[âa]ncias?)([^a-z]|$)/i.test(t)) ex.push('RM');
+  if (/(^|[^a-z])(usg?|ultrassom|ultrassonografias?|ecografias?)([^a-z]|$)/i.test(t)) ex.push('USG');
+  return ex;
+}
+function juntarComE(lista) {
+  return lista.length <= 1 ? (lista[0] || '') : lista.slice(0, -1).join(', ') + ' e ' + lista[lista.length - 1];
+}
 function altaDaOrtopediaAguardaOutraEquipe(texto, dados) {
   const d = String(dados || '');
   if (!/alta\s+(?:d[ao]\s+)?ortop/i.test(d)) return texto;
@@ -292,11 +424,30 @@ function altaDaOrtopediaAguardaOutraEquipe(texto, dados) {
   const linhas = String(texto || '').split('\n');
   const b = blocoDaSecao(linhas, /^\s*CONDUTA\s*:?\s*$/i);
   if (!b) return texto;
-  let bloco = linhas.slice(b.ini + 1, b.fim)
-    .filter(l => !/^\s*Alta da ortopedia\.?\s*$/i.test(l))
+  // Exames pedidos para a outra equipe: linhas com o pedido (não as que trazem resultado, como "rx sem fratura").
+  const linhasPedido = d.split('\n').filter(l => !/(sem\s|normal|fratur|achad|limp|altera|les[ãa]o|evidenc)/i.test(l))
+    .filter(l => /\b(solicit|pe[çc]o|pedi|pedido|fa[çc]o)/i.test(l) || /^\s*(rx|tc|rm|rnm|usg)\b/i.test(l));
+  const exames = examesPedidosNosDados(linhasPedido.join('\n'));
+  let original = linhas.slice(b.ini + 1, b.fim);
+  // Linha de alta escrita pelo modelo com o motivo do encaminhamento: aproveita.
+  const linhaModelo = original.find(l => /^\s*Alta da ortopedia,?\s.*encaminh/i.test(l));
+  let bloco = original
+    .filter(l => !/^\s*Alta da ortopedia\b/i.test(l))
     .filter(l => !/^\s*Sem indica[çc][ãa]o de procedimento ortop/i.test(l))
-    .filter(l => !/^\s*(Solicitad[ao]|Encaminhad[ao]|Realizad[ao]|Aguarda)\b[^\n]*(avalia[çc][ãa]o|reavalia[çc][ãa]o|aval)\b[^\n]*(cl[íi]nica|equipe|neuro|cirurgia|pediatr|cardio|urolog|vascular)/i.test(l));
-  bloco = ['Sem indicação de procedimento ortopédico cirúrgico de urgência no momento ou demais condutas ortopédicas.', `Aguarda reavaliação da ${equipe}.`].concat(bloco);
+    .filter(l => !/^\s*Aguarda\b/i.test(l))
+    .filter(l => !/^\s*Solicit(o|ad[oa]s?)\s+(RX|TC|RM|USG|radiograf|tomograf|resson|ultrass)/i.test(l))
+    .filter(l => !/encaminh[a-z]*\s+(?:à|a|ao|para)\s+(?:a\s+)?(?:avalia[çc][ãa]o\s+d[aoe]\s+)?(cl[íi]nica|equipe|neuro|cirurgia|pediatr|cardio|urolog|vascular)/i.test(l))
+    .filter(l => !/^\s*(Solicitad[ao]|Encaminhad[ao]|Realizad[ao])\b[^\n]*(avalia[çc][ãa]o|reavalia[çc][ãa]o|aval)\b[^\n]*(cl[íi]nica|equipe|neuro|cirurgia|pediatr|cardio|urolog|vascular)/i.test(l))
+    .filter(l => !/seguimento ambulatorial com ortopedia|reavalia[çc][ãa]o cl[íi]nica em cerca de \d+ dias/i.test(l))
+    .filter(l => !RESPALDO_ALTA.some(r => textoQuaseIgual(l, r)) && !/^\s*(Explicado a[oa]|Esclarecido que a avalia[çc][ãa]o inicial|Orientad[oa]s? quanto a sinais de alarme|Paciente refere compreens|Respons[áa]veis referem compreens|Acompanhantes? e paciente referem)/i.test(l));
+  while (bloco.length && !bloco[bloco.length - 1].trim()) bloco.pop();
+  const linhaAlta = exames.length
+    ? `Solicitados ${juntarComE(exames)} e encaminhado à ${equipe} para avaliação e conduta, com alta da ortopedia.`
+    : (linhaModelo ? linhaModelo.trim() : `Alta da ortopedia, com encaminhamento à ${equipe} para avaliação e conduta.`);
+  const respaldoOriginal = original.filter(l => /^\s*(Explicado a[oa]|Esclarecido que a avalia[çc][ãa]o inicial|Orientad[oa]s? quanto a sinais de alarme|Paciente refere compreens|Respons[áa]veis referem compreens|Acompanhantes? e paciente referem)/i.test(l));
+  const respaldo = respaldoOriginal.length >= 3 ? respaldoOriginal : RESPALDO_ALTA;
+  bloco = ['Sem indicação de procedimento ortopédico cirúrgico de urgência no momento ou demais condutas ortopédicas.', linhaAlta]
+    .concat(bloco.filter(l => l.trim()), respaldo);
   return linhas.slice(0, b.ini + 1).concat(bloco, linhas.slice(b.fim)).join('\n');
 }
 
@@ -775,16 +926,16 @@ function retornoClinicoERadiologico(texto) {
 
 // Pedido de exame só com a sigla, sem segmento e sem lado (18/10/2026): "Solicito RX.", "Solicito RM ambulatorialmente.", "Solicito RX e TC.".
 function pedidosSoComSigla(texto) {
-  const reTok = /radiografias?|raios?[- ]x|resson[âa]ncia magn[ée]tica|tomograf[ií]as? computadorizadas?|\b(?:RX|RM|TC)\b/gi;
-  const reInicio = /^(\s*)(Solicit(?:o|ada|adas|ado|ados))\s+((?:radiografias?|raios?[- ]x|resson[âa]ncia magn[ée]tica|tomograf[ií]as? computadorizadas?|RX|RM|TC)\b.*)$/i;
+  const reTok = /radiografias?|raios?[- ]x|resson[âa]ncia magn[ée]tica|tomograf[ií]as? computadorizadas?|ultrassonografias?|\b(?:RX|RM|TC|USG)\b/gi;
+  const reInicio = /^(\s*)(Solicit(?:o|ada|adas|ado|ados))\s+((?:radiografias?|raios?[- ]x|resson[âa]ncia magn[ée]tica|tomograf[ií]as? computadorizadas?|RX|RM|TC|USG)\b.*)$/i;
   return String(texto || '').split('\n').map(l => {
     const m = l.match(reInicio);
-    if (!m) return l;
+    if (!m || /encaminh/i.test(l)) return l;
     const resto = m[3];
     const iPara = resto.search(/\s+para\s/i);
     const corpo = iPara === -1 ? resto : resto.slice(0, iPara);
     const cauda = iPara === -1 ? '' : resto.slice(iPara).replace(/[.\s]+$/, '');
-    const siglas = (corpo.match(reTok) || []).map(x => /^(radiograf|raio)/i.test(x) ? 'RX' : /^resson/i.test(x) ? 'RM' : /^tomograf/i.test(x) ? 'TC' : x.toUpperCase());
+    const siglas = (corpo.match(reTok) || []).map(x => /^(radiograf|raio)/i.test(x) ? 'RX' : /^resson/i.test(x) ? 'RM' : /^tomograf/i.test(x) ? 'TC' : /^ultrass/i.test(x) ? 'USG' : x.toUpperCase());
     const unicas = siglas.filter((x, i) => siglas.indexOf(x) === i);
     const lista = unicas.length > 1 ? unicas.slice(0, -1).join(', ') + ' e ' + unicas[unicas.length - 1] : unicas[0];
     const ambul = /ambulatorialmente/i.test(corpo) ? ' ambulatorialmente' : '';
@@ -832,8 +983,29 @@ function limparCaracteresEstranhos(texto) {
 }
 
 // Palavras em espanhol que o modelo leve às vezes solta, e erros recorrentes.
+// Palavras em inglês que escapam do modelo (08/11/2026, ex: "ciente da conduta adopted"): troca em silêncio.
+const INGLES_PT = [
+  [/\badopted\b/gi, 'adotada'], [/\blimitations\b/gi, 'limitações'], [/\blimitation\b/gi, 'limitação'],
+  [/\bpatients\b/gi, 'pacientes'], [/\bpatient\b/gi, 'paciente'], [/\bswelling\b/gi, 'edema'],
+  [/\bfractures\b/gi, 'fraturas'], [/\bfracture\b/gi, 'fratura'], [/\bdislocation\b/gi, 'luxação'],
+  [/\btenderness\b/gi, 'dor à palpação'], [/\brange of motion\b/gi, 'amplitude de movimento'],
+  [/\bfollow[- ]up\b/gi, 'seguimento'], [/\bdischarged?\b/gi, 'alta'], [/\bguidance\b/gi, 'orientações'],
+  [/\bwarning signs\b/gi, 'sinais de alarme'], [/\bunderstanding\b/gi, 'compreensão'], [/\baware\b/gi, 'ciente'],
+  [/\bhowever\b/gi, 'porém'], [/\bwithout\b/gi, 'sem'], [/\bevaluation\b/gi, 'avaliação'],
+  [/\bassessment\b/gi, 'avaliação'], [/\bmanagement\b/gi, 'conduta'], [/\bprescribed\b/gi, 'prescrita'],
+  [/\brequested\b/gi, 'solicitado'], [/\bperformed\b/gi, 'realizado'], [/\boriented\b/gi, 'orientado'],
+  [/\bbruising\b/gi, 'equimose'], [/\bpain\b/gi, 'dor'], [/\bfindings\b/gi, 'achados'], [/\bprevious\b/gi, 'prévio']
+];
+function corrigirIngles(texto) {
+  let t = String(texto || '');
+  INGLES_PT.forEach(([re, pt]) => {
+    t = t.replace(re, m => m === m.toUpperCase() && m.length > 1 ? pt.toUpperCase() : (m[0] === m[0].toUpperCase() ? pt.charAt(0).toUpperCase() + pt.slice(1) : pt));
+  });
+  return t;
+}
+
 function corrigirEspanholETipos(texto) {
-  return texto
+  return corrigirIngles(texto)
     .replace(/\b(\p{L}+)ción\b/gu, '$1ção')
     .replace(/\b(\p{L}+)ciones\b/gu, '$1ções')
     .replace(/\badecuad/gi, m => m[0] === 'A' ? 'Adequad' : 'adequad')
@@ -1040,16 +1212,22 @@ function textoQuaseIgual(a, b) {
 // Referência de modelos/faixa gratuita: ai.google.dev/gemini-api/docs/models e /pricing.
 // É uma prioridade geral de capacidade, não um ranking de acurácia clínica.
 // 11/10/2026: o Google aposentou o gemini-3.7-flash (redireciona para o 3.8); saiu da fila.
+// 08/11/2026: 3.6 Flash saiu (desativação anunciada para 19/11/2026); ordem = melhor primeiro, com limite de tempo por modelo.
 const MODELOS_PADRAO = [
   'gemini-3.8-flash',
-  'gemini-3.6-flash',
   'gemini-3.5-flash-lite',
   'gemini-3.1-flash-lite'
 ];
+// Modelos desativados ou redirecionados pelo Google: nunca entram na fila, mesmo se estiverem na variável GEMINI_MODELOS.
+const MODELOS_RETIRADOS = new Set(['gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-2.0-flash-lite']);
+// Tempo máximo de espera por modelo antes de pular para o próximo da fila (o último da fila usa o tempo que sobrar).
+const LIMITE_POR_MODELO_MS = 12000;
+// A função da Vercel morre em 60 s: a fila inteira precisa caber nisso.
+const ORCAMENTO_TOTAL_MS = 54000;
 const MODELOS_IMAGEM = MODELOS_PADRAO;
 
 function ordenarModelos(modelos) {
-  return Array.from(new Set(modelos)).sort((a, b) => {
+  return Array.from(new Set(modelos)).filter(m => !MODELOS_RETIRADOS.has(m)).sort((a, b) => {
     const ia = MODELOS_PADRAO.indexOf(a), ib = MODELOS_PADRAO.indexOf(b);
     return (ia < 0 ? MODELOS_PADRAO.length : ia) - (ib < 0 ? MODELOS_PADRAO.length : ib);
   });
@@ -1116,7 +1294,7 @@ async function chamarClaudeImagem(promptSistema, promptUsuario, imagens, res, mo
 // Se a IA escolhida falhar, o texto sai pela fila do Gemini e a falha aparece na lista de tentativas.
 // Modelos pagos oferecidos no seletor (API da Anthropic, chave ANTHROPIC_API_KEY). IDs trocáveis por variável na Vercel.
 const MODELOS_CLAUDE = [
-  { valor: 'claude-haiku', rotulo: 'Claude Haiku 4.5 (mais barato)', env: 'CLAUDE_MODELO_HAIKU', padrao: 'claude-haiku-4-5-20251001' },
+  { valor: 'claude-haiku', rotulo: 'Claude Haiku 5.5 (mais barato)', env: 'CLAUDE_MODELO_HAIKU', padrao: 'claude-haiku-5-5' },
   { valor: 'claude-sonnet', rotulo: 'Claude Sonnet 5.5', env: 'CLAUDE_MODELO_SONNET', padrao: 'claude-sonnet-5-5' },
   { valor: 'claude-opus', rotulo: 'Claude Opus 5.5', env: 'CLAUDE_MODELO_OPUS', padrao: 'claude-opus-5-5' },
   { valor: 'claude-fable', rotulo: 'Claude Fable 5.1 (mais caro)', env: 'CLAUDE_MODELO_FABLE', padrao: 'claude-fable-5-1' }
@@ -1157,7 +1335,54 @@ async function upstashSilencioso(...comandos) {
   return saidas;
 }
 
-const JANELA_ESTATISTICA_MS = 24 * 60 * 60 * 1000;
+/* ===================== DESEMPENHO DAS IAs (08/11/2026) ===================== */
+// Cada geração, ajuste pedido pelo médico e falha (tempo esgotado, cota, erro) vira um evento no Upstash.
+// O histórico de 30 dias decide a ordem da fila do Automático, aparece na tela "IAs" do menu e vai junto no
+// "Copiar tudo para o Claude" das Sugestões pendentes, para a revisão periódica dos modelos.
+// Tudo é "melhor esforço": sem banco ou com erro, o site funciona igual, só sem estatística.
+const CHAVE_HISTORICO = 'ortopia:hist';
+const MAX_EVENTOS = 5000;
+const DIA_MS = 24 * 60 * 60 * 1000;
+const JANELA_HISTORICO_MS = 30 * DIA_MS;
+const JANELA_ESTATISTICA_MS = DIA_MS;
+
+async function upstashPipeline(comandos, ms) {
+  const url = process.env.KV_REST_API_URL, token = process.env.KV_REST_API_TOKEN;
+  if (!url || !token || !comandos.length) return [];
+  try {
+    const r = await chamarComTempo(url.replace(/\/$/, '') + '/pipeline', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(comandos) }, ms || 2500);
+    const d = await r.json().catch(() => []);
+    return Array.isArray(d) ? d.map(x => x && x.result) : [];
+  } catch (e) { return []; }
+}
+
+async function gravarEventos(eventos) {
+  const validos = eventos.filter(e => e && e.m);
+  if (!validos.length) return;
+  await upstashPipeline([['LPUSH', CHAVE_HISTORICO].concat(validos.map(e => JSON.stringify(e))), ['LTRIM', CHAVE_HISTORICO, '0', String(MAX_EVENTOS - 1)]]);
+}
+
+// Registra o resultado de uma requisição: a geração (se deu certo) e cada tentativa que falhou de verdade.
+async function registrarDesempenho(res, info) {
+  const t = Date.now();
+  const eventos = [];
+  ((res.locals && res.locals.tentativas) || []).forEach(x => {
+    if (!x || !x.erro || /^(indispon[íi]vel|em pausa)/i.test(x.erro)) return;
+    eventos.push({ k: 'f', t, m: x.modelo, e: String(x.erro).slice(0, 40) });
+  });
+  if (info && info.modelo) eventos.push({ k: 'g', t, m: info.modelo, ms: info.tempoMs || 0, aba: info.aba || '', tpl: String(info.template || '').slice(0, 20), aj: !!info.ajuste });
+  await gravarEventos(eventos);
+}
+
+let cacheHistorico = null;
+async function lerHistorico() {
+  if (cacheHistorico && Date.now() - cacheHistorico.t < 20000) return cacheHistorico.eventos;
+  const [lista] = await upstashPipeline([['LRANGE', CHAVE_HISTORICO, '0', String(MAX_EVENTOS - 1)]], 3500);
+  const corte = Date.now() - JANELA_HISTORICO_MS;
+  const eventos = (Array.isArray(lista) ? lista : []).map(s => { try { return JSON.parse(s); } catch (e) { return null; } }).filter(e => e && e.t >= corte);
+  cacheHistorico = { t: Date.now(), eventos };
+  return eventos;
+}
 
 function medianaDe(nums) {
   const v = nums.slice().sort((a, b) => a - b);
@@ -1166,28 +1391,49 @@ function medianaDe(nums) {
   return v.length % 2 ? v[m] : Math.round((v[m - 1] + v[m]) / 2);
 }
 
-// Para cada modelo: gerações das últimas 24 h, mediana do tempo e quantas precisaram de ajuste.
-async function estatisticasDosModelos(modelos) {
-  const lista = Array.from(new Set(modelos));
-  const cmds = [];
-  lista.forEach(m => { cmds.push(['LRANGE', 'ortopia:tempos:' + m, '0', '29']); cmds.push(['LRANGE', 'ortopia:ajustes:' + m, '0', '59']); });
-  const saidas = await upstashSilencioso(...cmds);
-  const corte = Date.now() - JANELA_ESTATISTICA_MS;
+// Por modelo, dentro da janela: gerações completas (sem contar ajustes), mediana de tempo, quantas precisaram de
+// ajuste do médico, % sem ajuste e falhas separadas por tipo.
+function estatisticasDe(eventos, janelaMs) {
+  const corte = Date.now() - janelaMs;
   const stats = {};
-  lista.forEach((m, i) => {
-    const tempos = (saidas[i * 2] || []).map(s => String(s).split('|').map(Number)).filter(p => p[0] >= corte && p[1] > 0);
-    const ajustes = (saidas[i * 2 + 1] || []).map(Number).filter(t => t >= corte);
-    if (!tempos.length) return;
-    stats[m] = { geracoes: tempos.length, medianaMs: medianaDe(tempos.map(p => p[1])), ajustes: ajustes.length,
-      semAjuste: Math.max(0, Math.round(100 * (1 - Math.min(ajustes.length, tempos.length) / tempos.length))) };
+  const s = m => stats[m] || (stats[m] = { geracoes: 0, ajustesFeitos: 0, tempos: [], ajustes: 0, falhas: 0, tempoEsgotado: 0, cota: 0, outrasFalhas: 0, porAba: {} });
+  eventos.forEach(e => {
+    if (!e || e.t < corte || !e.m) return;
+    const x = s(e.m);
+    if (e.k === 'g') {
+      if (e.aj) { x.ajustesFeitos++; return; }
+      x.geracoes++;
+      if (e.ms > 0 && (e.aba === 'prontuario' || e.aba === 'mensagem' || !e.aba)) x.tempos.push(e.ms);
+      if (e.aba) x.porAba[e.aba] = (x.porAba[e.aba] || 0) + 1;
+    } else if (e.k === 'a') x.ajustes++;
+    else if (e.k === 'f') {
+      x.falhas++;
+      if (/tempo/i.test(e.e)) x.tempoEsgotado++; else if (/cota/i.test(e.e)) x.cota++; else x.outrasFalhas++;
+    }
+  });
+  Object.keys(stats).forEach(m => {
+    const x = stats[m];
+    x.medianaMs = medianaDe(x.tempos);
+    x.semAjuste = x.geracoes ? Math.max(0, Math.round(100 * (1 - Math.min(x.ajustes, x.geracoes) / x.geracoes))) : null;
+    const tentativas = x.geracoes + x.ajustesFeitos + x.falhas;
+    x.taxaFalha = tentativas ? Math.round(100 * x.falhas / tentativas) : 0;
+    delete x.tempos;
   });
   return stats;
 }
 
-// "Mais rápido hoje": ordena a fila pela mediana de tempo das últimas 24 h. Sem medição, usa a fila rápida (Lite primeiro),
-// que também gera as primeiras medições. Modelo com 5+ gerações e mais da metade precisando de ajuste vai para o fim.
+// Compatível com o seletor antigo: só modelos com geração na janela.
+async function estatisticasDosModelos(modelos, janelaMs) {
+  const todas = estatisticasDe(await lerHistorico(), janelaMs || JANELA_ESTATISTICA_MS);
+  const saida = {};
+  Array.from(new Set(modelos)).forEach(m => { if (todas[m] && todas[m].geracoes && todas[m].medianaMs) saida[m] = todas[m]; });
+  return saida;
+}
+
+// "Mais rápido hoje": ordena a fila pela mediana de tempo das últimas 24 h. Sem medição, usa a fila rápida (Lite primeiro).
+// Modelo com 5+ gerações e mais da metade precisando de ajuste vai para o fim.
 async function ordenarPorVelocidadeHoje(base) {
-  const stats = await estatisticasDosModelos(base);
+  const stats = await estatisticasDosModelos(base, JANELA_ESTATISTICA_MS);
   const medidos = base.filter(m => stats[m]);
   if (!medidos.length) {
     const rapidos = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'].filter(m => base.includes(m));
@@ -1198,19 +1444,133 @@ async function ordenarPorVelocidadeHoje(base) {
   return medidos.concat(base.filter(m => !stats[m]));
 }
 
+// Automático (08/11/2026): a ordem sai dos dados reais.
+// 1) Quem falhou em mais da metade das tentativas nas últimas 24 h (com 4+ tentativas) vai para o fim.
+// 2) Entre os medidos nos 30 dias (5+ gerações), ganha quem precisou de menos ajuste (faixas de 10%); empate, o mais rápido.
+// 3) Modelo ainda sem medição fica na posição da lista padrão (melhor primeiro), para continuar sendo testado.
+// 4) Modelo que sumiu da lista do Google vai para o fim.
+async function ordenarPorDesempenho(base, apiKey) {
+  const eventos = await lerHistorico();
+  const s30 = estatisticasDe(eventos, JANELA_HISTORICO_MS);
+  const s24 = estatisticasDe(eventos, DIA_MS);
+  const google = apiKey ? await modelosDoGoogle(apiKey) : null;
+  const sumiu = m => !!(google && google.lista && google.lista.length && !google.lista.includes(m));
+  const ruim = m => { const x = s24[m]; if (!x) return false; const tent = x.geracoes + x.ajustesFeitos + x.falhas; return tent >= 4 && x.falhas / tent > 0.5; };
+  const medido = m => !!(s30[m] && s30[m].geracoes >= 5 && s30[m].semAjuste !== null);
+  const bons = base.filter(m => !ruim(m) && !sumiu(m));
+  const posMedidos = bons.map((m, i) => medido(m) ? i : -1).filter(i => i >= 0);
+  const medidosOrdenados = bons.filter(medido).sort((a, b) => {
+    const fa = Math.floor(s30[a].semAjuste / 10), fb = Math.floor(s30[b].semAjuste / 10);
+    return (fb - fa) || ((s30[a].medianaMs || 99999) - (s30[b].medianaMs || 99999));
+  });
+  const ordem = bons.slice();
+  posMedidos.forEach((pos, i) => { ordem[pos] = medidosOrdenados[i]; });
+  return ordem.concat(base.filter(m => ruim(m) && !sumiu(m)), base.filter(sumiu));
+}
+
+// Conferência diária (08/11/2026): o site pergunta ao Google, no máximo uma vez por dia, quais modelos existem.
+// Modelo novo aparece no seletor para teste (não entra no Automático sozinho); modelo que sumiu sai da fila.
+const CHAVE_GOOGLE = 'ortopia:google-modelos';
+let cacheGoogle = null;
+async function modelosDoGoogle(apiKey, forcar) {
+  if (!forcar && cacheGoogle && Date.now() - cacheGoogle.t < 60 * 60 * 1000) return cacheGoogle;
+  let salvo = null;
+  if (!forcar) {
+    const [bruto] = await upstashPipeline([['GET', CHAVE_GOOGLE]]);
+    try { salvo = bruto ? JSON.parse(bruto) : null; } catch (e) { salvo = null; }
+    if (salvo && Date.now() - salvo.t < DIA_MS) { cacheGoogle = salvo; return salvo; }
+  }
+  try {
+    const r = await chamarComTempo('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000', { headers: { 'x-goog-api-key': apiKey } }, 4000);
+    if (!r.ok) return salvo;
+    const d = await r.json();
+    const lista = (d.models || [])
+      .filter(x => (x.supportedGenerationMethods || []).includes('generateContent'))
+      .map(x => String(x.name || '').replace(/^models\//, ''))
+      .filter(n => /^gemini-/.test(n));
+    if (!lista.length) return salvo;
+    const novo = { t: Date.now(), lista };
+    cacheGoogle = novo;
+    await upstashPipeline([['SET', CHAVE_GOOGLE, JSON.stringify(novo)]]);
+    return novo;
+  } catch (e) { return salvo; }
+}
+
+// Modelos de texto do Google que ainda não estão na fila (candidatos para testar).
+function modelosNovosDoGoogle(google, conhecidos) {
+  if (!google || !google.lista) return [];
+  return google.lista.filter(n =>
+    /^gemini-\d+(\.\d+)?-(flash|pro)(-lite)?$/.test(n) &&
+    !conhecidos.includes(n) && !MODELOS_RETIRADOS.has(n));
+}
+
+function nomeLegivelModelo(m) {
+  return String(m || '').replace(/^gemini-/, 'Gemini ').replace(/^claude-/, 'Claude ').split('-')
+    .map(p => /^[a-z]/.test(p) ? p.charAt(0).toUpperCase() + p.slice(1) : p).join(' ');
+}
+
 async function statusModelos() {
   const agora = Date.now();
-  const situacao = m => modelosIndisponiveis.has(m) ? 'indisponível' : ((pausaAte.get(m) || 0) > agora ? 'em pausa (cota)' : 'ok');
+  const apiKey = process.env.GEMINI_API_KEY;
+  const google = apiKey ? await modelosDoGoogle(apiKey) : null;
   const gemini = ordenarModelos(listaModelos().concat(listaModelosImagem()));
+  const sumiu = m => !!(google && google.lista && google.lista.length && !google.lista.includes(m));
+  const situacao = m => (modelosIndisponiveis.has(m) || sumiu(m)) ? 'indisponível' : ((pausaAte.get(m) || 0) > agora ? 'em pausa (cota)' : 'ok');
+  const novos = modelosNovosDoGoogle(google, gemini);
   const temClaude = !!process.env.ANTHROPIC_API_KEY;
   const temOpenAI = !!(process.env.OPENAI_API_KEY && process.env.OPENAI_MODELO);
-  const stats = await estatisticasDosModelos(gemini);
+  const stats = await estatisticasDosModelos(gemini.concat(novos), JANELA_HISTORICO_MS);
   const opcoes = [{ valor: 'auto', rotulo: 'Automático — Gemini grátis (padrão)', pago: false, disponivel: true },
     { valor: 'rapido-hoje', rotulo: '⚡ Mais rápido hoje (pela medição das últimas 24 h)', pago: false, disponivel: true }]
     .concat(gemini.map(m => ({ valor: 'gemini:' + m, modelo: m, rotulo: m + (situacao(m) === 'ok' ? '' : ` — ${situacao(m)}`), pago: false, disponivel: situacao(m) !== 'indisponível', stats: stats[m] || null })))
+    .concat(novos.map(m => ({ valor: 'gemini:' + m, modelo: m, rotulo: m + ' — novo, para testar', novo: true, pago: false, disponivel: true, stats: stats[m] || null })))
     .concat(MODELOS_CLAUDE.map(c => ({ valor: c.valor, modelo: modeloDoProvedor(c.valor).modelo, rotulo: c.rotulo + (temClaude ? '' : ' — sem chave'), pago: true, disponivel: temClaude })))
     .concat([{ valor: 'openai', modelo: (process.env.OPENAI_MODELO || '').trim(), rotulo: 'ChatGPT' + (temOpenAI ? ` (${process.env.OPENAI_MODELO})` : ' — configurar OPENAI_API_KEY e OPENAI_MODELO'), pago: true, disponivel: temOpenAI }]);
   return { opcoes };
+}
+
+// Tela "IAs" do menu e bloco do "Copiar tudo para o Claude" (08/11/2026).
+async function painelDasIAs() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const google = apiKey ? await modelosDoGoogle(apiKey) : null;
+  const eventos = await lerHistorico();
+  const s30 = estatisticasDe(eventos, JANELA_HISTORICO_MS);
+  const s24 = estatisticasDe(eventos, DIA_MS);
+  const fila = apiKey ? await ordenarPorDesempenho(listaModelos(), apiKey) : listaModelos();
+  const gemini = ordenarModelos(listaModelos().concat(listaModelosImagem()));
+  const novos = modelosNovosDoGoogle(google, gemini);
+  const pagos = MODELOS_CLAUDE.map(c => modeloDoProvedor(c.valor).modelo)
+    .concat(process.env.OPENAI_MODELO ? [process.env.OPENAI_MODELO.trim()] : []);
+  const todos = Array.from(new Set(fila.concat(gemini, novos, pagos, Object.keys(s30))));
+  const linhas = todos.map(m => {
+    const x = s30[m] || {}, h = s24[m] || {};
+    const sumiu = !!(google && google.lista && google.lista.length && /^gemini-/.test(m) && !google.lista.includes(m));
+    return {
+      modelo: m, nome: nomeLegivelModelo(m),
+      tipo: /^gemini-/.test(m) ? 'grátis' : 'pago',
+      posicaoFila: fila.indexOf(m) >= 0 ? fila.indexOf(m) + 1 : null,
+      situacao: MODELOS_RETIRADOS.has(m) ? 'retirado' : sumiu ? 'sumiu do Google' : novos.includes(m) ? 'novo (testar)' : 'ok',
+      geracoes: x.geracoes || 0, medianaMs: x.medianaMs || null, semAjuste: x.semAjuste === undefined ? null : x.semAjuste,
+      ajustes: x.ajustes || 0, falhas: x.falhas || 0, tempoEsgotado: x.tempoEsgotado || 0, cota: x.cota || 0, outrasFalhas: x.outrasFalhas || 0,
+      taxaFalha: x.taxaFalha || 0, falhas24h: h.falhas || 0, geracoes24h: h.geracoes || 0
+    };
+  }).filter(l => l.geracoes || l.falhas || l.posicaoFila || l.situacao !== 'ok' || l.tipo === 'grátis');
+  const fmt = ms => ms ? (ms / 1000).toFixed(1).replace('.', ',') + ' s' : '-';
+  const dataGoogle = google && google.t ? new Date(google.t).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : 'não conferido';
+  const texto = [
+    '[REVISAO PERIODICA DAS IAs: confira no site do Google (ai.google.dev/gemini-api/docs/deprecations) e da Anthropic',
+    '(docs.claude.com/en/docs/about-claude/models) os lancamentos e desativacoes de modelos. Cruze com o desempenho real',
+    'abaixo e proponha, uma pergunta por vez, mudancas na fila do Automatico (MODELOS_PADRAO e MODELOS_RETIRADOS em',
+    'api/gerar.js), no limite de tempo por modelo (LIMITE_POR_MODELO_MS) e nos modelos pagos (MODELOS_CLAUDE).]',
+    '',
+    `Fila atual do Automático: ${fila.join(' → ') || '-'}`,
+    `Limite por modelo: ${LIMITE_POR_MODELO_MS / 1000} s (o último da fila usa o tempo que sobrar)`,
+    `Última conferência da lista do Google: ${dataGoogle}`,
+    novos.length ? `Modelos novos no Google, ainda fora da fila: ${novos.join(', ')}` : 'Modelos novos no Google: nenhum',
+    '',
+    'Desempenho dos últimos 30 dias (modelo · gerações · tempo mediano · % sem ajuste · falhas: tempo esgotado / cota / outras · falhas 24 h):'
+  ].concat(linhas.map(l => `- ${l.modelo}${l.posicaoFila ? ` (fila ${l.posicaoFila}º)` : ''}${l.situacao !== 'ok' ? ` [${l.situacao}]` : ''} · ${l.geracoes} ger. · ${fmt(l.medianaMs)} · ${l.semAjuste === null ? '-' : l.semAjuste + '%'} · ${l.tempoEsgotado}/${l.cota}/${l.outrasFalhas} · ${l.falhas24h}`)).join('\n');
+  return { fila, limiteMs: LIMITE_POR_MODELO_MS, conferidoGoogle: google && google.t || null, novos, modelos: linhas, textoClaude: texto };
 }
 
 async function chamarModelo(provedor, promptSistema, contents, temperature, apiKey, res, silencioso, modelosPadrao) {
@@ -1228,7 +1588,9 @@ async function chamarModelo(provedor, promptSistema, contents, temperature, apiK
       : await chamarOpenAI(escolha.modelo, promptSistema, contents, res);
     if (texto !== null) return texto;
   }
-  return chamarGemini(promptSistema, contents, temperature, apiKey, res, silencioso, modelosPadrao);
+  // Automático: ordem pelo desempenho real dos últimos 30 dias (08/11/2026). Textos avulsos seguem a fila rápida.
+  const fila = modelosPadrao || await ordenarPorDesempenho(listaModelos(), apiKey).catch(() => listaModelos());
+  return chamarGemini(promptSistema, contents, temperature, apiKey, res, silencioso, fila);
 }
 
 const TIPOS_IMAGEM = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -1341,15 +1703,19 @@ function extrairTexto(data) {
 }
 
 async function chamarGemini(promptSistema, contents, temperature, apiKey, res, silencioso, modelosFixos) {
-  const modelos = modelosFixos || listaModelos();
+  const modelos = (modelosFixos || listaModelos()).filter(m => modelosFixos ? true : !MODELOS_RETIRADOS.has(m));
   let ultimoErro = '';
   let houveSobrecarga = false;
+  res.locals = res.locals || {};
+  if (!res.locals.inicioRequisicao) res.locals.inicioRequisicao = Date.now();
+  const restante = () => ORCAMENTO_TOTAL_MS - (Date.now() - res.locals.inicioRequisicao);
 
-  // Até 2 rodadas: se todos os modelos estiverem sobrecarregados (503/500/504/rede), espera e tenta de novo.
+  // Até 2 rodadas: se todos os modelos estiverem sobrecarregados (503/500/504/rede/tempo), espera e tenta de novo,
+  // mas só se ainda sobrar tempo para uma tentativa decente.
   for (let rodada = 0; rodada < 2; rodada++) {
   if (rodada > 0) {
-    if (!houveSobrecarga) break;
-    await new Promise(r => setTimeout(r, 2500));
+    if (!houveSobrecarga || restante() < 15000) break;
+    await new Promise(r => setTimeout(r, 1500));
     houveSobrecarga = false;
   }
   const agora = Date.now();
@@ -1361,9 +1727,14 @@ async function chamarGemini(promptSistema, contents, temperature, apiKey, res, s
       continue;
     }
 
+    const sobra = restante();
+    if (sobra < 3000) { ultimoErro = 'tempo esgotado'; break; }
+    // Limite por modelo (08/11/2026): se travar, pula para o próximo. O último da fila usa o tempo que sobrar.
+    const limite = ehUltimo ? sobra - 1000 : Math.min(LIMITE_POR_MODELO_MS, sobra - 1000);
+
     let resposta, data;
     try {
-      resposta = await fetch(
+      resposta = await chamarComTempo(
         `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`,
         {
           method: 'POST',
@@ -1373,14 +1744,16 @@ async function chamarGemini(promptSistema, contents, temperature, apiKey, res, s
             contents: contents,
             generationConfig: { temperature: temperature }
           })
-        }
+        },
+        limite
       );
       data = await resposta.json().catch(() => ({}));
     } catch (e) {
-      ultimoErro = e.message || 'falha de rede';
+      const estourou = e && e.name === 'AbortError';
+      ultimoErro = estourou ? `tempo esgotado (${Math.round(limite / 1000)} s)` : (e.message || 'falha de rede');
       houveSobrecarga = true;
-      registrarTentativa(res, modelo, 'falha de rede');
-      console.error(`Gemini ${modelo}: falha de rede`, e);
+      registrarTentativa(res, modelo, estourou ? `tempo esgotado (${Math.round(limite / 1000)} s)` : 'falha de rede');
+      console.error(`Gemini ${modelo}: ${estourou ? 'tempo esgotado' : 'falha de rede'}`, estourou ? '' : e);
       continue;
     }
 
@@ -1417,7 +1790,7 @@ async function chamarGemini(promptSistema, contents, temperature, apiKey, res, s
 
   if (!silencioso) {
     const cota = /quota|exceeded|rate.?limit|resource.?exhausted/i.test(ultimoErro);
-    const sobrecarga = !cota && /high demand|overloaded|unavailable|503|try again/i.test(ultimoErro);
+    const sobrecarga = !cota && /high demand|overloaded|unavailable|503|try again|tempo esgotado/i.test(ultimoErro);
     const espera = (ultimoErro.match(/retry in ([\d.]+)s/i) || [])[1];
     res.status(502).json({
       erro: cota
@@ -1432,6 +1805,7 @@ async function chamarGemini(promptSistema, contents, temperature, apiKey, res, s
 
 function regrasDocumentacao() {
   return `REGRAS DE DOCUMENTAÇÃO — aplicar também ao ajustar um prontuário:
+- IDIOMA (08/11/2026): escreva exclusivamente em português do Brasil. Nunca use palavras em inglês ou espanhol (ex: nunca "adopted", "patient", "limitations"); confira a última frase antes de terminar.
 - CRONOLOGIA E AUTORIA: diferencie o momento do sintoma, o registro inicial e a avaliação atual. "Dor há 6 dias" nos dados atuais é duração da queixa, não prova de uma consulta há 6 dias. Os dados do caso atual pertencem à avaliação atual, salvo indicação explícita de história prévia. O campo de atendimento inicial é um registro anterior, que pode ser de outro profissional e pode ser do mesmo dia; não atribua sua autoria ao médico atual nem invente o autor.
 - Expressões relativas de um registro anterior ("há 40 minutos", "hoje", "ontem", "há um dia") pertencem àquele registro. Preserve a referência: "Conforme registro inicial, havia recebido morfina cerca de 40 minutos antes daquela avaliação". Nunca escreva "há 40 minutos" como se o intervalo fosse contado da reavaliação. Só calcule um novo intervalo se houver datas/horários suficientes; não deduza horários da data do sistema. A mesma regra vale para curativos, medicações e exames.
 - Na reavaliação, prefira a primeira pessoa: "Reavalio paciente com quadro de...". Não use "Paciente reavaliado em atendimento atual devido a...". Não escreva "mantém" ou "persiste" sem suporte nos dados. Separe antecedentes relatados no registro inicial dos achados efetivamente informados na avaliação atual; não copie exame físico anterior como se tivesse sido repetido agora.
@@ -1517,7 +1891,7 @@ function regrasDocumentacao() {
 - EXAME DO RETORNO = ESTADO DE HOJE (24/10/2026): no retorno, o exame físico descreve o paciente de HOJE. Nunca copie achados agudos de atendimentos anteriores (dor intensa, edema, hematoma, equimose, limitação) como se estivessem presentes hoje. Sem achado informado hoje, raciocine pela EVOLUÇÃO ESPERADA (fluxo normal) para o tempo decorrido e o tratamento em curso (ex.: fratura em tratamento conservador com 3 semanas: dor discreta ou ausente, sem edema importante, hematoma já reabsorvido) e escreva o exame compatível com isso. Achado anormal ou patológico só entra se o médico informar.
 - CONDUTA DO r0 (24/10/2026): no retorno "pede RX e reavalia após", a CONDUTA é só a de HOJE (RX, reavaliação após e, se pedido, analgesia ou retirada da imobilização). Nunca copie a conduta de atendimentos anteriores (internação, discussão, relatórios, tipoia, analgesia otimizada) para a conduta de hoje.
 - DATA DO TRAUMA NO RETORNO (24/10/2026): se um atendimento anterior diz "trauma/queda há N dias/semanas", a data do trauma é a data DAQUELE atendimento menos N, não a data do atendimento. Use o TEMPO CALCULADO.
-- ALTA DA ORTOPEDIA COM OUTRA EQUIPE (24/10/2026): quando o médico dá "alta da ortopedia" mas o paciente segue com outra equipe (clínica médica, neurologia etc.), a alta hospitalar NÃO é da ortopedia. A CONDUTA traz "Sem indicação de procedimento ortopédico cirúrgico de urgência no momento ou demais condutas ortopédicas." e "Aguarda reavaliação da clínica médica." (ou da equipe citada), SEM a linha "Alta da ortopedia" e sem "Solicitada avaliação". "Alta da ortopedia" só quando a alta hospitalar for do ortopedista.
+- ALTA DA ORTOPEDIA COM OUTRA EQUIPE (revisado 08/11/2026): quando o médico dá "alta da ortopedia" e encaminha o paciente para outra equipe (clínica médica, neurologia etc.), o caso sai da ortopedia: é alta da ortopedia, e a outra equipe faz TODA a avaliação e a conduta. A CONDUTA traz "Sem indicação de procedimento ortopédico cirúrgico de urgência no momento ou demais condutas ortopédicas.", depois "Alta da ortopedia, com encaminhamento à clínica médica para avaliação e conduta." (acrescente o motivo, se informado, ex: "devido a trauma torácico e TCE"), a analgesia se informada e TODO o respaldo de alta (explicação ao paciente, limite dos exames de imagem, sinais de alarme e ciência). Nunca "Aguarda reavaliação da clínica médica". Exames só entram se o médico escreveu que os pediu: então "Solicitados RX e TC e encaminhado à clínica médica para avaliação e conduta, com alta da ortopedia." Se ele não citou exames, não cite.
 - NEGATIVAS DO TRAUMA DE ENERGIA (24/10/2026): em acidente de moto/carro, atropelamento ou queda, a linha de negativas traz "Nega TCE. Nega perda de consciência." (e, nos acidentes, "Nega dor em outras topografias."), salvo se os dados informarem o contrário.
 - EXAMES SEPARADOS NO EM TEMPO (24/10/2026): RX e TC (ou RM, USG) ficam em frases/parágrafos separados. O RX normal usa a frase padrão de radiografia; a TC/RM traz o tipo, o segmento e a data ("Tomografia computadorizada de bacia de 22/10/2026: ...") e o laudo, se informado. Só junte numa frase o RX sem comentário com outro exame do mesmo segmento quando houver achado (regra de 18/10).
 - TOPOGRAFIA DA DOR (24/10/2026): quando o ponto de dor for uma referência óssea, cite também o segmento e o lado ("dor à palpação na altura do trocanter maior do quadril direito").
@@ -2400,6 +2774,12 @@ function montarPromptUsuario({ tipoAtendimento, dadosCaso, atendimentoInicial, t
     partes.push(`\nRETORNO AMBULATORIAL: na ortopedia não existe alta do seguimento. Todo retorno termina com novo retorno ambulatorial com prazo (o informado pelo médico; se não informado, sinalize no topo). Nunca escreva "alta", "alta do seguimento" ou "alta ambulatorial".`);
   }
 
+  if (tipoAtendimento === 'inicial' && !ehRelato) {
+    partes.push(`\nPEDIDO DE EXAME NO 1º ATENDIMENTO (08/11/2026): pedir exame NÃO é ter o resultado. Se o médico só escreveu o exame (ex: "RX", "RX USG", "RX reaval"), NÃO crie "EM TEMPO" nem descreva resultado: a CONDUTA traz "Solicito" com TODOS os exames citados (ex: "Solicito RX e USG.") e "Reavaliação após o resultado dos exames.". "EM TEMPO" só existe se ele mandou laudo, imagem ou o resultado escrito. "Prescrita analgesia" só se ele escreveu medicação/analgesia.`);
+  }
+  if (tipoAtendimento === 'reavaliacao' && !ehRelato) {
+    partes.push(`\nREAVALIAÇÃO ENXUTA (08/11/2026, prevalece sobre o modelo): não repita o atendimento inicial. Não escreva AP nem EXAME FÍSICO, salvo se os dados de hoje trouxerem algo novo nessas partes (ex: nova alergia, achado diferente no exame) ou se o médico pedir. HDA só se houver informação nova de história nos dados de hoje (ex: "refere agora histórico de celulite prévia"), começando por "Reavalio paciente com quadro de...". Sempre: EM TEMPO com o resultado dos exames e CONDUTA completa.`);
+  }
   if (tipoAtendimento === 'reavaliacao' && atendimentoInicial) {
     partes.push(`\nREGISTRO DO ATENDIMENTO INICIAL (anterior à avaliação atual, possivelmente de outro profissional; intervalos relativos pertencem a este registro, não ao momento atual):\n${atendimentoInicial}`);
   }
@@ -2486,6 +2866,7 @@ function montarPromptSistemaMensagem() {
   return `Você é um assistente do Dr. Matheus, ortopedista do Hospital Sancta Maggiore (HSM) Madrid, e sua função é redigir mensagens padronizadas a partir de dados brutos ou abreviados que ele envia.
 
 REGRAS GERAIS:
+- Escreva exclusivamente em português do Brasil, sem palavras em inglês ou espanhol
 - Interprete dados enviados em formato bruto, abreviado ou desorganizado, e produza a saída padronizada do modelo escolhido
 - Siga EXATAMENTE o layout e o texto fixo do modelo indicado — não invente saudações, despedidas ou frases extras
 - Não invente dados clínicos ou pessoais que não foram informados
@@ -2563,25 +2944,28 @@ Tempo de sala: [tempo de sala]
 CD: [conduta]
 Hospital de origem: [hospital de origem]
 Transferência para Hospital: [hospital de destino]
-Uso de anticoagulante/antiagregante: [Sim/Não]
+Uso de anticoagulante/antiagregante: [nome do medicamento ou Não]
 Uso de marca-passo: [Sim/Não]
 
 REGRAS DESTE MODELO:
-- PACIENTE: use apenas as INICIAIS do nome, separadas por ponto e espaço (ex: "João Carlos Mendes" vira "J. C. M."). Nunca escreva o nome completo neste modelo
+- PACIENTE: use apenas as INICIAIS do nome, separadas por ponto, sem espaço e com ponto final (ex: "João Carlos Mendes" vira "J.C.M."). Se o médico já mandou as iniciais, use-as nesse formato. Nunca escreva o nome completo neste modelo
+- ANTICOAGULANTE/ANTIAGREGANTE: escreva só o nome do medicamento informado (ex: "AAS", "Xarelto", "Clopidogrel"), sem "Sim" e sem explicação entre parênteses. Sem medicamento informado, "Não"
+- MARCA-PASSO: "Sim" ou "Não" conforme informado (padrão Não)
 
 VALORES PADRÃO — esta é uma mensagem padronizada que o médico usa quase sempre da mesma forma. Use estes valores automaticamente, salvo indicação contrária explícita do médico nos dados enviados:
 - Fluxo = URGÊNCIA COMUM (escrito "Fluxo: 🟢 URGÊNCIA COMUM", com a bolinha verde)
 - Tempo de sala = 2h
 - CD = Internação para Tratamento Cirúrgico
-- Transferência para Hospital = HSM Tailândia
+- Hospital de origem = HSM Santiago
+- Transferência para Hospital = HSM Dubai
 - Uso de anticoagulante/antiagregante = Não
 - Uso de marca-passo = Não
 
-HOSPITAL DE ORIGEM — só pode ser um destes dois: HSM Santiago ou HSM SBC. O médico precisa informar qual dos dois. Se ele não informar, NÃO escolha um sozinho: sinalize no aviso do topo (ex: "⚠️ Hospital de origem não informado") e deixe o campo "Hospital de origem: " sem valor no corpo da mensagem.
+HOSPITAL DE ORIGEM E DE DESTINO (08/11/2026): qualquer hospital, PA ou unidade que o médico informar substitui o padrão, escrito com a grafia correta e acentos (ex: "PA BUTANTA" vira "PA Butantã"; "Unidade PS de atendimento: X" é o hospital de origem). Sem informação, use os padrões acima sem aviso.
 
 CAMPOS QUE SEMPRE VARIAM E SÃO OBRIGATÓRIOS (Paciente, Matrícula, Idade, Diagnóstico): se o médico não informar algum destes, NÃO invente e NÃO escreva "NÃO INFORMADO" no corpo — deixe a linha com o campo e o rótulo, mas sem o valor (ex: "Matrícula: "), exatamente como ficaria se o médico tivesse esquecido de preencher à mão. Ao mesmo tempo, sinalize cada campo faltante em uma linha de aviso no topo, para o médico completar antes de enviar. O texto final deve parecer uma ficha preenchida manualmente com uma lacuna esquecida, não um formulário gerado por IA.
 
-Diagnóstico começa com letra minúscula (ex: "Diagnóstico: fratura transtrocanteriana à direita"), exceto siglas. Diagnóstico com precisão anatômica: inclua lateralidade (direita/esquerda) e, quando houver cirurgia prévia relacionada, cite entre parênteses o procedimento e a data no formato MM/AA (ex: "infecção relacionada ao material de síntese (PO osteossíntese patela direita – 07/26)").
+Diagnóstico começa com letra minúscula (ex: "Diagnóstico: fratura transtrocanteriana à direita"), exceto siglas. Diagnóstico com precisão anatômica: inclua lateralidade (direita/esquerda). Use o diagnóstico com as palavras do médico, de forma direta (ex: "bursite infectada do cotovelo direito (após trauma) com falha do tratamento ambulatorial"). Cirurgia prévia, PO e material de síntese SÓ entram se o médico informou cirurgia prévia; nunca suponha implante ou cirurgia. Quando houver cirurgia prévia informada, cite entre parênteses o procedimento e a data no formato MM/AA (ex: "infecção relacionada ao material de síntese (PO osteossíntese patela direita – 07/26)").
 
 Se houver múltiplos pacientes, gere um informativo separado para cada um, separados por uma linha em branco e uma linha com "———".`
   },

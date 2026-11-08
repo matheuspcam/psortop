@@ -1601,6 +1601,15 @@
   .btn-topo.show { display: block; }
   .btn-topo:hover { background: var(--accent); color: #ffffff; }
 
+  /* IAs: desempenho e saldo (08/11/2026) */
+  .link-saldo { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+  .tabela-ias-wrap { overflow-x: auto; }
+  .tabela-ias { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .tabela-ias th, .tabela-ias td { padding: 6px 8px; border-bottom: 1px solid var(--panel-border); text-align: left; white-space: nowrap; }
+  .tabela-ias th { color: var(--ink-dim); font-weight: 600; font-size: 11.5px; }
+  .tabela-ias td.num { text-align: right; font-family: var(--mono); }
+  .tabela-ias .sit { font-size: 11px; color: var(--ink-dim); }
+  .tabela-ias .sit-alerta { color: #b5532c; }
   /* Senhas e links */
   .cofre-item-linha {
     display: flex;
@@ -1664,6 +1673,7 @@
       <button type="button" data-ir="templates"><span class="menu-emoji"><svg class="menu-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></span>Ver templates</button>
       <button type="button" data-ir="imagem"><span class="menu-emoji"><svg class="menu-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 6v12M9 8h6M8.5 11h7M9 14h6"/></svg></span>VAR</button>
       <button type="button" data-ir="transferir"><span class="menu-emoji"><svg class="menu-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6"/></svg></span>Copia e cola</button>
+      <button type="button" data-ir="ias"><span class="menu-emoji"><svg class="menu-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3M12 18v3M4.6 6.6l2.1 2.1M17.3 15.3l2.1 2.1M3 12h3M18 12h3M4.6 17.4l2.1-2.1M17.3 8.7l2.1-2.1"/><circle cx="12" cy="12" r="3.2"/></svg></span>IAs</button>
       <div class="menu-versao" id="menuVersao">Última atualização: carregando...</div>
     </div>
   </header>
@@ -2027,6 +2037,23 @@
     </div>
   </div>
 
+  <div id="abaIAs" class="oculto">
+    <div class="card">
+      <span class="label">Saldo</span>
+      <div class="hint" style="margin-top:0; margin-bottom:12px;">Abre a página de cobrança de cada serviço em nova aba. Faça o login lá para ver o saldo.</div>
+      <div class="transferir-botoes">
+        <a class="btn-gerar-avulso link-saldo" href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener">Claude (API)</a>
+        <a class="btn-gerar-avulso link-saldo" href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener">ChatGPT / OpenAI (API)</a>
+      </div>
+    </div>
+    <div class="card">
+      <span class="label">Desempenho das IAs — últimos 30 dias</span>
+      <div class="hint" id="iasResumo" style="margin-top:0; margin-bottom:10px;">Carregando...</div>
+      <div class="tabela-ias-wrap"><table class="tabela-ias" id="tabelaIAs"></table></div>
+      <div class="hint" style="margin-top:10px;">"% sem ajuste" = gerações que você não precisou ajustar. Falhas = tempo esgotado / cota / outras. A fila do Automático se reordena sozinha por estes dados; a revisão dos modelos vai junto no "Copiar tudo para o Claude" das Sugestões pendentes.</div>
+    </div>
+  </div>
+
   <div id="abaTorre" class="oculto">
     <div class="torre-secoes" id="torreSecoes"></div>
     <div id="torreLista"></div>
@@ -2240,13 +2267,15 @@
   var abaImagem = document.getElementById('abaImagem');
   var abaTransferir = document.getElementById('abaTransferir');
   var abaTorre = document.getElementById('abaTorre');
+  var abaIAs = document.getElementById('abaIAs');
 
   var TITULOS_SECAO = {
     templates: 'Ver templates',
     sugestoes: 'Sugestões pendentes',
     cofre: 'Senhas e links',
     imagem: 'VAR',
-    transferir: 'Copia e cola'
+    transferir: 'Copia e cola',
+    ias: 'IAs — desempenho e saldo'
   };
 
   // ================= CÓPIA PARA O SISTEMA DO HOSPITAL =================
@@ -2805,12 +2834,13 @@
     abaImagem.classList.toggle('oculto', aba !== 'imagem');
     abaTransferir.classList.toggle('oculto', aba !== 'transferir');
     abaTorre.classList.toggle('oculto', aba !== 'torre');
+    abaIAs.classList.toggle('oculto', aba !== 'ias');
 
     // O cofre tranca sempre que se entra ou sai dele: a senha é pedida a cada abertura.
     trancarCofre();
     if (aba === 'cofre') setTimeout(function() { inputSenhaCofre.focus(); }, 50);
 
-    var ehSecundaria = (aba === 'templates' || aba === 'sugestoes' || aba === 'cofre' || aba === 'imagem' || aba === 'transferir');
+    var ehSecundaria = (aba === 'templates' || aba === 'sugestoes' || aba === 'cofre' || aba === 'imagem' || aba === 'transferir' || aba === 'ias');
 
     // Nas secoes secundarias, esconde os botoes grandes e mostra a barra de voltar
     navPrincipal.style.display = ehSecundaria ? 'none' : 'grid';
@@ -2821,7 +2851,8 @@
       navBtns.forEach(function(b) { b.classList.toggle('active', b.dataset.aba === aba); });
     }
 
-    if (aba === 'sugestoes') carregarSugestoesPendentes();
+    if (aba === 'sugestoes') { carregarSugestoesPendentes(); carregarPainelIAs(); }
+    if (aba === 'ias') carregarPainelIAs(true);
     if (aba === 'imagem') carregarStatusIA();
     if (aba === 'torre') torreAbrir();
 
@@ -4815,7 +4846,7 @@
     });
     detalhe.appendChild(lista);
     var legenda = document.createElement('div'); legenda.className = 'legenda-ia';
-    legenda.textContent = 'Verde: usada · Vermelho: falhou · Azul: próxima · tempo e % sem ajuste: últimas 24 h'; detalhe.appendChild(legenda);
+    legenda.textContent = 'Verde: usada · Vermelho: falhou · Azul: próxima · tempo e % sem ajuste: últimos 30 dias'; detalhe.appendChild(legenda);
     el.appendChild(detalhe);
     if (painel.refazer) {
       var box = document.createElement('div'); box.className = 'seletor-ia';
@@ -4835,6 +4866,21 @@
     var painel = { el: el, modelo: modelo, tentativas: tentativas || [], refazer: refazer,
       imagem: !!imagem, selecionado: 'auto', tempoMs: imagem ? 0 : ultimoTempoMs };
     paineisIA.push(painel); desenharPainelIA(painel); carregarStatusIA(true);
+  }
+
+
+  // IA do ajuste (08/11/2026): a escolhida em "Trocar de IA" vale também para o ajuste; sem escolha, o ajuste usa
+  // a mesma IA que gerou o texto (não volta para o seletor de antes da geração).
+  function provedorDoModelo(modelo) {
+    if (!modelo) return '';
+    if (modelo.indexOf('gemini-') === 0) return 'gemini:' + modelo;
+    var o = opcoesIA().find(function(x) { return x.modelo === modelo && x.pago; });
+    return o ? o.valor : '';
+  }
+  function provedorParaAjuste(idsPainel, modeloUsado) {
+    var p = paineisIA.find(function(x) { return idsPainel.indexOf(x.el.id) >= 0 && x.selecionado && x.selecionado !== 'auto'; });
+    if (p) return p.selecionado;
+    return provedorDoModelo(modeloUsado) || '';
   }
 
   function mostrarModeloIA(ids, refazer) {
@@ -5049,10 +5095,13 @@
     spinnerAjuste.classList.add('show');
     erroMsg.classList.remove('show');
 
+    var ultimoModeloGerar = historicoGerar.length ? historicoGerar[historicoGerar.length - 1].modelo : ultimoModeloIA;
     var payloadAjuste = Object.assign({}, ultimoPayloadGerar, {
       resultadoAnterior: ultimoTextoGerar,
       instrucaoAjuste: instrucao
     });
+    var provAjuste = provedorParaAjuste(['modeloIAGerar', 'modeloIAGerarMobile'], ultimoModeloGerar);
+    if (provAjuste) payloadAjuste.provedorFixo = provAjuste;
 
     chamarApi(payloadAjuste).then(function(texto) {
       if (texto !== null && texto !== undefined) {
@@ -5316,6 +5365,10 @@
           "texto": "USO INJETÁVEL\n\n- DEXA-CITONEURIN NFF _______________ 3 AMPOLAS\nAPLICAR 01 AMPOLA VIA INTRAMUSCULAR PROFUNDA A CADA 3 DIAS, EM UM TOTAL DE 3 APLICAÇÕES."
         },
         {
+          "titulo": "Analgesia EV",
+          "texto": "USO INTRAVENOSO — AGORA\n\n- TRAMAL\nTramadol 100mg/2ml ______ 1 ampola\nDiluir em 50ml de soro fisiológico 0,9% e administrar via intravenosa agora.\n\n- TILATIL\nTenoxicam 20mg/2ml ______ 1 ampola\nAdministrar 01 ampola via intravenosa agora.\n\n- DECADRON\nDexametasona 10mg/2,5ml ______ 1 ampola\nAdministrar 01 ampola via intravenosa agora.\n\n- ANSENTRON\nOndansetrona 4mg/2ml ______ 1 ampola\nAdministrar 01 ampola via intravenosa agora."
+        },
+        {
           "titulo": "Crioterapia",
           "texto": "USO TÓPICO\n- REALIZAR COMPRESSA FRIA (GELO) NO LOCAL INDICADO, 3 A 4 VEZES AO DIA, POR 15 A 20 MINUTOS EM CADA APLICAÇÃO, PROTEGENDO A PELE COM PANO OU TOALHA PARA EVITAR CONTATO DIRETO DO GELO COM A PELE."
         },
@@ -5507,7 +5560,8 @@
 
   function chamarApiMsg(payload) {
     erroMsgMensagem.classList.remove('show');
-    payload.provedor = provedorEscolhidoAntes(provedorMsgSel);
+    payload.provedor = payload.provedorFixo || provedorEscolhidoAntes(provedorMsgSel);
+    delete payload.provedorFixo;
     return fetch('/api/gerar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -5605,6 +5659,8 @@
       resultadoAnterior: ultimoTextoMsg,
       instrucaoAjuste: instrucao
     });
+    var provAjusteMsg = provedorParaAjuste(['modeloIAMsg', 'modeloIAMsgMobile'], historicoMsg.length ? historicoMsg[historicoMsg.length - 1].modelo : ultimoModeloIA);
+    if (provAjusteMsg) payloadAjuste.provedorFixo = provAjusteMsg;
 
     chamarApiMsg(payloadAjuste).then(function(texto) {
       if (texto !== null && texto !== undefined) {
@@ -6650,6 +6706,11 @@
       texto += 'Observação do médico:\n' + item.observacao + '\n\n';
     });
 
+    // Revisão periódica das IAs (08/11/2026): vai sempre junto, com o desempenho real dos últimos 30 dias.
+    texto += '\n' + (painelIAsCache && painelIAsCache.textoClaude
+      ? painelIAsCache.textoClaude
+      : '[REVISAO PERIODICA DAS IAs: confira lancamentos e desativacoes de modelos do Google e da Anthropic e proponha ajustes na fila do Automatico em api/gerar.js. Os dados de desempenho nao carregaram desta vez.]') + '\n';
+
     navigator.clipboard.writeText(texto.trim()).then(function() {
       btnCopiarSugestoes.textContent = 'Copiado - cole no chat com o Claude';
       btnCopiarSugestoes.classList.add('copiado');
@@ -6659,6 +6720,57 @@
       }, 2500);
     });
   });
+
+
+  // ===== Tela "IAs": desempenho e saldo (08/11/2026) =====
+  var painelIAsCache = null;
+  var painelIAsCarregando = false;
+  function carregarPainelIAs(forcar) {
+    if (painelIAsCarregando || (painelIAsCache && !forcar)) { if (painelIAsCache) desenharPainelIAs(); return; }
+    painelIAsCarregando = true;
+    fetch('/api/gerar', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: pinAtual, modo: 'painel-ias' }) })
+      .then(function(r) { return r.json(); })
+      .then(function(d) { if (d && d.modelos) { painelIAsCache = d; desenharPainelIAs(); } else throw new Error(); })
+      .catch(function() { var r = document.getElementById('iasResumo'); if (r && !painelIAsCache) r.textContent = 'Falha ao carregar. Verifique a internet e abra de novo.'; })
+      .finally(function() { painelIAsCarregando = false; });
+  }
+  function desenharPainelIAs() {
+    var d = painelIAsCache; if (!d) return;
+    var resumo = document.getElementById('iasResumo');
+    var tabela = document.getElementById('tabelaIAs');
+    if (!resumo || !tabela) return;
+    var conferido = d.conferidoGoogle ? new Date(d.conferidoGoogle).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'ainda não conferida';
+    resumo.innerHTML = '';
+    var l1 = document.createElement('div'); l1.textContent = 'Fila do Automático: ' + (d.fila || []).map(nomeModeloLegivel).join(' → ');
+    var l2 = document.createElement('div'); l2.textContent = 'Limite por modelo: ' + Math.round((d.limiteMs || 0) / 1000) + ' s · lista do Google conferida em ' + conferido;
+    resumo.appendChild(l1); resumo.appendChild(l2);
+    if (d.novos && d.novos.length) {
+      var l3 = document.createElement('div'); l3.className = 'sit-alerta';
+      l3.textContent = 'Novo no Google, para testar no seletor: ' + d.novos.map(nomeModeloLegivel).join(', ');
+      resumo.appendChild(l3);
+    }
+    var fmt = function(ms) { return ms ? (ms / 1000).toFixed(1).replace('.', ',') + ' s' : '-'; };
+    var cab = ['IA', 'Fila', 'Gerações', 'Tempo', '% sem ajuste', 'Falhas', 'Falhas 24 h'];
+    tabela.innerHTML = '';
+    var thead = document.createElement('tr');
+    cab.forEach(function(c) { var th = document.createElement('th'); th.textContent = c; thead.appendChild(th); });
+    tabela.appendChild(thead);
+    (d.modelos || []).forEach(function(m) {
+      var tr = document.createElement('tr');
+      var nome = document.createElement('td');
+      nome.textContent = (m.tipo === 'pago' ? '💲 ' : '') + nomeModeloLegivel(m.modelo);
+      if (m.situacao && m.situacao !== 'ok') {
+        var sit = document.createElement('div'); sit.className = 'sit' + (m.situacao === 'novo (testar)' ? '' : ' sit-alerta'); sit.textContent = m.situacao; nome.appendChild(sit);
+      }
+      tr.appendChild(nome);
+      [m.posicaoFila ? m.posicaoFila + 'º' : '-', String(m.geracoes), fmt(m.medianaMs), m.semAjuste === null ? '-' : m.semAjuste + '%',
+        m.tempoEsgotado + ' / ' + m.cota + ' / ' + m.outrasFalhas, String(m.falhas24h)].forEach(function(v) {
+        var td = document.createElement('td'); td.className = 'num'; td.textContent = v; tr.appendChild(td);
+      });
+      tabela.appendChild(tr);
+    });
+  }
 
   var novaSugestaoManual = document.getElementById('novaSugestaoManual');
   var btnAdicionarSugestaoManual = document.getElementById('btnAdicionarSugestaoManual');
